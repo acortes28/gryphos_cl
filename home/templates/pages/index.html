@@ -1,0 +1,139 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+{% block title %} Gryphos Consulting - Home {% endblock title %}
+{% block body %} class="index-page bg-gray-200" {% endblock body %}
+{% block content %}
+
+</div>
+</div>
+</div>
+<header class="header-2">
+  <div class="page-header min-vh-75 relative" style="background-image: url('{% static 'img/bggryphos.jpg' %}')">
+      <div class="container">
+      <div class="row">
+        <div class="col-lg-7 text-center mx-auto">
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+<div class="card card-body blur shadow-blur mx-4 mt-n6">
+<section class="my-1 py-1 mb-5">
+  <div class="container">
+    <div class="row justify-content-center text-center">
+      <div class="col-lg-6  mt-5">
+        <h2 class="text-dark mb-0">''Innovación, confianza <br> y crecimiento mutuo''</h2>
+        <p class="lead">Nuestros valores</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="row flex-column-reverse flex-md-row">
+      <div class="col-lg-12">
+        <div class="row">
+          <div class="col-lg-9 col-md-6 col-sm-12 col-12 justify-content-center d-flex flex-column">
+            <h2>Qué hacemos</h2>
+            <p class="text-justify mb-2">Transformamos la tecnología en herramientas y estrategias de negocio tangibles y fáciles de entender. Nuestra especialidad se concentra en:</p>
+            <p class=" mb-0"><strong>• RPA: </strong>Automatización eficiente de tareas computacionales rutinarias.<br>
+            <strong>• ERP:</strong> Implementación de Plataformas de Recursos Empresariales.<br>
+            <strong>• NLP:</strong> Análisis avanzado y procesamiento del lenguaje humano.<br><br>
+            </p>
+            <p class="text-justify">Brindamos soluciones innovadoras y eficientes. Nuestro objetivo es añadir valor a nuestros clientes, creando herramientas personalizadas que mejoren la eficacia informática y operativa en la organización y todo tipo de rubro.</p>
+          </div>
+          <div class="col-lg-3 col-md-5 col-sm-12 col-12 d-block">
+            <img src="{% static 'img/logos/logo-white-medium.png' %}" class="img-fluid border-radius-lg align-items-center">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12 d-flex flex-column ">
+        <h3>Nuestro Compromiso</h3>
+        <p>Comprometidos con la excelencia y la innovación, en Gryphos Consulting nos esforzamos por superar las expectativas en cada proyecto, abordando cada desafío con creatividad y una profunda comprensión técnica.</p>
+        <div class="buttons">
+          <a href="{% url 'que-hacemos' %}" class="btn btn-dark mt-4" role="button">Leer más</a>
+          </div>
+        </div>
+      </div>
+    </div>
+</section>
+
+<div class="container">
+  <div class="page-header py-6 py-md-5 my-sm-3 mb-3 border-radius-xl" style="background-image: url('{% static 'img/landscape0.jpg' %}');">
+    <span class="mask bg-gradient-dark"></span>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-6 ms-lg-5">
+          <h1 class="text-white">Quiénes somos</h1>
+          <h4 class="text-white">Fundada por ingenieros civiles industriales...</h4>
+          <p class="lead text-white opacity-8">...de la Universidad de Valparaíso, unidos bajo visiones únicas y métodos innovadores. </p>
+          <p class="text-white opacity-8">Nuestra labor se centra en encontrar el equilibrio perfecto entre desafiar y respetar lo establecido, aprovechando al máximo la diversidad de nuestras habilidades. Creemos firmemente en la sinergia de nuestras diferentes perspectivas para brindar soluciones integrales y efectivas. En cada proyecto, combinamos conocimiento técnico y creatividad para no solo alcanzar, sino superar las expectativas de nuestros clientes.</p>
+          <div class="buttons">
+            <a href="{% url 'quienes-somos' %}" class="btn btn-dark mt-4">Leer más</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="my-5 py-5">
+  <div class="container">
+    <div class="row justify-content-center text-center my-sm-5">
+      <div class="col-lg-6">
+        <h2 class="text-dark mb-4">Hoy es el día para transformar tu visión empresarial en realidad.</h2> <!-- Aumenté el margen inferior a mb-4 -->
+        <p class="lead mt-4">Estamos listos para llevar tu negocio al siguiente nivel, combinando innovación y estrategia para sorprender a tus clientes y destacar en el mercado.</p> <!-- Añadí un margen superior mt-4 -->
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+
+<!--  Plugin for TypedJS, full documentation here: https://github.com/inorganik/CountUp.js -->
+<script src="{% static 'js/plugins/countup.min.js' %}"></script>
+<script src="{% static 'js/plugins/choices.min.js' %}"></script>
+<script src="{% static 'js/plugins/prism.min.js' %}"></script>
+<script src="{% static 'js/plugins/highlight.min.js' %}"></script>
+<!--  Plugin for Parallax, full documentation here: https://github.com/dixonandmoe/rellax -->
+<script src="{% static 'js/plugins/rellax.min.js' %}"></script>
+<!--  Plugin for TiltJS, full documentation here: https://gijsroge.github.io/tilt.js/ -->
+<script src="{% static 'js/plugins/tilt.min.js' %}"></script>
+<!--  Plugin for Selectpicker - ChoicesJS, full documentation here: https://github.com/jshjohnson/Choices -->
+<script src="{% static 'js/plugins/choices.min.js' %}"></script>
+
+
+<script type="text/javascript">
+
+  if (document.getElementById('state1')) {
+    const countUp = new CountUp('state1', document.getElementById("state1").getAttribute("countTo"));
+    if (!countUp.error) {
+      countUp.start();
+    } else {
+      console.error(countUp.error);
+    }
+  }
+  if (document.getElementById('state2')) {
+    const countUp1 = new CountUp('state2', document.getElementById("state2").getAttribute("countTo"));
+    if (!countUp1.error) {
+      countUp1.start();
+    } else {
+      console.error(countUp1.error);
+    }
+  }
+  if (document.getElementById('state3')) {
+    const countUp2 = new CountUp('state3', document.getElementById("state3").getAttribute("countTo"));
+    if (!countUp2.error) {
+      countUp2.start();
+    } else {
+      console.error(countUp2.error);
+    };
+  }
+</script>
+
+{% endblock javascripts %}

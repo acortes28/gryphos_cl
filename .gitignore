@@ -1,0 +1,8 @@
+# Crear .gitignore para un proyecto Django
+echo "*.pyc
+__pycache__/
+.env
+venv/
+staticfiles/
+*.log
+.DS_Store" > .gitignore
