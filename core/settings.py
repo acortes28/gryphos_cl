@@ -147,10 +147,42 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Opción 1: Storage más permisivo
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
-if not DEBUG:
-    WHITENOISE_MANIFEST_STRICT = False  # Ignora archivos faltantes
+# O Opción 2: Storage básico sin compresión
+# STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
+
+# Configuraciones para ignorar errores de archivos faltantes
+WHITENOISE_MANIFEST_STRICT = False
+WHITENOISE_IGNORE_PATTERNS = [
+    '*.svg',
+    'img/*.svg',
+    'css/*.svg',
+]
+
+# Configuración adicional para desarrollo
+if DEBUG:
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_AUTOREFRESH = True
+
+# Configuración para ignorar archivos problemáticos
+STATICFILES_IGNORE_PATTERNS = [
+    '*.svg',
+    'img/*.svg',
+    'css/*.svg',
+    'icon-*.svg',
+    'selector-icons.svg',
+    'icon-addlink.svg',
+    'search.svg',
+    'icon-clock.svg',
+    'icon-calendar.svg',
+    'calendar-icons.svg',
+    'inline-delete.svg',
+    'icon-unknown.svg',
+    'icon-unknown-alt.svg',
+]
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field

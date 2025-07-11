@@ -165,25 +165,17 @@ a.active.selector-chooseall:hover, a.active.selector-clearall:hover {
     cursor: pointer;
 }
 
-a.selector-chooseall {
+/* a.selector-chooseall {
     padding: 0 18px 0 0;
     background: url(../img/selector-icons.svg) right -160px no-repeat;
     cursor: default;
-}
+} */
 
-a.active.selector-chooseall:focus, a.active.selector-chooseall:hover {
-    background-position: 100% -176px;
-}
-
-a.selector-clearall {
+/* a.selector-clearall {
     padding: 0 0 0 18px;
     background: url(../img/selector-icons.svg) 0 -128px no-repeat;
     cursor: default;
-}
-
-a.active.selector-clearall:focus, a.active.selector-clearall:hover {
-    background-position: 0 -144px;
-}
+} */
 
 /* STACKED SELECTORS */
 
@@ -226,45 +218,45 @@ a.active.selector-clearall:focus, a.active.selector-clearall:hover {
     display: none;
 }
 
-.stacked .selector-add {
+/* .stacked .selector-add {
     background: url(../img/selector-icons.svg) 0 -32px no-repeat;
     cursor: default;
-}
+} */
 
-.stacked .active.selector-add {
+/* .stacked .active.selector-add {
     background-position: 0 -48px;
     cursor: pointer;
-}
+} */
 
-.stacked .selector-remove {
+/* .stacked .selector-remove {
     background: url(../img/selector-icons.svg) 0 0 no-repeat;
     cursor: default;
-}
+} */
 
-.stacked .active.selector-remove {
+/* .stacked .active.selector-remove {
     background-position: 0 -16px;
     cursor: pointer;
-}
+} */
 
-.selector .help-icon {
+/* .selector .help-icon {
     background: url(../img/icon-unknown.svg) 0 0 no-repeat;
     display: inline-block;
     vertical-align: middle;
     margin: -2px 0 0 2px;
     width: 13px;
     height: 13px;
-}
+} */
 
-.selector .selector-chosen .help-icon {
+/* .selector .selector-chosen .help-icon {
     background: url(../img/icon-unknown-alt.svg) 0 0 no-repeat;
-}
+} */
 
-.selector .search-label-icon {
+/* .selector .search-label-icon {
     background: url(../img/search.svg) 0 0 no-repeat;
     display: inline-block;
     height: 25px;
     width: 25px;
-}
+} */
 
 /* DATE AND TIME */
 
@@ -305,19 +297,19 @@ table p.datetime {
     overflow: hidden;
 }
 
-.datetimeshortcuts .clock-icon {
+/* .datetimeshortcuts .clock-icon {
     background: url(../img/icon-clock.svg) 0 0 no-repeat;
-}
+} */
 
 .datetimeshortcuts a:focus .clock-icon,
 .datetimeshortcuts a:hover .clock-icon {
     background-position: 0 -16px;
 }
 
-.datetimeshortcuts .date-icon {
+/* .datetimeshortcuts .date-icon {
     background: url(../img/icon-calendar.svg) 0 0 no-repeat;
     top: -1px;
-}
+} */
 
 .datetimeshortcuts a:focus .date-icon,
 .datetimeshortcuts a:hover .date-icon {
@@ -501,25 +493,25 @@ span.clearable-file-input label {
     padding: 0;
 }
 
-.calendarnav-previous {
+/* .calendarnav-previous {
     left: 10px;
     background: url(../img/calendar-icons.svg) 0 0 no-repeat;
-}
+} */
 
-.calendarbox .calendarnav-previous:focus,
+/* .calendarbox .calendarnav-previous:focus,
 .calendarbox .calendarnav-previous:hover {
     background-position: 0 -15px;
-}
+} */
 
-.calendarnav-next {
+/* .calendarnav-next {
     right: 10px;
     background: url(../img/calendar-icons.svg) 0 -30px no-repeat;
-}
+} */
 
-.calendarbox .calendarnav-next:focus,
+/* .calendarbox .calendarnav-next:focus,
 .calendarbox .calendarnav-next:hover {
     background-position: 0 -45px;
-}
+} */
 
 .calendar-cancel {
     margin: 0;
@@ -551,14 +543,14 @@ ul.timelist, .timelist li {
 
 /* EDIT INLINE */
 
-.inline-deletelink {
+/* .inline-deletelink {
     float: right;
     text-indent: -9999px;
     background: url(../img/inline-delete.svg) 0 0 no-repeat;
     width: 16px;
     height: 16px;
     border: 0px none;
-}
+} */
 
 .inline-deletelink:focus, .inline-deletelink:hover {
     cursor: pointer;
