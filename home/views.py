@@ -5,7 +5,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from .models import RegistrationLink
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 import uuid
 
 User = get_user_model()  # Obtener el modelo de usuario personalizado
