@@ -18,18 +18,14 @@ def validate_phone_number(value):
     
     # Patrones válidos para números chilenos
     patterns = [
-        r'^\+569\d{8}$',  # +56912345678
-        r'^569\d{8}$',    # 56912345678
         r'^9\d{8}$',      # 912345678
-        r'^\+56\d{9}$',   # +56123456789
-        r'^56\d{9}$',     # 56123456789
     ]
     
     for pattern in patterns:
         if re.match(pattern, cleaned_value):
             return
     
-    raise ValidationError('Número de teléfono inválido. Debe ser un número chileno válido (ej: +56912345678 o 912345678)')
+    raise ValidationError('Número de teléfono inválido. Debe ser un número válido (ej: 912345678)')
     
 
 class RegistrationForm(UserCreationForm):
@@ -110,15 +106,25 @@ class CursoCapacitacionForm(forms.Form):
             'class': 'form-control',
             'placeholder': ''
         }),
-        validators=[validate_phone_number],
-        label="Teléfono de contacto"
+        label="Teléfono de contacto (opcional)",
+        required=False
+    )
+    
+    correo_contacto = forms.EmailField(
+        max_length=254,
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': ''
+        }),
+        label="Correo de contacto",
+        required=True
     )
     
     curso_interes = forms.ChoiceField(
         choices=CURSOS_CAPACITACION,
         widget=forms.Select(attrs={
             'class': 'form-control',
-            'placeholder': 'Seleccione un curso'
+            'placeholder': ''
         }),
         label="",
         required=True

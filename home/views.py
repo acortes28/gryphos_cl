@@ -111,12 +111,15 @@ def portal_cliente(request):
     return render(request, 'pages/portal-cliente.html')
 
 
-def enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contacto, curso_interes):
+def enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contacto, correo_contacto, curso_interes):
     """
     Función para enviar correo de inscripción al curso de capacitación
     """
     # Obtener el nombre legible del curso
     curso_nombre = dict(CURSOS_CAPACITACION).get(curso_interes, curso_interes)
+    
+    # Manejar teléfono opcional
+    telefono_info = telefono_contacto if telefono_contacto else "No proporcionado"
     
     subject = f'Nueva inscripción para curso de capacitación - {nombre_interesado}'
     message = f"""
@@ -124,7 +127,8 @@ def enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contac
     
     Nombre del interesado: {nombre_interesado}
     Nombre de la empresa: {nombre_empresa}
-    Teléfono de contacto: {telefono_contacto}
+    Teléfono de contacto: {telefono_info}
+    Correo de contacto: {correo_contacto}
     Curso de interés: {curso_nombre}
     
     Este mensaje fue enviado desde el formulario de inscripción de cursos de capacitación.
@@ -154,10 +158,11 @@ def inscripcion_curso(request):
             nombre_interesado = form.cleaned_data['nombre_interesado']
             nombre_empresa = form.cleaned_data['nombre_empresa']
             telefono_contacto = form.cleaned_data['telefono_contacto']
+            correo_contacto = form.cleaned_data['correo_contacto']
             curso_interes = form.cleaned_data['curso_interes']
             
             # Enviar correo
-            if enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contacto, curso_interes):
+            if enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contacto, correo_contacto, curso_interes):
                 messages.success(request, '¡Inscripción enviada exitosamente! Nos pondremos en contacto contigo pronto.')
                 return redirect('inscripcion-curso')
             else:

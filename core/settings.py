@@ -39,7 +39,7 @@ def str2bool(v):
         raise ValueError('Boolean value expected.')
 
 # Enable/Disable DEBUG Mode
-DEBUG = False#str2bool(os.environ.get('DEBUG'))
+DEBUG = False #str2bool(os.environ.get('DEBUG'))
 
 
 print("DEBUG -> " + str(DEBUG))
