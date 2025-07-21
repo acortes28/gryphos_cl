@@ -47,6 +47,9 @@
                 <a href="{% url 'quienes-somos' %}" class="dropdown-item border-radius-md">
                   <span>Quiénes somos</span>
                 </a>
+                <a href="{% url 'inscripcion-curso' %}" class="dropdown-item border-radius-md">
+                  <span>Inscripción de curso de capacitación</span>
+                </a>
                 {% if request.user.is_authenticated %}
                   <h6 class="dropdown-header text-dark font-weight-bolder d-flex align-items-center">
                     Usuario

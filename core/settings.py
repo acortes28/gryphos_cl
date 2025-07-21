@@ -13,8 +13,6 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os, random, string
 from pathlib import Path
 from dotenv import load_dotenv
-from str2bool import str2bool
-import sys
 
 load_dotenv()  # take environment variables from .env.
 
@@ -29,15 +27,44 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 if not SECRET_KEY:
     SECRET_KEY = ''.join(random.choice( string.ascii_lowercase  ) for i in range( 32 ))
 
+# Función para manejar DEBUG dinámicamente
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise ValueError('Boolean value expected.')
+
 # Enable/Disable DEBUG Mode
-DEBUG = True  #str2bool(os.environ.get('DEBUG'))
-#print(' DEBUG -> ' + str(DEBUG) ) 
+DEBUG = False#str2bool(os.environ.get('DEBUG'))
+
+
+print("DEBUG -> " + str(DEBUG))
 
 # Docker HOST
-ALLOWED_HOSTS = ['149.50.141.70', 'gryphos.cl']
+ALLOWED_HOSTS = [
+    '149.50.141.70', 
+    'gryphos.cl',
+    'localhost',
+    '127.0.0.1',
+    '0.0.0.0',
+    '*'
+]
 
 # Add here your deployment HOSTS
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://localhost:5085', 'http://127.0.0.1:8000', 'http://127.0.0.1:5085']
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000', 
+    'http://localhost:5085', 
+    'http://127.0.0.1:8000', 
+    'http://127.0.0.1:5085',
+    'http://localhost',
+    'http://127.0.0.1',
+    'https://gryphos.cl',
+    'http://gryphos.cl'
+]
 
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:    
@@ -122,12 +149,6 @@ else:
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': 'db.postgresql',}}
 
-print("DB Name:", os.getenv('DB_NAME'))
-print("DB User:", os.getenv('DB_USERNAME'))
-print("DB Pass:", os.getenv('DB_PASS'))
-print("DB Host:", os.getenv('DB_HOST'))
-print("DB Port:", os.getenv('DB_PORT'))
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",},
@@ -191,5 +212,40 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/portal-cliente/'
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Configuración de Email
+if DEBUG:
+    # Para desarrollo - muestra correos en consola
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    DEFAULT_FROM_EMAIL = 'contacto@gryphos.cl'
+else:
+    # Para producción - configuración SMTP real
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'mail.gryphos.cl'  # o tu servidor SMTP
+    EMAIL_PORT = 2587
+    EMAIL_USE_TLS = True
+    EMAIL_USE_SSL = False
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'contacto@gryphos.cl')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')  # Contraseña de aplicación
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+    SERVER_EMAIL = EMAIL_HOST_USER
 AUTH_USER_MODEL = 'home.CustomUser'
+
+
+# Configuraciones de seguridad para producción
+if not DEBUG:
+    # Configuraciones de seguridad HTTPS
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 año
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # Configuraciones de cookies seguras
+    SESSION_COOKIE_SECURE = False  # Cambiar a True si usas HTTPS
+    CSRF_COOKIE_SECURE = False     # Cambiar a True si usas HTTPS
+    
+    # Configuración de X-Frame-Options
+    X_FRAME_OPTIONS = 'DENY'
+    
+    # Configuración de referrer policy
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
