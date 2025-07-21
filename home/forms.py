@@ -9,7 +9,6 @@ User = get_user_model()
 
 # Opciones para el campo desplegable de cursos
 CURSOS_CAPACITACION = [
-    ('', 'Seleccione un curso'),
     ('gestion_para_pymes', 'Gestion para PYMES'),
 ]
 
@@ -118,7 +117,8 @@ class CursoCapacitacionForm(forms.Form):
     curso_interes = forms.ChoiceField(
         choices=CURSOS_CAPACITACION,
         widget=forms.Select(attrs={
-            'class': 'form-control'
+            'class': 'form-control',
+            'placeholder': 'Seleccione un curso'
         }),
         label="",
         required=True
