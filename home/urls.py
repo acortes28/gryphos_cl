@@ -32,4 +32,12 @@ urlpatterns = [
     path('accounts/password-reset-complete/', auth_views.PasswordResetCompleteView.as_view(
         template_name='accounts/password_reset_complete.html'
     ), name='password_reset_complete'),
+    path('accounts/activate/<uidb64>/<token>/', views.activate_account, name='activate-account'),
+    
+    # Forum URLs
+    path('forum/', views.forum_list, name='forum_list'),
+    path('forum/post/<int:post_id>/', views.forum_post_detail, name='forum_post_detail'),
+    path('forum/create/', views.forum_create_post, name='forum_create_post'),
+    path('forum/post/<int:post_id>/delete/', views.forum_delete_post, name='forum_delete_post'),
+    path('forum/comment/<int:comment_id>/delete/', views.forum_delete_comment, name='forum_delete_comment'),
 ]

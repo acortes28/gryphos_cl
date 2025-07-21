@@ -1,14 +1,19 @@
 from django.shortcuts import render, redirect
-from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION
+from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink
+from .models import RegistrationLink, Post, Comment
 from django.http import JsonResponse, HttpResponse
 from django.core.mail import send_mail
 from django.contrib import messages
 from django.conf import settings
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.contrib.auth.tokens import default_token_generator
+from django.template.loader import render_to_string
+from django.urls import reverse
 
 User = get_user_model()  # Obtener el modelo de usuario personalizado
 
@@ -19,12 +24,47 @@ def generate_registration_link(request):
     else:
         return JsonResponse({'error': 'Unauthorized'}, status=403)
 
+def enviar_correo_activacion(request, user):
+    """
+    Envía un correo de activación de cuenta al usuario registrado.
+    """
+    token = default_token_generator.make_token(user)
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    activation_link = request.build_absolute_uri(
+        reverse('activate-account', kwargs={'uidb64': uid, 'token': token})
+    )
+    subject = 'Activa tu cuenta en Gryphos Consulting'
+    message = f"""
+Hola {user.username},
+
+Gracias por registrarte en Gryphos Consulting.
+
+Por favor, haz clic en el siguiente enlace para activar tu cuenta:
+{activation_link}
+
+Si no solicitaste este registro, puedes ignorar este correo.
+
+Saludos,
+El equipo de Gryphos
+"""
+    send_mail(
+        subject=subject,
+        message=message,
+        from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'contacto@gryphos.cl',
+        recipient_list=[user.email],
+        fail_silently=False,
+    )
+
+
 def registration(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            print('Account created successfully!')
+            user = form.save(commit=False)
+            user.is_active = False  # Usuario inactivo hasta confirmar correo
+            user.save()
+            enviar_correo_activacion(request, user)
+            messages.success(request, '¡Registro exitoso! Revisa tu correo para activar tu cuenta.')
             return redirect('/accounts/login/')
         else:
             print("Registration failed!")
@@ -35,6 +75,26 @@ def registration(request):
         form = RegistrationForm()
     context = {'form': form}
     return render(request, 'accounts/sign-up.html', context)
+
+
+def activate_account(request, uidb64, token):
+    """
+    Vista para activar la cuenta de usuario desde el link de activación.
+    """
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        user.is_active = True
+        user.save()
+        messages.success(request, '¡Cuenta activada correctamente! Ya puedes iniciar sesión.')
+        return redirect('/accounts/login/')
+    else:
+        messages.error(request, 'El enlace de activación no es válido o ha expirado.')
+        return render(request, 'accounts/activation_invalid.html')
 
 class UserLoginView(auth_views.LoginView):
     template_name = 'accounts/sign-in.html'
@@ -174,3 +234,109 @@ def inscripcion_curso(request):
     
     context = {'form': form}
     return render(request, 'pages/inscripcion-curso.html', context)
+
+
+def forum_list(request):
+    """
+    Vista para listar todos los posts del foro
+    """
+    posts = Post.objects.filter(is_active=True)
+    category_filter = request.GET.get('category')
+    if category_filter:
+        posts = posts.filter(category=category_filter)
+    
+    context = {
+        'posts': posts,
+        'categories': Post.CATEGORY_CHOICES,
+        'current_category': category_filter
+    }
+    return render(request, 'forum/forum_list.html', context)
+
+
+def forum_post_detail(request, post_id):
+    """
+    Vista para ver un post individual y sus comentarios
+    """
+    try:
+        post = Post.objects.get(id=post_id, is_active=True)
+        # Incrementar contador de vistas
+        post.views += 1
+        post.save()
+        
+        comments = post.comments.filter(is_active=True)
+        
+        if request.method == 'POST':
+            comment_form = CommentForm(request.POST)
+            if comment_form.is_valid():
+                comment = comment_form.save(commit=False)
+                comment.post = post
+                comment.author = request.user
+                comment.save()
+                messages.success(request, 'Comentario publicado exitosamente.')
+                return redirect('forum_post_detail', post_id=post.id)
+        else:
+            comment_form = CommentForm()
+        
+        context = {
+            'post': post,
+            'comments': comments,
+            'comment_form': comment_form
+        }
+        return render(request, 'forum/forum_post_detail.html', context)
+        
+    except Post.DoesNotExist:
+        messages.error(request, 'El post no existe.')
+        return redirect('forum_list')
+
+
+@login_required
+def forum_create_post(request):
+    """
+    Vista para crear un nuevo post
+    """
+    if request.method == 'POST':
+        form = PostForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            post.save()
+            messages.success(request, 'Post creado exitosamente.')
+            return redirect('forum_post_detail', post_id=post.id)
+    else:
+        form = PostForm()
+    
+    context = {'form': form}
+    return render(request, 'forum/forum_create_post.html', context)
+
+
+@login_required
+def forum_delete_post(request, post_id):
+    """
+    Vista para eliminar un post (solo el autor puede eliminarlo)
+    """
+    try:
+        post = Post.objects.get(id=post_id, author=request.user)
+        post.is_active = False
+        post.save()
+        messages.success(request, 'Post eliminado exitosamente.')
+    except Post.DoesNotExist:
+        messages.error(request, 'No tienes permisos para eliminar este post.')
+    
+    return redirect('forum_list')
+
+
+@login_required
+def forum_delete_comment(request, comment_id):
+    """
+    Vista para eliminar un comentario (solo el autor puede eliminarlo)
+    """
+    try:
+        comment = Comment.objects.get(id=comment_id, author=request.user)
+        post_id = comment.post.id
+        comment.is_active = False
+        comment.save()
+        messages.success(request, 'Comentario eliminado exitosamente.')
+        return redirect('forum_post_detail', post_id=post_id)
+    except Comment.DoesNotExist:
+        messages.error(request, 'No tienes permisos para eliminar este comentario.')
+        return redirect('forum_list')

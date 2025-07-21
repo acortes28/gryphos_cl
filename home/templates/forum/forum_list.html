@@ -1,0 +1,109 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+
+{% block title %} Foro - Gryphos Consulting {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+
+{% block content %}
+<header class="bg-gradient-dark">
+  <div class="page-header min-vh-50" style="background-image: url('{% static 'img/bggryphos-small.jpg' %}');">
+    <span class="mask bg-gradient-dark opacity-6"></span>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 text-center mx-auto my-auto">
+          <h1 class="text-white">Foro de la Comunidad</h1>
+          <p class="text-white">Comparte ideas, preguntas y experiencias con otros miembros</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="card card-body blur shadow-blur mx-4 mt-n6">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        <!-- Filtros y botón crear -->
+        <div class="row mb-4">
+          <div class="col-md-8">
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{% url 'forum_list' %}" class="btn btn-outline-primary mb-2 {% if not current_category %}active{% endif %}">
+                Todas las categorías
+              </a>
+              {% for category_code, category_name in categories %}
+                <a href="{% url 'forum_list' %}?category={{ category_code }}" 
+                   class="btn btn-outline-primary mb-2 {% if current_category == category_code %}active{% endif %}">
+                  {{ category_name }}
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-4 text-end">
+            <a href="{% url 'forum_create_post' %}" class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i>Nuevo Post
+            </a>
+          </div>
+        </div>
+
+        <!-- Lista de posts -->
+        {% if posts %}
+          {% for post in posts %}
+            <div class="card mb-3">
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-8">
+                    <h5 class="card-title">
+                      <a href="{% url 'forum_post_detail' post.id %}" class="text-decoration-none">
+                        {{ post.title }}
+                      </a>
+                    </h5>
+                    <p class="card-text text-muted">
+                      {{ post.content|truncatewords:30 }}
+                    </p>
+                    <div class="d-flex align-items-center text-muted small">
+                      <span class="me-3">
+                        <i class="fas fa-user me-1"></i>{{ post.author.username }}
+                      </span>
+                      <span class="me-3">
+                        <i class="fas fa-calendar me-1"></i>{{ post.created_at|date:"d/m/Y H:i" }}
+                      </span>
+                      <span class="me-3">
+                        <i class="fas fa-comments me-1"></i>{{ post.get_comment_count }} comentarios
+                      </span>
+                      <span class="me-3">
+                        <i class="fas fa-eye me-1"></i>{{ post.get_view_count }} vistas
+                      </span>
+                      <span class="badge bg-primary">{{ post.get_category_display }}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-4 text-end">
+                    <a href="{% url 'forum_post_detail' post.id %}" class="btn btn-sm btn-outline-primary">
+                      Leer más
+                    </a>
+                    {% if user == post.author %}
+                      <a href="{% url 'forum_delete_post' post.id %}" 
+                         class="btn btn-sm btn-outline-danger"
+                         onclick="return confirm('¿Estás seguro de que quieres eliminar este post?')">
+                        Eliminar
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No hay posts aún</h4>
+            <p class="text-muted">Sé el primero en crear un post y comenzar la conversación.</p>
+            <a href="{% url 'forum_create_post' %}" class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i>Crear primer post
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %} 

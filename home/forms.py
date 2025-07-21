@@ -4,6 +4,7 @@ import re
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from .models import Post, Comment
 
 User = get_user_model()
 
@@ -129,3 +130,44 @@ class CursoCapacitacionForm(forms.Form):
         label="",
         required=True
     )
+
+
+class PostForm(forms.ModelForm):
+    class Meta:
+        model = Post
+        fields = ['title', 'content', 'category']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Título del post'
+            }),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Escribe tu post aquí...'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'form-control'
+            })
+        }
+        labels = {
+            'title': 'Título',
+            'content': 'Contenido',
+            'category': 'Categoría'
+        }
+
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Escribe tu comentario aquí...'
+            })
+        }
+        labels = {
+            'content': 'Comentario'
+        }

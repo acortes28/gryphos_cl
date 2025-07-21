@@ -60,3 +60,48 @@ class RegistrationLink(models.Model):
 
     def __str__(self):
         return str(self.uuid)
+
+class Comment(models.Model):
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'Comentario de {self.author.username} en {self.post.title}'
+
+
+class Post(models.Model):
+    CATEGORY_CHOICES = [
+        ('general', 'General'),
+        ('tecnologia', 'Tecnología'),
+        ('negocios', 'Negocios'),
+        ('consultoria', 'Consultoría'),
+        ('otros', 'Otros'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='general')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    views = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def get_comment_count(self):
+        return self.comments.filter(is_active=True).count()
+
+    def get_view_count(self):
+        return self.views
