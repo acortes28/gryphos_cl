@@ -1,0 +1,49 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+
+{% block title %} Test de Autenticación {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Test de Autenticación</h3>
+                </div>
+                <div class="card-body">
+                    <h4>Estado de la Sesión:</h4>
+                    <ul>
+                        <li><strong>Usuario autenticado:</strong> {{ user_authenticated }}</li>
+                        <li><strong>Usuario:</strong> {{ user }}</li>
+                        <li><strong>Session Key:</strong> {{ session_key }}</li>
+                        <li><strong>Sesión existe:</strong> {{ session_exists }}</li>
+                    </ul>
+                    
+                    <hr>
+                    
+                    <h4>Acciones de Prueba:</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="{% url 'login' %}" class="btn btn-primary w-100 mb-2">Ir al Login</a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{% url 'user_space' %}" class="btn btn-success w-100 mb-2">Portal Cliente</a>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="{% url 'debug_session' %}" class="btn btn-info w-100 mb-2">Debug Session (JSON)</a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="{% url 'logout' %}" class="btn btn-warning w-100 mb-2">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %} 

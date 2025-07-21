@@ -35,3 +35,56 @@ class FixHostHeaderMiddleware:
 
         response = self.get_response(request)
         return response
+
+
+class SessionDebugMiddleware:
+    """
+    Middleware para debuggear problemas de sesión
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if settings.DEBUG:
+            print(f"\n=== DEBUG SESIÓN ===")
+            print(f"Usuario autenticado: {request.user.is_authenticated}")
+            print(f"Usuario: {request.user}")
+            print(f"Session ID: {request.session.session_key}")
+            print(f"Session data: {dict(request.session)}")
+            print(f"Cookies: {request.COOKIES}")
+        
+        response = self.get_response(request)
+        
+        if settings.DEBUG:
+            print(f"Response status: {response.status_code}")
+            if hasattr(response, 'cookies'):
+                print(f"Response cookies: {dict(response.cookies)}")
+        
+        return response
+
+
+class SessionFixMiddleware:
+    """
+    Middleware para forzar la creación de sesiones y mejorar la persistencia
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Forzar creación de sesión si no existe
+        if not request.session.session_key:
+            request.session.create()
+            if settings.DEBUG:
+                print(f"=== SESIÓN CREADA ===")
+                print(f"Nueva session key: {request.session.session_key}")
+        
+        response = self.get_response(request)
+        
+        # Forzar guardado de sesión
+        if request.session.modified:
+            request.session.save()
+            if settings.DEBUG:
+                print(f"=== SESIÓN GUARDADA ===")
+                print(f"Session key: {request.session.session_key}")
+        
+        return response

@@ -13,6 +13,10 @@
         <div class="row justify-content-center">
           <div class="col-lg-8 text-center mx-auto my-auto">
             <h1 class="text-white">Portal de Miembros</h1>
+            <h3 class="text-white mb-0">
+              <i class="fas fa-user-circle me-2"></i>
+              Bienvenido {{ user.get_full_name|default:user.username }}
+            </h3>
           </div>
         </div>
       </div>
@@ -28,7 +32,7 @@
           <ul class="nav nav-pills nav-fill p-1" role="tablist">
             <li class="nav-item">
               <a class="nav-link mb-0 px-0 py-1 active" data-bs-toggle="tab" href="#courses" role="tab" aria-controls="courses" aria-selected="true">
-                Curso
+                Cursos
               </a>
             </li>
             <li class="nav-item">
@@ -42,8 +46,8 @@
               </a>
             </li>
             <li class="nav-item">
-              <a class="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#forum" role="tab" aria-controls="forum" aria-selected="false">
-                Foro
+              <a class="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#blog" role="tab" aria-controls="blog" aria-selected="false">
+                Blog
               </a>
             </li>
           </ul>
@@ -53,6 +57,21 @@
           <!-- Pestaña de Proyectos -->
           <div class="tab-pane fade show active" id="courses" role="tabpanel">
             <!-- Contenido para Proyectos aquí -->
+            {% if cursos_usuario %}
+              <ul class="list-group mb-3">
+                {% for curso in cursos_usuario %}
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>{{ curso.nombre }}</strong><br>
+                      <small>{{ curso.descripcion }}</small>
+                    </div>
+                    <a href="{% url 'forum_list' %}?curso_id={{ curso.id }}" class="btn btn-outline-primary btn-sm">Ir al foro</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="alert alert-info">No tienes cursos asignados actualmente.</div>
+            {% endif %}
           </div>
           <!-- Pestaña de Facturación -->
           <div class="tab-pane fade" id="videollamadas" role="tabpanel">
@@ -71,15 +90,15 @@
           <div class="tab-pane fade" id="organization-info" role="tabpanel">
             <!-- Contenido para Información de la Organización aquí -->
           </div>
-          <!-- Pestaña de Asistente Virtual Izzy -->
-          <div class="tab-pane fade" id="forum" role="tabpanel">
+          <!-- Pestaña de Blog -->
+          <div class="tab-pane fade" id="blog" role="tabpanel">
             <div class="text-center my-4">
-              <h5>Foro de la Comunidad</h5>
-              <p>Comparte ideas, preguntas y experiencias con otros miembros de la comunidad Gryphos.</p>
+              <h5>Blog de Gryphos</h5>
+              <p>Noticias, tutoriales y contenido de valor para nuestra comunidad.</p>
             </div>
             <div class="text-center">
-              <a href="{% url 'forum_list' %}" class="btn btn-primary">
-                <i class="fas fa-comments me-2"></i>Ir al Foro
+              <a href="{% url 'blog_list' %}" class="btn btn-primary">
+                <i class="fas fa-newspaper me-2"></i>Ir al Blog
               </a>
             </div>
           </div>

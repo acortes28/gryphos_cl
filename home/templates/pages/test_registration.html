@@ -1,0 +1,109 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+
+{% block title %} Test de Formulario de Registro {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Test de Formulario de Registro</h3>
+                    <p class="text-muted">Esta página permite probar la validación del formulario de registro sin crear usuarios reales.</p>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="registrationForm">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <div class="form-text text-info">
+                                        <small>{{ field.help_text }}</small>
+                                    </div>
+                                {% endif %}
+                                {% if field.errors %}
+                                    <div class="text-danger">
+                                        {% for error in field.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary">Probar Validación</button>
+                            <a href="{% url 'sign-up' %}" class="btn btn-secondary ms-2">Ir al Registro Real</a>
+                        </div>
+                    </form>
+                    
+                    <div id="result" class="mt-3" style="display: none;">
+                        <div class="alert" id="resultAlert">
+                            <span id="resultMessage"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('registrationForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('{% url "test_registration" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const resultDiv = document.getElementById('result');
+        const resultAlert = document.getElementById('resultAlert');
+        const resultMessage = document.getElementById('resultMessage');
+        
+        resultDiv.style.display = 'block';
+        
+        if (data.valid) {
+            resultAlert.className = 'alert alert-success';
+            resultMessage.textContent = data.message;
+        } else {
+            resultAlert.className = 'alert alert-danger';
+            let errorText = 'Errores de validación:\n';
+            for (const field in data.errors) {
+                errorText += `- ${field}: ${data.errors[field].join(', ')}\n`;
+            }
+            resultMessage.textContent = errorText;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        const resultDiv = document.getElementById('result');
+        const resultAlert = document.getElementById('resultAlert');
+        const resultMessage = document.getElementById('resultMessage');
+        
+        resultDiv.style.display = 'block';
+        resultAlert.className = 'alert alert-danger';
+        resultMessage.textContent = 'Error al procesar el formulario';
+    });
+});
+</script>
+{% endblock content %} 

@@ -26,12 +26,16 @@
         <!-- Filtros y botón crear -->
         <div class="row mb-4">
           <div class="col-md-8">
+            {% if curso_especifico %}
+              <h4>Foro: {{ curso_especifico.nombre }}</h4>
+              <p class="text-muted">{{ curso_especifico.descripcion }}</p>
+            {% endif %}
             <div class="d-flex flex-wrap gap-2">
-              <a href="{% url 'forum_list' %}" class="btn btn-outline-primary mb-2 {% if not current_category %}active{% endif %}">
+              <a href="{% url 'forum_list' %}{% if curso_especifico %}?curso_id={{ curso_especifico.id }}{% endif %}" class="btn btn-outline-primary mb-2 {% if not current_category %}active{% endif %}">
                 Todas las categorías
               </a>
               {% for category_code, category_name in categories %}
-                <a href="{% url 'forum_list' %}?category={{ category_code }}" 
+                <a href="{% url 'forum_list' %}?category={{ category_code }}{% if curso_especifico %}&curso_id={{ curso_especifico.id }}{% endif %}" 
                    class="btn btn-outline-primary mb-2 {% if current_category == category_code %}active{% endif %}">
                   {{ category_name }}
                 </a>
@@ -39,69 +43,57 @@
             </div>
           </div>
           <div class="col-md-4 text-end">
-            <a href="{% url 'forum_create_post' %}" class="btn btn-primary">
-              <i class="fas fa-plus me-2"></i>Nuevo Post
+            <a href="{% url 'user_space' %}" class="btn btn-outline-secondary me-2">
+              <i class="fas fa-home me-2"></i>Volver al inicio
             </a>
+            {% if curso_especifico %}
+              <a href="{% url 'forum_create_post' %}?curso_id={{ curso_especifico.id }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nuevo Post
+              </a>
+            {% else %}
+              <a href="{% url 'forum_create_post' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nuevo Post
+              </a>
+            {% endif %}
           </div>
         </div>
 
-        <!-- Lista de posts -->
-        {% if posts %}
-          {% for post in posts %}
-            <div class="card mb-3">
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-md-8">
-                    <h5 class="card-title">
-                      <a href="{% url 'forum_post_detail' post.id %}" class="text-decoration-none">
-                        {{ post.title }}
-                      </a>
-                    </h5>
-                    <p class="card-text text-muted">
-                      {{ post.content|truncatewords:30 }}
-                    </p>
-                    <div class="d-flex align-items-center text-muted small">
-                      <span class="me-3">
-                        <i class="fas fa-user me-1"></i>{{ post.author.username }}
-                      </span>
-                      <span class="me-3">
-                        <i class="fas fa-calendar me-1"></i>{{ post.created_at|date:"d/m/Y H:i" }}
-                      </span>
-                      <span class="me-3">
-                        <i class="fas fa-comments me-1"></i>{{ post.get_comment_count }} comentarios
-                      </span>
-                      <span class="me-3">
-                        <i class="fas fa-eye me-1"></i>{{ post.get_view_count }} vistas
-                      </span>
-                      <span class="badge bg-primary">{{ post.get_category_display }}</span>
-                    </div>
-                  </div>
-                  <div class="col-md-4 text-end">
-                    <a href="{% url 'forum_post_detail' post.id %}" class="btn btn-sm btn-outline-primary">
-                      Leer más
-                    </a>
-                    {% if user == post.author %}
-                      <a href="{% url 'forum_delete_post' post.id %}" 
-                         class="btn btn-sm btn-outline-danger"
-                         onclick="return confirm('¿Estás seguro de que quieres eliminar este post?')">
-                        Eliminar
-                      </a>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
+        {% if cursos_usuario and cursos_usuario|length > 1 and not curso_especifico %}
+          <form method="get" class="mb-3">
+            <div class="input-group">
+              <select name="curso_id" class="form-select">
+                <option value="">Todos los cursos</option>
+                {% for curso in cursos_usuario %}
+                  <option value="{{ curso.id }}" {% if curso_id|default:'' == curso.id|stringformat:'s' %}selected{% endif %}>{{ curso.nombre }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-primary">Filtrar</button>
             </div>
-          {% endfor %}
-        {% else %}
-          <div class="text-center py-5">
-            <i class="fas fa-comments fa-3x text-muted mb-3"></i>
-            <h4 class="text-muted">No hay posts aún</h4>
-            <p class="text-muted">Sé el primero en crear un post y comenzar la conversación.</p>
-            <a href="{% url 'forum_create_post' %}" class="btn btn-primary">
-              <i class="fas fa-plus me-2"></i>Crear primer post
-            </a>
-          </div>
+          </form>
         {% endif %}
+        <ul class="list-group">
+          {% for post in posts %}
+            <li class="list-group-item">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>{{ post.title }}</strong>
+                  <br>
+                  <small class="text-muted">Curso: {{ post.curso.nombre }}</small>
+                  <br>
+                  <span class="text-muted">Por {{ post.author.username }} | {{ post.created_at|date:"d/m/Y H:i" }}</span>
+                  <br>
+                  <small class="text-muted">
+                    <i class="fas fa-comments me-1"></i>{{ post.get_comment_count }} comentarios
+                    <i class="fas fa-eye ms-3 me-1"></i>{{ post.get_view_count }} vistas
+                  </small>
+                </div>
+                <a href="{% url 'forum_post_detail' post.id %}" class="btn btn-outline-primary btn-sm">Ver</a>
+              </div>
+            </li>
+          {% empty %}
+            <li class="list-group-item">No hay posts en este foro.</li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
   </div>

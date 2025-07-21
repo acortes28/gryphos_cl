@@ -39,7 +39,7 @@ def str2bool(v):
         raise ValueError('Boolean value expected.')
 
 # Enable/Disable DEBUG Mode
-DEBUG = True #str2bool(os.environ.get('DEBUG'))
+DEBUG = False #str2bool(os.environ.get('DEBUG'))
 
 
 print("DEBUG -> " + str(DEBUG))
@@ -91,11 +91,13 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "core.middleware.SessionFixMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.middleware.SessionDebugMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -212,6 +214,32 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/portal-cliente/'
+
+# Configuración de Sesiones
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 86400  # 24 horas en segundos
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = True
+
+# Configuraciones adicionales para mejorar la persistencia de sesiones
+if DEBUG:
+    # En desarrollo, usar configuración más permisiva
+    SESSION_COOKIE_SECURE = False
+    SESSION_COOKIE_SAMESITE = None  # Más permisivo en desarrollo
+    SESSION_COOKIE_HTTPONLY = False  # Permitir acceso desde JavaScript en desarrollo
+else:
+    # En producción, usar configuración más estricta
+    SESSION_COOKIE_SECURE = False  # Cambiar a True si usas HTTPS
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_HTTPONLY = True
+
+# Configuración de Autenticación
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 # Configuración de Email
 if DEBUG:
     # Para desarrollo - muestra correos en consola
@@ -244,8 +272,33 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = False  # Cambiar a True si usas HTTPS
     CSRF_COOKIE_SECURE = False     # Cambiar a True si usas HTTPS
     
+    # Configuraciones adicionales de cookies para producción
+    SESSION_COOKIE_DOMAIN = None  # Permite cookies en subdominios si es necesario
+    SESSION_COOKIE_PATH = '/'
+    
     # Configuración de X-Frame-Options
     X_FRAME_OPTIONS = 'DENY'
     
     # Configuración de referrer policy
     SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+# Configuración de Logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'home.views': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'core.middleware': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}

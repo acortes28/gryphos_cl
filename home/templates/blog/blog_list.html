@@ -1,0 +1,100 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+
+{% block title %} Blog - Gryphos Consulting {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+
+{% block content %}
+<header class="bg-gradient-dark">
+  <div class="page-header min-vh-50" style="background-image: url('{% static 'img/bggryphos-small.jpg' %}');">
+    <span class="mask bg-gradient-dark opacity-6"></span>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 text-center mx-auto my-auto">
+          <h1 class="text-white">Blog de Gryphos</h1>
+          <p class="text-white">Noticias, tutoriales y contenido de valor para nuestra comunidad</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="card card-body blur shadow-blur mx-4 mt-n6">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        <!-- Filtros y botón crear -->
+        <div class="row mb-4">
+          <div class="col-md-8">
+            <div class="d-flex flex-wrap gap-2">
+              <a href="{% url 'blog_list' %}" class="btn btn-outline-primary mb-2 {% if not current_category %}active{% endif %}">
+                Todas las categorías
+              </a>
+              {% for category_code, category_name in categories %}
+                <a href="{% url 'blog_list' %}?category={{ category_code }}" 
+                   class="btn btn-outline-primary mb-2 {% if current_category == category_code %}active{% endif %}">
+                  {{ category_name }}
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="col-md-4 text-end">
+            <a href="{% url 'user_space' %}" class="btn btn-outline-secondary me-2">
+              <i class="fas fa-home me-2"></i>Volver al inicio
+            </a>
+            {% if user.is_staff %}
+              <a href="{% url 'blog_create_post' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nuevo Artículo
+              </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Lista de artículos -->
+        {% if posts %}
+          <div class="row">
+            {% for post in posts %}
+              <div class="col-lg-6 col-md-12 mb-4">
+                <div class="card h-100">
+                  {% if post.featured_image %}
+                    <img src="{{ post.featured_image.url }}" class="card-img-top" alt="{{ post.title }}" style="height: 200px; object-fit: cover;">
+                  {% endif %}
+                  <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <span class="badge bg-primary">{{ post.get_category_display }}</span>
+                      <small class="text-muted">{{ post.created_at|date:"d/m/Y" }}</small>
+                    </div>
+                    <h5 class="card-title">
+                      <a href="{% url 'blog_post_detail' post.id %}" class="text-decoration-none text-dark">
+                        {{ post.title }}
+                      </a>
+                    </h5>
+                    <p class="card-text text-muted">
+                      {{ post.get_excerpt }}
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <small class="text-muted">
+                        <i class="fas fa-user me-1"></i>{{ post.author.username }}
+                        <i class="fas fa-eye ms-3 me-1"></i>{{ post.get_view_count }} vistas
+                      </small>
+                      <a href="{% url 'blog_post_detail' post.id %}" class="btn btn-sm btn-outline-primary">
+                        Leer más
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-newspaper fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No hay artículos aún</h4>
+            <p class="text-muted">Pronto publicaremos contenido de valor para la comunidad.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %} 

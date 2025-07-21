@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from .models import Post, Comment
+from .models import BlogPost
 
 User = get_user_model()
 
@@ -27,6 +28,32 @@ def validate_phone_number(value):
             return
     
     raise ValidationError('Número de teléfono inválido. Debe ser un número válido (ej: 912345678)')
+
+
+def validate_gryphos_email(value):
+    """
+    Valida que el email tenga dominio gryphos.cl
+    """
+    if not value:
+        raise ValidationError('El correo electrónico es obligatorio')
+    
+    # Convertir a minúsculas para la comparación
+    email_lower = value.lower().strip()
+    
+    # Verificar que termine con @gryphos.cl
+    if not email_lower.endswith('@gryphos.cl'):
+        raise ValidationError('Solo se permiten correos electrónicos con dominio @gryphos.cl')
+    
+    # Verificar que tenga un formato válido de email
+    if '@' not in email_lower or email_lower.count('@') != 1:
+        raise ValidationError('Formato de correo electrónico inválido')
+    
+    # Verificar que la parte antes del @ no esté vacía
+    local_part = email_lower.split('@')[0]
+    if not local_part:
+        raise ValidationError('El correo electrónico debe tener un nombre de usuario válido')
+    
+    return value
     
 
 class RegistrationForm(UserCreationForm):
@@ -37,9 +64,27 @@ class RegistrationForm(UserCreationForm):
         }),
         validators=[validate_phone_number],
         label="Número de Teléfono")
+    
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': ''
+        }),
+        validators=[validate_gryphos_email],
+        label="Correo Electrónico",
+        help_text="⚠️ Solo se permiten correos con dominio @gryphos.cl"
+    )
+    
     class Meta:
         model = User
         fields = ('username', 'email', 'phone_number')
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email and User.objects.filter(email=email).exists():
+            raise forms.ValidationError('Ya existe una cuenta registrada con este correo electrónico.')
+        return email
+    
     def __init__(self, *args, **kwargs):
         super(RegistrationForm, self).__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
@@ -64,22 +109,22 @@ class UserPasswordResetForm(PasswordResetForm):
 class UserSetPasswordForm(SetPasswordForm):
     new_password1 = forms.CharField(max_length=50, widget=forms.PasswordInput(attrs={
         'class': 'form-control'
-    }), label="New Password")
+    }), label="Nueva contraseña")
     new_password2 = forms.CharField(max_length=50, widget=forms.PasswordInput(attrs={
         'class': 'form-control'
-    }), label="Confirm New Password")
+    }), label="Confirmar nueva contraseña")
 
     
 class UserPasswordChangeForm(PasswordChangeForm):
     old_password = forms.CharField(max_length=50, widget=forms.PasswordInput(attrs={
         'class': 'form-control'
-    }), label='Old Password')
+    }), label='Contraseña actual')
     new_password1 = forms.CharField(max_length=50, widget=forms.PasswordInput(attrs={
         'class': 'form-control'
-    }), label="New Password")
+    }), label="Nueva contraseña")
     new_password2 = forms.CharField(max_length=50, widget=forms.PasswordInput(attrs={
         'class': 'form-control'
-    }), label="Confirm New Password")
+    }), label="Confirmar nueva contraseña")
 
 
 class CursoCapacitacionForm(forms.Form):
@@ -135,24 +180,26 @@ class CursoCapacitacionForm(forms.Form):
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
-        fields = ['title', 'content', 'category']
+        fields = ['curso', 'title', 'content', 'category']
         widgets = {
+            'curso': forms.Select(attrs={'class': 'form-control'}),
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Título del post'
             }),
             'content': forms.Textarea(attrs={
                 'class': 'form-control',
-                'rows': 5,
-                'placeholder': 'Escribe tu post aquí...'
+                'rows': 8,
+                'placeholder': 'Escribe tu post aquí... Puedes usar HTML básico como <strong>negrita</strong>, <em>cursiva</em>, <u>subrayado</u>, <br> para saltos de línea, etc.'
             }),
             'category': forms.Select(attrs={
                 'class': 'form-control'
             })
         }
         labels = {
+            'curso': 'Curso',
             'title': 'Título',
-            'content': 'Contenido',
+            'content': 'Contenido (HTML permitido)',
             'category': 'Categoría'
         }
 
@@ -170,4 +217,39 @@ class CommentForm(forms.ModelForm):
         }
         labels = {
             'content': 'Comentario'
+        }
+
+
+class BlogPostForm(forms.ModelForm):
+    class Meta:
+        model = BlogPost
+        fields = ['title', 'content', 'category', 'featured_image', 'excerpt']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Título del artículo'
+            }),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 12,
+                'placeholder': 'Escribe tu artículo aquí... Puedes usar HTML básico como <strong>negrita</strong>, <em>cursiva</em>, <u>subrayado</u>, <br> para saltos de línea, etc.'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'featured_image': forms.FileInput(attrs={
+                'class': 'form-control'
+            }),
+            'excerpt': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Resumen del artículo (opcional)'
+            })
+        }
+        labels = {
+            'title': 'Título',
+            'content': 'Contenido (HTML permitido)',
+            'category': 'Categoría',
+            'featured_image': 'Imagen destacada',
+            'excerpt': 'Resumen'
         }

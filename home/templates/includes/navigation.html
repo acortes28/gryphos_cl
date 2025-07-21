@@ -50,6 +50,14 @@
                 <a href="{% url 'inscripcion-curso' %}" class="dropdown-item border-radius-md">
                   <span>Inscripción de curso de capacitación</span>
                 </a>
+                {% if settings.DEBUG %}
+                <a href="{% url 'test_auth' %}" class="dropdown-item border-radius-md">
+                  <span>Test de Autenticación</span>
+                </a>
+                <a href="{% url 'test_registration' %}" class="dropdown-item border-radius-md">
+                  <span>Test de Registro</span>
+                </a>
+                {% endif %}
                 {% if request.user.is_authenticated %}
                   <h6 class="dropdown-header text-dark font-weight-bolder d-flex align-items-center">
                     Usuario

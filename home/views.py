@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect
-from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm
+from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost
 from django.http import JsonResponse, HttpResponse
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -14,6 +14,13 @@ from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.tokens import default_token_generator
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.html import strip_tags
+from django.utils.safestring import mark_safe
+import re
+import logging
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()  # Obtener el modelo de usuario personalizado
 
@@ -60,6 +67,12 @@ def registration(request):
     if request.method == 'POST':
         form = RegistrationForm(request.POST)
         if form.is_valid():
+            # Verificar si el email ya está registrado
+            email = form.cleaned_data['email']
+            if User.objects.filter(email=email).exists():
+                messages.error(request, 'Ya existe una cuenta registrada con este correo electrónico.')
+                return render(request, 'accounts/sign-up.html', {'form': form})
+            
             user = form.save(commit=False)
             user.is_active = False  # Usuario inactivo hasta confirmar correo
             user.save()
@@ -99,11 +112,36 @@ def activate_account(request, uidb64, token):
 class UserLoginView(auth_views.LoginView):
     template_name = 'accounts/sign-in.html'
     form_class = LoginForm
-    success_url = '/'
+    success_url = '/portal-cliente/'
+    
+    def form_valid(self, form):
+        """Override para agregar logging al login exitoso"""
+        response = super().form_valid(form)
+        
+        # Log del login exitoso
+        logger.info(f"Login exitoso para usuario: {form.get_user()}")
+        logger.info(f"Session key después del login: {self.request.session.session_key}")
+        logger.info(f"Usuario autenticado: {self.request.user.is_authenticated}")
+        
+        # Forzar guardado de sesión
+        self.request.session.save()
+        
+        return response
 
 class UserPasswordResetView(auth_views.PasswordResetView):
     template_name = 'accounts/password_reset.html'
     form_class = UserPasswordResetForm
+    
+    def form_valid(self, form):
+        email = form.cleaned_data['email']
+        # Verificar si el email existe en la base de datos
+        if not User.objects.filter(email=email).exists():
+            messages.error(self.request, 'No existe una cuenta registrada con este correo electrónico.')
+            return self.form_invalid(form)
+        
+        # Si el email existe, proceder con el envío
+        messages.success(self.request, 'Se ha enviado un correo con las instrucciones para restablecer tu contraseña.')
+        return super().form_valid(form)
 
 
 class UserPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
@@ -168,7 +206,56 @@ def quienes_somos(request):
 
 @login_required
 def portal_cliente(request):
-    return render(request, 'pages/portal-cliente.html')
+    cursos_usuario = request.user.cursos.all()
+    return render(request, 'pages/portal-cliente.html', {'cursos_usuario': cursos_usuario})
+
+
+def debug_session(request):
+    """
+    Vista de debug para verificar el estado de la sesión
+    """
+    if not settings.DEBUG:
+        return HttpResponse("Debug solo disponible en modo desarrollo", status=403)
+    
+    # Información básica de la sesión
+    session_info = {
+        'session_key': request.session.session_key,
+        'session_exists': request.session.session_key is not None,
+        'session_data': dict(request.session),
+        'session_modified': request.session.modified,
+    }
+    
+    # Información del usuario
+    user_info = {
+        'user_authenticated': request.user.is_authenticated,
+        'user': str(request.user),
+        'user_id': request.user.id if request.user.is_authenticated else None,
+        'user_backend': getattr(request.user, '_auth_user_backend', None),
+    }
+    
+    # Información de cookies
+    cookie_info = {
+        'sessionid': request.COOKIES.get('sessionid'),
+        'csrftoken': request.COOKIES.get('csrftoken'),
+        'all_cookies': dict(request.COOKIES),
+    }
+    
+    # Información de headers
+    headers_info = {
+        'user_agent': request.META.get('HTTP_USER_AGENT'),
+        'referer': request.META.get('HTTP_REFERER'),
+        'host': request.META.get('HTTP_HOST'),
+    }
+    
+    debug_info = {
+        'session': session_info,
+        'user': user_info,
+        'cookies': cookie_info,
+        'headers': headers_info,
+        'timestamp': str(datetime.now()),
+    }
+    
+    return JsonResponse(debug_info, json_dumps_params={'indent': 2})
 
 
 def enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contacto, correo_contacto, curso_interes):
@@ -238,9 +325,30 @@ def inscripcion_curso(request):
 
 def forum_list(request):
     """
-    Vista para listar todos los posts del foro
+    Vista para listar todos los posts del foro, filtrando por curso si corresponde
     """
     posts = Post.objects.filter(is_active=True)
+    cursos_usuario = None
+    curso_id = request.GET.get('curso_id')
+    curso_especifico = None
+    
+    if request.user.is_authenticated:
+        cursos_usuario = request.user.cursos.all()
+        posts = posts.filter(curso__in=cursos_usuario)
+        if curso_id:
+            posts = posts.filter(curso_id=curso_id)
+            try:
+                curso_especifico = Curso.objects.get(id=curso_id)
+            except Curso.DoesNotExist:
+                pass
+    else:
+        if curso_id:
+            posts = posts.filter(curso_id=curso_id)
+            try:
+                curso_especifico = Curso.objects.get(id=curso_id)
+            except Curso.DoesNotExist:
+                pass
+    
     category_filter = request.GET.get('category')
     if category_filter:
         posts = posts.filter(category=category_filter)
@@ -248,7 +356,10 @@ def forum_list(request):
     context = {
         'posts': posts,
         'categories': Post.CATEGORY_CHOICES,
-        'current_category': category_filter
+        'current_category': category_filter,
+        'cursos_usuario': cursos_usuario,
+        'curso_id': curso_id,
+        'curso_especifico': curso_especifico
     }
     return render(request, 'forum/forum_list.html', context)
 
@@ -259,6 +370,13 @@ def forum_post_detail(request, post_id):
     """
     try:
         post = Post.objects.get(id=post_id, is_active=True)
+        
+        # Verificar que el usuario esté inscrito en el curso del post
+        if request.user.is_authenticated and post.curso:
+            if post.curso not in request.user.cursos.all():
+                messages.error(request, 'No tienes acceso a este post. Debes estar inscrito en el curso correspondiente.')
+                return redirect('forum_list')
+        
         # Incrementar contador de vistas
         post.views += 1
         post.save()
@@ -280,7 +398,8 @@ def forum_post_detail(request, post_id):
         context = {
             'post': post,
             'comments': comments,
-            'comment_form': comment_form
+            'comment_form': comment_form,
+            'curso_especifico': post.curso
         }
         return render(request, 'forum/forum_post_detail.html', context)
         
@@ -294,18 +413,57 @@ def forum_create_post(request):
     """
     Vista para crear un nuevo post
     """
+    curso_especifico = None
+    curso_id = request.GET.get('curso_id')
+    
+    if curso_id:
+        try:
+            curso_especifico = Curso.objects.get(id=curso_id)
+            if curso_especifico not in request.user.cursos.all():
+                messages.error(request, 'No tienes acceso a este curso.')
+                return redirect('forum_list')
+        except Curso.DoesNotExist:
+            messages.error(request, 'Curso no encontrado.')
+            return redirect('forum_list')
+    
     if request.method == 'POST':
         form = PostForm(request.POST)
+        if curso_especifico:
+            # Si es un curso específico, no mostrar el campo curso
+            form.fields.pop('curso', None)
+        else:
+            form.fields['curso'].queryset = request.user.cursos.all()
+        
         if form.is_valid():
             post = form.save(commit=False)
             post.author = request.user
+            if curso_especifico:
+                post.curso = curso_especifico
+            
+            # Limpiar y validar HTML
+            content = post.content
+            allowed_tags = ['strong', 'em', 'u', 'b', 'i', 'br', 'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre']
+            allowed_attrs = ['class', 'style']
+            import bleach
+            try:
+                content = bleach.clean(content, tags=allowed_tags, attributes=allowed_attrs, strip=True)
+            except ImportError:
+                import re
+                pattern = re.compile(r'<(?!\/?(?:' + '|'.join(allowed_tags) + r')\b)[^>]+>')
+                content = pattern.sub('', content)
+            post.content = content
             post.save()
             messages.success(request, 'Post creado exitosamente.')
             return redirect('forum_post_detail', post_id=post.id)
     else:
         form = PostForm()
+        if curso_especifico:
+            # Si es un curso específico, no mostrar el campo curso
+            form.fields.pop('curso', None)
+        else:
+            form.fields['curso'].queryset = request.user.cursos.all()
     
-    context = {'form': form}
+    context = {'form': form, 'curso_especifico': curso_especifico}
     return render(request, 'forum/forum_create_post.html', context)
 
 
@@ -340,3 +498,135 @@ def forum_delete_comment(request, comment_id):
     except Comment.DoesNotExist:
         messages.error(request, 'No tienes permisos para eliminar este comentario.')
         return redirect('forum_list')
+
+def test_auth(request):
+    """
+    Vista de prueba para verificar el estado de autenticación
+    """
+    context = {
+        'user_authenticated': request.user.is_authenticated,
+        'user': request.user,
+        'session_key': request.session.session_key,
+        'session_exists': request.session.session_key is not None,
+    }
+    return render(request, 'pages/test_auth.html', context)
+
+def test_registration_form(request):
+    """
+    Vista de prueba para el formulario de registro
+    """
+    if not settings.DEBUG:
+        return HttpResponse("Debug solo disponible en modo desarrollo", status=403)
+    
+    if request.method == 'POST':
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            # No crear el usuario, solo mostrar que es válido
+            return JsonResponse({
+                'valid': True,
+                'message': 'Formulario válido - Usuario no creado (modo prueba)'
+            })
+        else:
+            return JsonResponse({
+                'valid': False,
+                'errors': form.errors
+            })
+    else:
+        form = RegistrationForm()
+    
+    return render(request, 'pages/test_registration.html', {'form': form})
+
+def blog_list(request):
+    """
+    Vista para listar todos los posts del blog
+    """
+    posts = BlogPost.objects.filter(is_active=True)
+    category_filter = request.GET.get('category')
+    if category_filter:
+        posts = posts.filter(category=category_filter)
+    
+    context = {
+        'posts': posts,
+        'categories': BlogPost.CATEGORY_CHOICES,
+        'current_category': category_filter
+    }
+    return render(request, 'blog/blog_list.html', context)
+
+
+def blog_post_detail(request, post_id):
+    """
+    Vista para ver un post individual del blog
+    """
+    try:
+        post = BlogPost.objects.get(id=post_id, is_active=True)
+        # Incrementar contador de vistas
+        post.views += 1
+        post.save()
+        
+        context = {
+            'post': post
+        }
+        return render(request, 'blog/blog_post_detail.html', context)
+        
+    except BlogPost.DoesNotExist:
+        messages.error(request, 'El artículo no existe.')
+        return redirect('blog_list')
+
+
+@login_required
+def blog_create_post(request):
+    """
+    Vista para crear un nuevo post del blog (solo administradores)
+    """
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para crear artículos del blog.')
+        return redirect('blog_list')
+    
+    if request.method == 'POST':
+        form = BlogPostForm(request.POST, request.FILES)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            
+            # Limpiar y validar HTML
+            content = post.content
+            allowed_tags = ['strong', 'em', 'u', 'b', 'i', 'br', 'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'img']
+            allowed_attrs = ['class', 'style', 'src', 'alt', 'width', 'height']
+            
+            import bleach
+            try:
+                content = bleach.clean(content, tags=allowed_tags, attributes=allowed_attrs, strip=True)
+            except ImportError:
+                import re
+                pattern = re.compile(r'<(?!\/?(?:' + '|'.join(allowed_tags) + r')\b)[^>]+>')
+                content = pattern.sub('', content)
+            
+            post.content = content
+            post.save()
+            messages.success(request, 'Artículo publicado exitosamente.')
+            return redirect('blog_post_detail', post_id=post.id)
+    else:
+        form = BlogPostForm()
+    
+    context = {'form': form}
+    return render(request, 'blog/blog_create_post.html', context)
+
+
+@login_required
+def blog_delete_post(request, post_id):
+    """
+    Vista para eliminar un post del blog (solo administradores)
+    """
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para eliminar artículos del blog.')
+        return redirect('blog_list')
+    
+    try:
+        post = BlogPost.objects.get(id=post_id)
+        post.is_active = False
+        post.save()
+        messages.success(request, 'Artículo eliminado exitosamente.')
+    except BlogPost.DoesNotExist:
+        messages.error(request, 'El artículo no existe.')
+    
+    return redirect('blog_list')

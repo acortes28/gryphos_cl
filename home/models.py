@@ -81,10 +81,10 @@ class Post(models.Model):
         ('general', 'General'),
         ('tecnologia', 'Tecnología'),
         ('negocios', 'Negocios'),
-        ('consultoria', 'Consultoría'),
-        ('otros', 'Otros'),
+        ('economia', 'Economía'),
     ]
     
+    curso = models.ForeignKey('Curso', on_delete=models.CASCADE, related_name='posts', null=True, blank=True)
     title = models.CharField(max_length=200)
     content = models.TextField()
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -105,3 +105,50 @@ class Post(models.Model):
 
     def get_view_count(self):
         return self.views
+
+class Curso(models.Model):
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField(blank=True, null=True)
+    fecha_inicio = models.DateField(blank=True, null=True)
+    fecha_fin = models.DateField(blank=True, null=True)
+    activo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.nombre
+
+# Relación muchos a muchos entre usuario y curso
+CustomUser.add_to_class('cursos', models.ManyToManyField('Curso', related_name='usuarios', blank=True))
+
+class BlogPost(models.Model):
+    CATEGORY_CHOICES = [
+        ('noticias', 'Noticias'),
+        ('tutoriales', 'Tutoriales'),
+        ('casos_exito', 'Casos de Éxito'),
+        ('consejos', 'Consejos'),
+        ('eventos', 'Eventos'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='noticias')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    views = models.PositiveIntegerField(default=0)
+    featured_image = models.ImageField(upload_to='blog_images/', blank=True, null=True)
+    excerpt = models.TextField(max_length=300, blank=True, null=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def get_view_count(self):
+        return self.views
+
+    def get_excerpt(self):
+        if self.excerpt:
+            return self.excerpt
+        return self.content[:200] + "..." if len(self.content) > 200 else self.content

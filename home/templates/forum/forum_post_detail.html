@@ -5,16 +5,39 @@
 {% block body %} class="about-us bg-gray-200" {% endblock body %}
 
 {% block content %}
-<div class="container mt-5">
+<style>
+  .forum-form .form-control, .forum-form textarea.form-control, .forum-form select.form-control {
+    border: 1px solid #d2d6da !important;
+    background-color: #fff !important;
+    color: #495057;
+    box-shadow: none;
+  }
+  .forum-form .form-control:focus {
+    border: 1.5px solid #596CFF !important;
+    background-color: #fff !important;
+    box-shadow: 0 0 0 0.1rem rgba(89,108,255,.15);
+  }
+</style>
+<div class="container mt-5 forum-form">
   <div class="row">
     <div class="col-lg-8 mx-auto">
       <!-- Breadcrumb -->
       <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'forum_list' %}">Foro</a></li>
+          <li class="breadcrumb-item"><a href="{% url 'forum_list' %}{% if curso_especifico %}?curso_id={{ curso_especifico.id }}{% endif %}">Foro</a></li>
+          {% if curso_especifico %}
+            <li class="breadcrumb-item">{{ curso_especifico.nombre }}</li>
+          {% endif %}
           <li class="breadcrumb-item active">{{ post.title }}</li>
         </ol>
       </nav>
+
+      <!-- Botón Volver -->
+      <div class="mb-3">
+        <a href="{% url 'forum_list' %}{% if curso_especifico %}?curso_id={{ curso_especifico.id }}{% endif %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-2"></i>Volver al Foro
+        </a>
+      </div>
 
       <!-- Post -->
       <div class="card mb-4">
@@ -33,6 +56,11 @@
                   <i class="fas fa-eye me-1"></i>{{ post.get_view_count }} vistas
                 </span>
                 <span class="badge bg-primary">{{ post.get_category_display }}</span>
+                {% if post.curso %}
+                  <span class="me-3">
+                    <i class="fas fa-graduation-cap me-1"></i>{{ post.curso.nombre }}
+                  </span>
+                {% endif %}
               </div>
             </div>
             {% if user == post.author %}
@@ -45,7 +73,7 @@
           </div>
           
           <div class="card-text">
-            {{ post.content|linebreaks }}
+            {{ post.content|safe }}
           </div>
         </div>
       </div>
@@ -78,6 +106,7 @@
                          class="btn btn-sm btn-outline-danger"
                          onclick="return confirm('¿Estás seguro de que quieres eliminar este comentario?')">
                         <i class="fas fa-trash"></i>
+                        Eliminar
                       </a>
                     {% endif %}
                   </div>

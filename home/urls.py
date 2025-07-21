@@ -12,6 +12,9 @@ urlpatterns = [
 
     # Usuario
     path('portal-cliente/', views.portal_cliente, name='user_space'),
+    path('debug-session/', views.debug_session, name='debug_session'),
+    path('test-auth/', views.test_auth, name='test_auth'),
+    path('test-registration/', views.test_registration_form, name='test_registration'),
 
     # Authentication
     path('generate-registration-link/', views.generate_registration_link, name='generate-registration-link'),
@@ -40,4 +43,10 @@ urlpatterns = [
     path('forum/create/', views.forum_create_post, name='forum_create_post'),
     path('forum/post/<int:post_id>/delete/', views.forum_delete_post, name='forum_delete_post'),
     path('forum/comment/<int:comment_id>/delete/', views.forum_delete_comment, name='forum_delete_comment'),
+    
+    # Blog URLs
+    path('blog/', views.blog_list, name='blog_list'),
+    path('blog/post/<int:post_id>/', views.blog_post_detail, name='blog_post_detail'),
+    path('blog/create/', views.blog_create_post, name='blog_create_post'),
+    path('blog/post/<int:post_id>/delete/', views.blog_delete_post, name='blog_delete_post'),
 ]

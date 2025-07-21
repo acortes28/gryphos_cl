@@ -1,0 +1,82 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+
+{% block title %} {{ post.title }} - Blog {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+
+{% block content %}
+<style>
+  .blog-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 1rem 0;
+  }
+  .blog-content h1, .blog-content h2, .blog-content h3 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
+  .blog-content p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+</style>
+
+<div class="container mt-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <!-- Breadcrumb -->
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{% url 'blog_list' %}">Blog</a></li>
+          <li class="breadcrumb-item active">{{ post.title }}</li>
+        </ol>
+      </nav>
+
+      <!-- Botón Volver -->
+      <div class="mb-3">
+        <a href="{% url 'blog_list' %}" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-2"></i>Volver al Blog
+        </a>
+        {% if user.is_staff %}
+          <a href="{% url 'blog_delete_post' post.id %}" 
+             class="btn btn-outline-danger ms-2"
+             onclick="return confirm('¿Estás seguro de que quieres eliminar este artículo?')">
+            <i class="fas fa-trash me-1"></i>Eliminar
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- Artículo -->
+      <div class="card mb-4">
+        {% if post.featured_image %}
+          <img src="{{ post.featured_image.url }}" class="card-img-top" alt="{{ post.title }}" style="max-height: 400px; object-fit: cover;">
+        {% endif %}
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h1 class="card-title">{{ post.title }}</h1>
+              <div class="d-flex align-items-center text-muted small mb-3">
+                <span class="me-3">
+                  <i class="fas fa-user me-1"></i>{{ post.author.username }}
+                </span>
+                <span class="me-3">
+                  <i class="fas fa-calendar me-1"></i>{{ post.created_at|date:"d/m/Y H:i" }}
+                </span>
+                <span class="me-3">
+                  <i class="fas fa-eye me-1"></i>{{ post.get_view_count }} vistas
+                </span>
+                <span class="badge bg-primary">{{ post.get_category_display }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="blog-content">
+            {{ post.content|safe }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %} 
