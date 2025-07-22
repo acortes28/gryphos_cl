@@ -630,3 +630,17 @@ def blog_delete_post(request, post_id):
         messages.error(request, 'El artículo no existe.')
     
     return redirect('blog_list')
+
+
+def custom_404(request, exception):
+    """
+    Vista personalizada para error 404
+    """
+    return render(request, 'pages/404.html', status=404)
+
+
+def custom_500(request):
+    """
+    Vista personalizada para error 500
+    """
+    return render(request, 'pages/500.html', status=500)
