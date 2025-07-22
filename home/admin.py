@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from django import forms
 from .models import CustomUser
-from .models import Curso, BlogPost
+from .models import Curso, BlogPost, Videollamada
 
 class CustomUserAdmin(BaseUserAdmin):
     form = UserChangeForm
@@ -28,11 +29,53 @@ class CustomUserAdmin(BaseUserAdmin):
     ordering = ('email',)
     filter_horizontal = ('cursos',)
 
+class VideollamadaInline(admin.TabularInline):
+    model = Videollamada
+    extra = 1
+    fields = ('dia_semana', 'hora_inicio', 'hora_fin', 'link_videollamada', 'activa', 'descripcion')
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        form = formset.form
+        
+        # Hacer el enlace requerido si la videollamada está activa
+        def clean_link_videollamada(self):
+            link = self.cleaned_data.get('link_videollamada')
+            activa = self.cleaned_data.get('activa')
+            if activa and not link:
+                raise forms.ValidationError('Una videollamada activa debe tener un enlace configurado.')
+            return link
+        
+        form.clean_link_videollamada = clean_link_videollamada
+        return formset
+
+class CursoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'docente_nombre', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
+    list_filter = ('activo', 'modalidad', 'nivel', 'fecha_inicio')
+    search_fields = ('nombre', 'docente_nombre', 'descripcion')
+    inlines = [VideollamadaInline]
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('nombre', 'descripcion', 'activo')
+        }),
+        ('Fechas', {
+            'fields': ('fecha_inicio', 'fecha_fin')
+        }),
+        ('Información del Docente', {
+            'fields': ('docente_nombre', 'docente_titulos', 'docente_trayectoria', 'docente_foto')
+        }),
+        ('Detalles del Curso', {
+            'fields': ('duracion', 'modalidad', 'nivel', 'requisitos')
+        }),
+        ('Material del Curso', {
+            'fields': ('material_introductorio', 'material_curso', 'archivo_introductorio', 'archivo_curso')
+        }),
+    )
+
 class BlogPostAdmin(admin.ModelAdmin):
     list_display = ('title', 'author', 'category', 'created_at', 'is_active', 'views')
     list_filter = ('category', 'is_active', 'created_at')
-    search_fields = ('title', 'content')
-    readonly_fields = ('views', 'created_at', 'updated_at')
+    search_fields = ('title', 'content', 'author__username')
     prepopulated_fields = {'excerpt': ('title',)}
     
     def save_model(self, request, obj, form, change):
@@ -40,7 +83,14 @@ class BlogPostAdmin(admin.ModelAdmin):
             obj.author = request.user
         super().save_model(request, obj, form, change)
 
+class VideollamadaAdmin(admin.ModelAdmin):
+    list_display = ('curso', 'dia_semana', 'hora_inicio', 'hora_fin', 'activa', 'descripcion')
+    list_filter = ('activa', 'dia_semana', 'curso')
+    search_fields = ('curso__nombre', 'descripcion')
+    ordering = ('curso', 'dia_semana', 'hora_inicio')
+
 # Registra tu modelo personalizado y la clase UserAdmin personalizada
 admin.site.register(CustomUser, CustomUserAdmin)
-admin.site.register(Curso)
+admin.site.register(Curso, CursoAdmin)
 admin.site.register(BlogPost, BlogPostAdmin)
+admin.site.register(Videollamada, VideollamadaAdmin)
