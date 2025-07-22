@@ -207,7 +207,10 @@ def quienes_somos(request):
 @login_required
 def portal_cliente(request):
     cursos_usuario = request.user.cursos.all()
-    return render(request, 'pages/portal-cliente.html', {'cursos_usuario': cursos_usuario})
+    
+    return render(request, 'pages/portal-cliente.html', {
+        'cursos_usuario': cursos_usuario
+    })
 
 
 def debug_session(request):
@@ -630,6 +633,29 @@ def blog_delete_post(request, post_id):
         messages.error(request, 'El artículo no existe.')
     
     return redirect('blog_list')
+
+
+@login_required
+def curso_detail(request, curso_id):
+    """
+    Vista para mostrar el detalle completo de un curso
+    """
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            messages.error(request, 'No tienes acceso a este curso. Debes estar inscrito para ver su contenido.')
+            return redirect('user_space')
+        
+        context = {
+            'curso': curso,
+        }
+        return render(request, 'pages/curso_detail.html', context)
+        
+    except Curso.DoesNotExist:
+        messages.error(request, 'El curso no existe o no está disponible.')
+        return redirect('user_space')
 
 
 def custom_404(request, exception):

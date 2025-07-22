@@ -37,6 +37,9 @@ urlpatterns = [
     ), name='password_reset_complete'),
     path('accounts/activate/<uidb64>/<token>/', views.activate_account, name='activate-account'),
     
+    # Curso URLs
+    path('curso/<int:curso_id>/', views.curso_detail, name='curso_detail'),
+    
     # Forum URLs
     path('forum/', views.forum_list, name='forum_list'),
     path('forum/post/<int:post_id>/', views.forum_post_detail, name='forum_post_detail'),
