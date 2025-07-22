@@ -1,0 +1,38 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+
+{% block title %} Error del servidor - Gryphos CL {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="row">
+    <div class="col-lg-8 mx-auto text-center">
+      <div class="card">
+        <div class="card-body">
+          <h1 class="display-1 text-danger">500</h1>
+          <h2 class="mb-4">Error del servidor</h2>
+          <p class="lead mb-4">
+            Lo sentimos, ha ocurrido un error interno en el servidor. 
+            Nuestro equipo técnico ha sido notificado del problema.
+          </p>
+          <p class="text-muted mb-4">
+            Si el problema persiste, por favor contacta a nuestro soporte técnico.
+          </p>
+          <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'index' %}" class="btn btn-primary">
+              <i class="fas fa-home me-2"></i>Ir al inicio
+            </a>
+            <a href="javascript:history.back()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-2"></i>Volver atrás
+            </a>
+            <a href="mailto:contacto@gryphos.cl" class="btn btn-outline-info">
+              <i class="fas fa-envelope me-2"></i>Contactar soporte
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %} 
