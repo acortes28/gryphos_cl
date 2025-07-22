@@ -74,22 +74,10 @@
                         <i class="fas fa-comments me-1"></i>Ir al foro
                       </a>
                       {% for videollamada in curso.videollamadas.all %}
-                        {% if videollamada.activa %}
-                          {% if videollamada.link_videollamada %}
-                            {% if videollamada.esta_activa_ahora %}
-                              <a href="{{ videollamada.link_videollamada }}" target="_blank" class="btn btn-success btn-sm">
-                                <i class="fas fa-video me-1"></i>Ir a la videollamada
-                              </a>
-                            {% else %}
-                              <button class="btn btn-outline-secondary btn-sm" disabled title="Próxima videollamada: {{ videollamada.get_dia_semana_display }} {{ videollamada.hora_inicio|time:'H:i' }} - {{ videollamada.hora_fin|time:'H:i' }}">
-                                <i class="fas fa-clock me-1"></i>Videollamada
-                              </button>
-                            {% endif %}
-                          {% else %}
-                            <button class="btn btn-outline-warning btn-sm" disabled title="Enlace no configurado">
-                              <i class="fas fa-exclamation-triangle me-1"></i>Sin enlace
-                            </button>
-                          {% endif %}
+                        {% if videollamada.activa and videollamada.link_videollamada and videollamada.esta_activa_ahora %}
+                          <a href="{{ videollamada.link_videollamada }}" target="_blank" class="btn btn-success btn-sm">
+                            <i class="fas fa-video me-1"></i>Ir a la videollamada
+                          </a>
                         {% endif %}
                       {% endfor %}
                     </div>
