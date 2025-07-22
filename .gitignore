@@ -6,3 +6,4 @@ venv/
 staticfiles/
 *.log
 .DS_Store" > .gitignore
+blog_images/
