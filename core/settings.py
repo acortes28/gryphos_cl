@@ -39,7 +39,7 @@ def str2bool(v):
         raise ValueError('Boolean value expected.')
 
 # Enable/Disable DEBUG Mode
-DEBUG = False #str2bool(os.environ.get('DEBUG'))
+DEBUG = False  
 
 
 print("DEBUG -> " + str(DEBUG))
@@ -89,7 +89,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "core.middleware.FixHostHeaderMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  
     "django.contrib.sessions.middleware.SessionMiddleware",
     "core.middleware.SessionFixMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -170,24 +170,12 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
-# Opción 1: Storage más permisivo
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+# Configuración para archivos de medios (imágenes subidas)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# O Opción 2: Storage básico sin compresión
-# STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
-
-# Configuraciones para ignorar errores de archivos faltantes
-WHITENOISE_MANIFEST_STRICT = False
-WHITENOISE_IGNORE_PATTERNS = [
-    '*.svg',
-    'img/*.svg',
-    'css/*.svg',
-]
-
-# Configuración adicional para desarrollo
-if DEBUG:
-    WHITENOISE_USE_FINDERS = True
-    WHITENOISE_AUTOREFRESH = True
+# Configuración de archivos estáticos simplificada
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # Configuración para ignorar archivos problemáticos
 STATICFILES_IGNORE_PATTERNS = [
