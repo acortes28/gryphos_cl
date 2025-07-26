@@ -275,19 +275,60 @@ if not DEBUG:
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'logs/gryphos.log',
+            'formatter': 'verbose',
+            'mode': 'a',
+        },
+        'error_file': {
+            'class': 'logging.FileHandler',
+            'filename': 'logs/gryphos_error.log',
+            'formatter': 'verbose',
+            'mode': 'a',
+            'level': 'ERROR',
         },
     },
     'loggers': {
-        'home.views': {
-            'handlers': ['console'],
+        'django': {
+            'handlers': ['console', 'file', 'error_file'],
             'level': 'INFO',
+            'propagate': True,
+        },
+        'home': {
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'home.views': {
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'home.middleware': {
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'DEBUG',
+            'propagate': True,
         },
         'core.middleware': {
-            'handlers': ['console'],
-            'level': 'INFO',
+            'handlers': ['console', 'file', 'error_file'],
+            'level': 'DEBUG',
+            'propagate': True,
         },
     },
 }

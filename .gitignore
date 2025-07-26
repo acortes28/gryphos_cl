@@ -8,3 +8,5 @@ staticfiles/
 .DS_Store" > .gitignore
 blog_images/
 media/
+logs/*.log
+*.sh

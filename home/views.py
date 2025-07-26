@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect
+import time
 from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
@@ -18,6 +19,7 @@ from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
 import re
 import logging
+import traceback
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -229,11 +231,47 @@ def quienes_somos(request):
 
 @login_required
 def portal_cliente(request):
-    cursos_usuario = request.user.cursos.all()
+    logger.info(f"Acceso al portal del cliente - Usuario: {request.user.username}")
+    logger.debug(f"Request method: {request.method}")
+    logger.debug(f"Request path: {request.path}")
+    logger.debug(f"Request GET params: {request.GET}")
+    logger.debug(f"Request POST params: {request.POST}")
     
-    return render(request, 'pages/portal-cliente.html', {
-        'cursos_usuario': cursos_usuario
-    })
+    try:
+        logger.debug("Obteniendo cursos del usuario...")
+        cursos_usuario = request.user.cursos.all()
+        logger.debug(f"Usuario {request.user.username} tiene {cursos_usuario.count()} cursos")
+        
+        # Log detallado de los cursos
+        for curso in cursos_usuario:
+            logger.debug(f"Curso: {curso.nombre} (ID: {curso.id})")
+            logger.debug(f"  - Videollamadas: {curso.videollamadas.count()}")
+            for v in curso.videollamadas.all():
+                logger.debug(f"    * Videollamada: {v} (activa: {v.activa})")
+        
+        context = {
+            'cursos_usuario': cursos_usuario,
+            'request': request
+        }
+        
+        logger.debug(f"Contexto preparado para portal del cliente")
+        logger.debug(f"Template a renderizar: pages/portal-cliente.html")
+        
+        # Intentar renderizar el template
+        logger.debug("Iniciando renderizado del template...")
+        response = render(request, 'pages/portal-cliente.html', context)
+        logger.debug(f"Template renderizado exitosamente")
+        logger.debug(f"Response status: {getattr(response, 'status_code', 'N/A')}")
+        logger.debug(f"Response content length: {len(response.content) if hasattr(response, 'content') else 'N/A'}")
+        
+        logger.info(f"Portal del cliente renderizado exitosamente para {request.user.username}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error en portal_cliente para usuario {request.user.username}: {str(e)}")
+        logger.error(f"Tipo de error: {type(e).__name__}")
+        logger.error(f"Traceback completo: {traceback.format_exc()}")
+        raise
 
 
 def debug_session(request):

@@ -19,26 +19,28 @@
                 <h6 class="dropdown-header text-dark font-weight-bolder d-flex align-items-center">
                   Portal
                 </h6>
-                {% admin_get_menu as app_list %}
-                {% if app_list %}
-                  {% for app in app_list %}
-                    {% if app.has_perms and not app.pinned %}
-                      <a href="{{ app.url }}" class="dropdown-item border-radius-md">
-                        <span>{{ app.label|slice:10 }}{% if app.label|length > 10 %}..{% endif %}</span>
-                      </a>
-                      {% if app.models %}
-                        {% for model in app.models %}
-                          {% if model.url %}
-                            <a class="dropdown-item ms-0" href="{{ model.url }}">
-                              {{ model.label }}
-                            </a>
-                          {% else %}
-                            <span class="dropdown-item ms-0 disabled">{{ model.label }}</span>
-                          {% endif %}
-                        {% endfor %}
+                {% if request.user.is_superuser %}
+                  {% admin_get_menu as app_list %}
+                  {% if app_list %}
+                    {% for app in app_list %}
+                      {% if app.has_perms and not app.pinned %}
+                        <a href="{{ app.url }}" class="dropdown-item border-radius-md">
+                          <span>{{ app.label|slice:10 }}{% if app.label|length > 10 %}..{% endif %}</span>
+                        </a>
+                        {% if app.models %}
+                          {% for model in app.models %}
+                            {% if model.url %}
+                              <a class="dropdown-item ms-0" href="{{ model.url }}">
+                                {{ model.label }}
+                              </a>
+                            {% else %}
+                              <span class="dropdown-item ms-0 disabled">{{ model.label }}</span>
+                            {% endif %}
+                          {% endfor %}
+                        {% endif %}
                       {% endif %}
-                    {% endif %}
-                  {% endfor %}
+                    {% endfor %}
+                  {% endif %}
                 {% endif %}
                 <!-- Additional items for different user states and general navigation -->
                 <a href="{% url 'que-hacemos' %}" class="dropdown-item border-radius-md">

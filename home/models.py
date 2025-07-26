@@ -226,15 +226,56 @@ class Videollamada(models.Model):
         """Verifica si la videollamada está activa en el momento actual"""
         from django.utils import timezone
         from datetime import datetime, time
+        import logging
+        import traceback
         
-        # Usar la zona horaria configurada en Django
-        ahora = timezone.localtime(timezone.now())
-        hora_actual = ahora.time()
-        dia_actual = ahora.weekday()
+        logger = logging.getLogger('home.models')
         
-        return (self.activa and 
-                dia_actual == self.dia_semana and 
-                self.hora_inicio <= hora_actual <= self.hora_fin)
+        try:
+            logger.debug(f"Iniciando esta_activa_ahora para videollamada {self.id}")
+            
+            # Verificar que los campos necesarios existan
+            if not hasattr(self, 'activa'):
+                logger.error(f"Videollamada {self.id} no tiene campo 'activa'")
+                return False
+                
+            if not hasattr(self, 'dia_semana'):
+                logger.error(f"Videollamada {self.id} no tiene campo 'dia_semana'")
+                return False
+                
+            if not hasattr(self, 'hora_inicio'):
+                logger.error(f"Videollamada {self.id} no tiene campo 'hora_inicio'")
+                return False
+                
+            if not hasattr(self, 'hora_fin'):
+                logger.error(f"Videollamada {self.id} no tiene campo 'hora_fin'")
+                return False
+            
+            # Usar la zona horaria configurada en Django
+            logger.debug("Obteniendo tiempo actual...")
+            ahora = timezone.localtime(timezone.now())
+            hora_actual = ahora.time()
+            dia_actual = ahora.weekday()
+            
+            logger.debug(f"Videollamada {self.id}: activa={self.activa}, dia_semana={self.dia_semana}, dia_actual={dia_actual}, hora_inicio={self.hora_inicio}, hora_fin={self.hora_fin}, hora_actual={hora_actual}")
+            
+            # Verificar cada condición por separado
+            condicion_activa = self.activa
+            condicion_dia = dia_actual == self.dia_semana
+            condicion_hora = self.hora_inicio <= hora_actual <= self.hora_fin
+            
+            logger.debug(f"Condiciones: activa={condicion_activa}, dia={condicion_dia}, hora={condicion_hora}")
+            
+            resultado = (condicion_activa and condicion_dia and condicion_hora)
+            
+            logger.debug(f"Videollamada {self.id} esta_activa_ahora: {resultado}")
+            return resultado
+            
+        except Exception as e:
+            logger.error(f"Error en esta_activa_ahora para videollamada {self.id}: {str(e)}")
+            logger.error(f"Tipo de error: {type(e).__name__}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
+            return False
     
     def clean(self):
         """Validación personalizada del modelo"""
