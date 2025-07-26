@@ -55,6 +55,96 @@
   {% include 'includes/scripts.html' %}
 
   {% block javascripts %}{% endblock javascripts %}
+  
+  <!-- Script para manejo de timeout de sesión -->
+  <script>
+    // Configuración de timeout de sesión (1 hora = 3600000 ms)
+    const SESSION_TIMEOUT = 3600000; // 1 hora en milisegundos
+    const WARNING_TIME = 300000; // 5 minutos antes de expirar
+    
+    let sessionTimer;
+    let warningTimer;
+    
+    function resetSessionTimer() {
+      // Limpiar timers existentes
+      if (sessionTimer) clearTimeout(sessionTimer);
+      if (warningTimer) clearTimeout(warningTimer);
+      
+      // Configurar timer de advertencia (5 minutos antes)
+      warningTimer = setTimeout(() => {
+        showSessionWarning();
+      }, SESSION_TIMEOUT - WARNING_TIME);
+      
+      // Configurar timer de expiración
+      sessionTimer = setTimeout(() => {
+        showSessionExpired();
+      }, SESSION_TIMEOUT);
+    }
+    
+    function showSessionWarning() {
+      // Crear notificación de advertencia
+      const warningDiv = document.createElement('div');
+      warningDiv.id = 'session-warning';
+      warningDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #ff9800;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 9999;
+        max-width: 300px;
+        font-size: 14px;
+      `;
+      warningDiv.innerHTML = `
+        <strong>⚠️ Sesión por expirar</strong><br>
+        Tu sesión expirará en 5 minutos por inactividad.<br>
+        <button onclick="extendSession()" style="margin-top: 10px; padding: 5px 10px; background: white; color: #ff9800; border: none; border-radius: 3px; cursor: pointer;">
+          Mantener sesión
+        </button>
+        <button onclick="closeWarning()" style="margin-top: 10px; margin-left: 5px; padding: 5px 10px; background: transparent; color: white; border: 1px solid white; border-radius: 3px; cursor: pointer;">
+          Cerrar
+        </button>
+      `;
+      document.body.appendChild(warningDiv);
+    }
+    
+    function showSessionExpired() {
+      // Redirigir a login cuando expire la sesión
+      window.location.href = '/accounts/login/?expired=true';
+    }
+    
+    function extendSession() {
+      // Hacer una petición AJAX para extender la sesión
+      fetch('/extend-session/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+        },
+      }).then(() => {
+        closeWarning();
+        resetSessionTimer();
+      });
+    }
+    
+    function closeWarning() {
+      const warning = document.getElementById('session-warning');
+      if (warning) {
+        warning.remove();
+      }
+    }
+    
+    // Reiniciar timer en cualquier interacción del usuario
+    document.addEventListener('click', resetSessionTimer);
+    document.addEventListener('keypress', resetSessionTimer);
+    document.addEventListener('scroll', resetSessionTimer);
+    document.addEventListener('mousemove', resetSessionTimer);
+    
+    // Inicializar timer cuando se carga la página
+    document.addEventListener('DOMContentLoaded', resetSessionTimer);
+  </script>
 
 </body>
 </html>

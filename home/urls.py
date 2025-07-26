@@ -52,4 +52,7 @@ urlpatterns = [
     path('blog/post/<int:post_id>/', views.blog_post_detail, name='blog_post_detail'),
     path('blog/create/', views.blog_create_post, name='blog_create_post'),
     path('blog/post/<int:post_id>/delete/', views.blog_delete_post, name='blog_delete_post'),
+    
+    # Session management
+    path('extend-session/', views.extend_session, name='extend_session'),
 ]

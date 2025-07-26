@@ -5,14 +5,12 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from .models import Post, Comment
-from .models import BlogPost
+from .models import BlogPost, Curso
 
 User = get_user_model()
 
 # Opciones para el campo desplegable de cursos
-CURSOS_CAPACITACION = [
-    ('gestion_para_pymes', 'Gestion para PYMES'),
-]
+CURSOS_CAPACITACION = [(curso.id, curso.nombre) for curso in Curso.objects.all()]
 
 def validate_phone_number(value):
     # Limpiar el número de espacios y caracteres especiales

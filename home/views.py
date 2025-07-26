@@ -114,6 +114,12 @@ class UserLoginView(auth_views.LoginView):
     form_class = LoginForm
     success_url = '/portal-cliente/'
     
+    def get(self, request, *args, **kwargs):
+        # Verificar si la sesión expiró
+        if request.GET.get('expired'):
+            messages.warning(request, 'Tu sesión ha expirado por inactividad. Por favor, inicia sesión nuevamente.')
+        return super().get(request, *args, **kwargs)
+    
     def form_valid(self, form):
         """Override para agregar logging al login exitoso"""
         response = super().form_valid(form)
@@ -123,7 +129,8 @@ class UserLoginView(auth_views.LoginView):
         logger.info(f"Session key después del login: {self.request.session.session_key}")
         logger.info(f"Usuario autenticado: {self.request.user.is_authenticated}")
         
-        # Forzar guardado de sesión
+        # Inicializar la última actividad en la sesión
+        self.request.session['last_activity'] = time.time()
         self.request.session.save()
         
         return response
@@ -134,14 +141,30 @@ class UserPasswordResetView(auth_views.PasswordResetView):
     
     def form_valid(self, form):
         email = form.cleaned_data['email']
-        # Verificar si el email existe en la base de datos
-        if not User.objects.filter(email=email).exists():
-            messages.error(self.request, 'No existe una cuenta registrada con este correo electrónico.')
-            return self.form_invalid(form)
+        logger.info(f"Iniciando proceso de recuperación de contraseña para: {email}")
         
-        # Si el email existe, proceder con el envío
-        messages.success(self.request, 'Se ha enviado un correo con las instrucciones para restablecer tu contraseña.')
-        return super().form_valid(form)
+        try:
+            # Verificar si el email existe en la base de datos
+            if not User.objects.filter(email=email).exists():
+                logger.warning(f"Intento de recuperación de contraseña para email inexistente: {email}")
+                messages.error(self.request, 'No existe una cuenta registrada con este correo electrónico.')
+                return self.form_invalid(form)
+            
+            # Si el email existe, proceder con el envío
+            logger.info(f"Enviando correo de recuperación a: {email}")
+            response = super().form_valid(form)
+            messages.success(self.request, 'Se ha enviado un correo con las instrucciones para restablecer tu contraseña.')
+            logger.info(f"Correo de recuperación enviado exitosamente a: {email}")
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error al enviar correo de recuperación a {email}: {str(e)}")
+            messages.error(self.request, 'Error al enviar el correo de recuperación. Por favor, intenta nuevamente.')
+            return self.form_invalid(form)
+    
+    def form_invalid(self, form):
+        logger.warning(f"Formulario de recuperación de contraseña inválido: {form.errors}")
+        return super().form_invalid(form)
 
 
 class UserPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
@@ -642,6 +665,7 @@ def curso_detail(request, curso_id):
     """
     try:
         curso = Curso.objects.get(id=curso_id, activo=True)
+        print(request)
         
         # Verificar que el usuario esté inscrito en el curso
         if curso not in request.user.cursos.all():
@@ -670,3 +694,15 @@ def custom_500(request):
     Vista personalizada para error 500
     """
     return render(request, 'pages/500.html', status=500)
+
+@login_required
+def extend_session(request):
+    """
+    Vista para extender la sesión del usuario
+    """
+    if request.method == 'POST':
+        # Actualizar la última actividad en la sesión
+        request.session['last_activity'] = time.time()
+        request.session.modified = True
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=400)

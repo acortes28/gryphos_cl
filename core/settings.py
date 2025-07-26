@@ -98,6 +98,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.SessionDebugMiddleware",
+    "home.middleware.SessionTimeoutMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -205,11 +206,11 @@ LOGIN_REDIRECT_URL = '/portal-cliente/'
 
 # Configuración de Sesiones
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 86400  # 24 horas en segundos
+SESSION_COOKIE_AGE = 3600  # 1 hora en segundos (3600 = 60 minutos * 60 segundos)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # La sesión expira cuando se cierra el navegador
+SESSION_SAVE_EVERY_REQUEST = True  # Actualiza la sesión en cada request para extender el tiempo
 
 # Configuraciones adicionales para mejorar la persistencia de sesiones
 if DEBUG:
