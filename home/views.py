@@ -483,7 +483,7 @@ def inscripcion_curso(request):
                     # También enviar notificación al administrador
                     enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contacto, correo_contacto, curso_interes)
                     
-                    messages.success(request, '¡Inscripción enviada exitosamente! Revisa tu correo para las instrucciones de pago.')
+                    messages.success(request, '¡Inscripción enviada exitosamente! Revisa tu correo para las instrucciones de pago. Si no lo encuentras, revisa tu spam.')
                     logger.info(f"Inscripción enviada exitosamente a {inscripcion.correo_contacto}")
                     return redirect('inscripcion-curso')
                 else:
@@ -922,6 +922,7 @@ def admin_inscripcion_detail(request, inscripcion_id):
     return render(request, 'admin/inscripcion_detail.html', context)
 
 
+#FIXME: No eiste validacion de que el usuario no exista
 @login_required
 def admin_marcar_pagado(request, inscripcion_id):
     """
