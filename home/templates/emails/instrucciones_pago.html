@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instrucciones de Pago - Gryphos Consulting</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #344767;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .payment-info {
+            background-color: white;
+            border: 2px solid #344767;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .payment-method {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .important {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #344767;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Gryphos Consulting</h1>
+        <h2>Instrucciones de Pago - Curso de Capacitación</h2>
+    </div>
+    
+    <div class="content">
+        <p>Estimado/a <strong>{{ nombre_interesado }}</strong>,</p>
+        
+        <p>Gracias por tu interés en nuestro curso <strong>{{ curso_nombre }}</strong>. Hemos recibido tu solicitud de inscripción y te proporcionamos las instrucciones para completar el proceso de pago.</p>
+        
+        <div class="payment-info">
+            <h3>Información de la Inscripción</h3>
+            <ul>
+                <li><strong>Nombre:</strong> {{ nombre_interesado }}</li>
+                <li><strong>Empresa:</strong> {{ nombre_empresa }}</li>
+                <li><strong>Curso:</strong> {{ curso_nombre }}</li>
+                <li><strong>Fecha de solicitud:</strong> {{ fecha_solicitud }}</li>
+            </ul>
+        </div>
+        
+        <div class="payment-method">
+            <h3>Métodos de Pago Disponibles</h3>
+            
+            <h4>1. Transferencia Bancaria</h4>
+            <p><strong>Banco:</strong> Banco de Chile<br>
+            <strong>Cuenta Corriente:</strong> 12345678<br>
+            <strong>RUT:</strong> 76.123.456-7<br>
+            <strong>Email:</strong> contacto@gryphos.cl</p>
+            
+            <h4>2. Pago con Tarjeta</h4>
+            <p>Puedes realizar el pago con tarjeta de crédito o débito a través de nuestro sistema seguro.</p>
+            
+            <h4>3. Pago en Efectivo</h4>
+            <p>Para pagos en efectivo, por favor contacta directamente con nuestro equipo.</p>
+        </div>
+        
+        <div class="important">
+            <h4>⚠️ Información Importante</h4>
+            <ul>
+                <li>El pago debe realizarse dentro de los próximos 7 días para confirmar tu lugar en el curso.</li>
+                <li>Una vez confirmado el pago, recibirás las credenciales de acceso a la plataforma.</li>
+                <li>Para cualquier consulta sobre el pago, contacta a: <strong>contacto@gryphos.cl</strong></li>
+            </ul>
+        </div>
+        
+        <p>Una vez que hayas realizado el pago, nuestro equipo verificará la transacción y te enviará un correo de confirmación con tus credenciales de acceso.</p>
+        
+        <p>Si tienes alguna pregunta o necesitas asistencia, no dudes en contactarnos.</p>
+        
+        <p>Saludos cordiales,<br>
+        <strong>Equipo de Gryphos Consulting</strong></p>
+    </div>
+    
+    <div class="footer">
+        <p>© 2024 Gryphos Consulting. Todos los derechos reservados.</p>
+        <p>Este correo fue enviado a {{ correo_contacto }}</p>
+    </div>
+</body>
+</html> 

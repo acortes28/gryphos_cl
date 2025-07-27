@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido a Gryphos Consulting</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #344767;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .welcome-box {
+            background-color: #e8f5e8;
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .credentials {
+            background-color: white;
+            border: 2px solid #344767;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .important {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #344767;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Gryphos Consulting</h1>
+        <h2>¡Bienvenido a Nuestra Plataforma!</h2>
+    </div>
+    
+    <div class="content">
+        <div class="welcome-box">
+            <h3>🎉 ¡Tu pago ha sido confirmado!</h3>
+            <p>Tu cuenta ha sido creada exitosamente y ya tienes acceso a nuestro curso <strong>{{ curso_nombre }}</strong>.</p>
+        </div>
+        
+        <p>Estimado/a <strong>{{ nombre_usuario }}</strong>,</p>
+        
+        <p>Nos complace confirmar que tu pago ha sido procesado correctamente y tu cuenta ha sido activada en nuestra plataforma de capacitación.</p>
+        
+        <div class="credentials">
+            <h3>Credenciales de Acceso</h3>
+            <p><strong>Usuario:</strong> {{ username }}</p>
+            <p><strong>Contraseña temporal:</strong> {{ password_temp }}</p>
+            <p><strong>URL de acceso:</strong> <a href="{{ login_url }}">{{ login_url }}</a></p>
+        </div>
+        
+        <div class="important">
+            <h4>⚠️ Acción Requerida - Cambio de Contraseña</h4>
+            <p>Por seguridad, debes cambiar tu contraseña temporal antes de tu primer inicio de sesión. Haz clic en el botón de abajo para establecer tu nueva contraseña:</p>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <a href="{{ change_password_url }}" class="btn">Cambiar Contraseña</a>
+            </div>
+            
+            <p><strong>Nota:</strong> Este enlace es válido por 24 horas. Si no puedes acceder, contacta a nuestro equipo de soporte.</p>
+        </div>
+        
+        <h3>Próximos Pasos</h3>
+        <ol>
+            <li>Haz clic en el enlace "Cambiar Contraseña" de arriba</li>
+            <li>Establece una nueva contraseña segura</li>
+            <li>Inicia sesión en la plataforma con tus nuevas credenciales</li>
+            <li>Explora el contenido de tu curso</li>
+        </ol>
+        
+        <h3>Recursos Disponibles</h3>
+        <ul>
+            <li><strong>Portal del Cliente:</strong> Accede a todos los recursos de tu curso</li>
+            <li><strong>Foro de Discusión:</strong> Interactúa con otros participantes</li>
+            <li><strong>Material de Estudio:</strong> Descarga el contenido del curso</li>
+            <li><strong>Videollamadas:</strong> Participa en sesiones en vivo</li>
+        </ul>
+        
+        <p>Si tienes alguna pregunta o necesitas asistencia técnica, no dudes en contactarnos:</p>
+        <ul>
+            <li><strong>Email:</strong> contacto@gryphos.cl</li>
+            <li><strong>Teléfono:</strong> +56 2 2345 6789</li>
+        </ul>
+        
+        <p>¡Esperamos que disfrutes tu experiencia de aprendizaje con nosotros!</p>
+        
+        <p>Saludos cordiales,<br>
+        <strong>Equipo de Gryphos Consulting</strong></p>
+    </div>
+    
+    <div class="footer">
+        <p>© 2024 Gryphos Consulting. Todos los derechos reservados.</p>
+        <p>Este correo fue enviado a {{ email }}</p>
+    </div>
+</body>
+</html> 
