@@ -62,4 +62,13 @@ urlpatterns = [
     
     # Session management
     path('extend-session/', views.extend_session, name='extend_session'),
+
+    # Jitsi URLs
+    path('jitsi/generate-token/', views.generate_jitsi_token, name='jitsi-token'),
+    path('join-meeting/<int:videollamada_id>/', views.join_meeting, name='join_meeting'),
+    path('test-meeting-jwt/<int:videollamada_id>/', views.test_meeting_jwt, name='test_meeting_jwt'),
+    path('diagnose-meeting/<int:videollamada_id>/', views.diagnose_meeting_access, name='diagnose_meeting'),
+    path('verify-jwt/<int:videollamada_id>/', views.verify_jwt_token, name='verify_jwt'),
+    path('test-jwt-configs/<int:videollamada_id>/', views.test_jwt_configurations, name='test_jwt_configs'),
+    path('comprehensive-jwt-diagnosis/<int:videollamada_id>/', views.comprehensive_jwt_diagnosis, name='comprehensive_jwt_diagnosis'),
 ]

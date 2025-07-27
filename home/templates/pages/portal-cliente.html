@@ -75,7 +75,7 @@
                       </a>
                       {% for videollamada in curso.videollamadas.all %}
                         {% if videollamada.activa and videollamada.link_videollamada and videollamada.esta_activa_ahora %}
-                          <a href="{{ videollamada.link_videollamada }}" target="_blank" class="btn btn-success btn-sm">
+                          <a href="{% url 'join_meeting' videollamada.id %}" target="_blank" class="btn btn-success btn-sm">
                             <i class="fas fa-video me-1"></i>Ir a la videollamada
                           </a>
                         {% endif %}
@@ -120,7 +120,7 @@
                                     <div>
                                       {% if videollamada.link_videollamada %}
                                         {% if videollamada.esta_activa_ahora %}
-                                          <a href="{{ videollamada.link_videollamada }}" target="_blank" class="btn btn-success btn-sm">
+                                          <a href="{% url 'join_meeting' videollamada.id %}" target="_blank" class="btn btn-success btn-sm">
                                             <i class="fas fa-video me-1"></i>Unirse ahora
                                           </a>
                                         {% else %}
