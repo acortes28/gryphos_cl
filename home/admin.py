@@ -50,7 +50,7 @@ class VideollamadaInline(admin.TabularInline):
         return formset
 
 class CursoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'docente_nombre', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
+    list_display = ('nombre', 'docente_nombre', 'precio', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
     list_filter = ('activo', 'modalidad', 'nivel', 'fecha_inicio')
     search_fields = ('nombre', 'docente_nombre', 'descripcion')
     inlines = [VideollamadaInline]
@@ -59,7 +59,10 @@ class CursoAdmin(admin.ModelAdmin):
             'fields': ('nombre', 'descripcion', 'activo')
         }),
         ('Fechas', {
-            'fields': ('fecha_inicio', 'fecha_fin')
+            'fields': ('fecha_inicio', 'fecha_fin', 'dias_plazo_pago')
+        }),
+        ('Información Comercial', {
+            'fields': ('precio',)
         }),
         ('Información del Docente', {
             'fields': ('docente_nombre', 'docente_titulos', 'docente_trayectoria', 'docente_foto')

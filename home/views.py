@@ -17,7 +17,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
-import re
+import requests
 import logging
 import traceback
 from datetime import datetime
@@ -332,6 +332,9 @@ def enviar_correo_instrucciones_pago(request, inscripcion):
     curso_nombre = inscripcion.curso.nombre
     fecha_solicitud = inscripcion.fecha_solicitud.strftime('%d/%m/%Y %H:%M')
     
+    # Formatear el precio con separación de miles usando punto (formato chileno)
+    curso_precio_formateado = f"{inscripcion.curso.precio:,.0f}".replace(",", ".")
+    
     # Renderizar el template HTML
     html_message = render_to_string('emails/instrucciones_pago.html', {
         'nombre_interesado': inscripcion.nombre_interesado,
@@ -339,6 +342,9 @@ def enviar_correo_instrucciones_pago(request, inscripcion):
         'curso_nombre': curso_nombre,
         'fecha_solicitud': fecha_solicitud,
         'correo_contacto': inscripcion.correo_contacto,
+        'curso_precio': inscripcion.curso.precio,
+        'curso_precio_formateado': curso_precio_formateado,
+        'dias_plazo_pago': inscripcion.curso.dias_plazo_pago,
     })
     
     # Crear versión de texto plano
@@ -355,9 +361,11 @@ def enviar_correo_instrucciones_pago(request, inscripcion):
             html_message=html_message,
             fail_silently=False,
         )
+        logger.info(f"Correo de instrucciones de pago enviado exitosamente a {inscripcion.correo_contacto}")
         return True
+
     except Exception as e:
-        print(f"Error enviando correo de instrucciones de pago: {e}")
+        logger.error(f"Error enviando correo de instrucciones de pago: {e}")
         return False
 
 
@@ -397,9 +405,10 @@ def enviar_correo_bienvenida(request, user, password_temp, curso_nombre):
             html_message=html_message,
             fail_silently=False,
         )
+        logger.info(f"Correo de bienvenida enviado exitosamente a {user.email}")
         return True
     except Exception as e:
-        print(f"Error enviando correo de bienvenida: {e}")
+        logger.error(f"Error enviando correo de bienvenida: {e}")
         return False
 
 
@@ -436,7 +445,7 @@ def enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contac
         )
         return True
     except Exception as e:
-        print(f"Error enviando correo de inscripción: {e}")
+        logger.error(f"Error enviando correo de inscripción: {e}")
         return False
 
 
@@ -475,11 +484,13 @@ def inscripcion_curso(request):
                     enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contacto, correo_contacto, curso_interes)
                     
                     messages.success(request, '¡Inscripción enviada exitosamente! Revisa tu correo para las instrucciones de pago.')
+                    logger.info(f"Inscripción enviada exitosamente a {inscripcion.correo_contacto}")
                     return redirect('inscripcion-curso')
                 else:
                     # Si falla el envío del correo, eliminar la inscripción
-                    inscripcion.delete()
                     messages.error(request, 'Hubo un error al enviar las instrucciones de pago. Por favor, intenta nuevamente.')
+                    logger.error(f"Error al enviar las instrucciones de pago: de {inscripcion.correo_contacto} : {e}")
+                    inscripcion.delete()
                     
             except Curso.DoesNotExist:
                 messages.error(request, 'El curso seleccionado no existe.')
@@ -929,16 +940,18 @@ def admin_marcar_pagado(request, inscripcion_id):
             
             if user and password_temp:
                 # Enviar correo de bienvenida
-                if enviar_correo_bienvenida(request, user, password_temp, inscripcion.curso.nombre):
+                
+                if enviar_correo_bienvenida(request, user, password_temp, inscripcion.curso.nombre) and crear_direccion_gryphos(request, user, password_temp):
                     messages.success(request, f'Inscripción marcada como pagada. Usuario creado: {user.username}')
+                    logger.info(f"Correo de bienvenida enviado exitosamente a {user.email}")
                 else:
                     messages.warning(request, f'Usuario creado pero error al enviar correo de bienvenida. Usuario: {user.username}, Contraseña: {password_temp}')
+                    logger.error(f"Error al enviar correo de bienvenida: {e}")
                 
                 return JsonResponse({
                     'success': True, 
                     'message': 'Inscripción marcada como pagada',
-                    'username': user.username,
-                    'password_temp': password_temp
+                    'username': user.username
                 })
             else:
                 return JsonResponse({
@@ -1009,3 +1022,83 @@ def admin_cambiar_estado(request, inscripcion_id):
         'success': False, 
         'message': 'Método no permitido'
     })
+
+
+@login_required
+def admin_reenviar_correo(request, inscripcion_id):
+    """
+    Vista para reenviar el correo de instrucciones de pago
+    """
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para realizar esta acción.')
+        return JsonResponse({'success': False, 'message': 'Sin permisos'})
+    
+    if request.method == 'POST':
+        try:
+            inscripcion = InscripcionCurso.objects.get(id=inscripcion_id)
+            
+            # Reenviar correo de instrucciones de pago
+            if enviar_correo_instrucciones_pago(request, inscripcion):
+                #messages.success(request, f'Correo de instrucciones de pago reenviado exitosamente a {inscripcion.correo_contacto}')
+                logger.info(f"Correo de instrucciones de pago reenviado exitosamente a {inscripcion.correo_contacto}")
+                return JsonResponse({
+                    'success': True, 
+                    'message': f'Correo reenviado exitosamente a {inscripcion.correo_contacto}'
+                })
+            else:
+                messages.error(request, 'Error al reenviar el correo de instrucciones de pago')
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Error al reenviar el correo de instrucciones de pago'
+                })
+                
+        except InscripcionCurso.DoesNotExist:
+            return JsonResponse({
+                'success': False, 
+                'message': 'Inscripción no encontrada'
+            })
+        except Exception as e:
+            logger.error(f"Error al reenviar correo: {e}")
+            return JsonResponse({
+                'success': False, 
+                'message': f'Error al reenviar correo: {str(e)}'
+            })
+    
+    return JsonResponse({
+        'success': False, 
+        'message': 'Método no permitido'
+    })
+
+def crear_direccion_gryphos(request, user, password_temp):
+    url = "https://mail.gryphos.cl/api/v1/add/mailbox"
+    headers = {
+        "Accept": "application/json",
+        "X-API-Key": f"{settings.API_KEY_MAILCOW}",
+        "Content-Type": "application/json"
+    }
+    data = {
+    "active": "1",
+    "domain": "gryphos.cl",
+    "local_part": user.username,
+    "name": user.get_full_name() or user.username,
+    "authsource": "mailcow",
+    "password": password_temp,
+    "password2": password_temp,
+    "quota": "3072",
+    "force_pw_update": "0",
+    "tls_enforce_in": "1",
+    "tls_enforce_out": "1",
+    "tags": [
+        "corporativo"
+    ]
+    }
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        logger.info(f"Dirección de correo creada exitosamente: {response.json()}")
+        return True
+    except Exception as e:
+        messages.error(request, f"Error al crear la dirección de correo: {e}")
+        logger.error(f"Error al crear la dirección de correo: {e}")
+        return False
+
+

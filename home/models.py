@@ -112,7 +112,9 @@ class Curso(models.Model):
     fecha_inicio = models.DateField(blank=True, null=True)
     fecha_fin = models.DateField(blank=True, null=True)
     activo = models.BooleanField(default=True)
-    
+    precio = models.DecimalField(max_digits=10, decimal_places=0, blank=True, null=True, help_text="Precio del curso")
+    dias_plazo_pago = models.IntegerField(help_text="Días de plazo para realizar el pago")
+
     # Nuevos campos para la página de detalle
     docente_nombre = models.CharField(max_length=100, blank=True, null=True)
     docente_titulos = models.TextField(blank=True, null=True, help_text="Títulos y certificaciones del docente")
@@ -334,7 +336,7 @@ class InscripcionCurso(models.Model):
             password_temp = ''.join(secrets.choice(alphabet) for i in range(12))
             
             # Crear usuario
-            username = f"{self.nombre_interesado.lower().replace(' ', '_')}_{self.curso.id}"
+            username = f"{self.nombre_interesado.lower().replace(' ', '_')}"
             # Asegurar que el username sea único
             counter = 1
             original_username = username

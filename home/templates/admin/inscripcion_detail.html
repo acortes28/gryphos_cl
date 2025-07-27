@@ -179,6 +179,12 @@
                                             </a>
                                         {% endif %}
                                         
+                                        {% if inscripcion.estado == 'pendiente' %}
+                                            <button type="button" class="btn btn-info reenviar-correo-btn" data-inscripcion-id="{{ inscripcion.id }}">
+                                                <i class="fas fa-envelope me-2"></i>Reenviar Correo
+                                            </button>
+                                        {% endif %}
+                                        
                                         <a href="mailto:{{ inscripcion.correo_contacto }}?subject=Consulta sobre inscripción al curso {{ inscripcion.curso.nombre }}" class="btn btn-primary">
                                             <i class="fas fa-envelope me-2"></i>Enviar Email
                                         </a>
@@ -339,6 +345,45 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Cerrar modal
         bootstrap.Modal.getInstance(document.getElementById('modalCambiarEstado')).hide();
+    });
+    
+    // Manejar clic en botón reenviar correo
+    document.querySelectorAll('.reenviar-correo-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que quieres reenviar el correo de instrucciones de pago?')) {
+                fetch(`/admin/reenviar-correo/${inscripcionIdActual}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Mostrar mensaje de éxito
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-info alert-dismissible fade show';
+                        alertDiv.innerHTML = `
+                            ${data.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.querySelector('.card-header').appendChild(alertDiv);
+                        
+                        // Recargar la página después de 2 segundos
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al procesar la solicitud');
+                });
+            }
+        });
     });
 });
 </script>

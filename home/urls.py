@@ -58,6 +58,7 @@ urlpatterns = [
     path('admin/inscripcion/<int:inscripcion_id>/', views.admin_inscripcion_detail, name='admin-inscripcion-detail'),
     path('admin/marcar-pagado/<int:inscripcion_id>/', views.admin_marcar_pagado, name='admin-marcar-pagado'),
     path('admin/cambiar-estado/<int:inscripcion_id>/', views.admin_cambiar_estado, name='admin-cambiar-estado'),
+    path('admin/reenviar-correo/<int:inscripcion_id>/', views.admin_reenviar_correo, name='admin-reenviar-correo'),
     
     # Session management
     path('extend-session/', views.extend_session, name='extend_session'),
