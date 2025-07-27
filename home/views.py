@@ -20,7 +20,8 @@ from django.utils.safestring import mark_safe
 import requests
 import logging
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
+import jwt
 
 logger = logging.getLogger(__name__)
 
@@ -1103,3 +1104,207 @@ def crear_direccion_gryphos(request, user, password_temp):
         return False
 
 
+def generate_jitsi_token(request, room_name=None, user=None):
+    """
+    Genera un token JWT para Jitsi Meet
+    
+    Args:
+        request: HttpRequest object
+        room_name: Nombre específico de la sala (opcional)
+        user: Usuario específico (opcional, por defecto usa request.user)
+    
+    Returns:
+        JsonResponse con el token JWT
+    """
+    logger.info(f"Iniciando generación de JWT - Usuario: {request.user.username}, Sala: {room_name or 'general'}")
+    
+    if not request.user.is_authenticated:
+        logger.warning(f"Intento de generar JWT sin autenticación desde IP: {request.META.get('REMOTE_ADDR', 'desconocida')}")
+        return JsonResponse({"error": "No autenticado"}, status=403)
+
+    # Usar el usuario proporcionado o el usuario de la request
+    current_user = user or request.user
+    logger.debug(f"Generando JWT para usuario: {current_user.username} (staff: {current_user.is_staff})")
+    
+    try:
+        payload = {
+            "iss": "gryphos",  # Debe coincidir con el issuer en Jitsi
+            "aud": "jitsi",  # Audience estándar para Jitsi
+            "sub": "meet.gryphos.cl",
+            "room": room_name or "*",  # Sala específica o cualquier sala
+            "exp": datetime.utcnow() + timedelta(hours=2),  # Expira en 2 horas
+            "context": {
+                "user": {
+                    "name": current_user.get_full_name() or current_user.username,
+                    "email": current_user.email,
+                    "avatar": getattr(current_user, 'profile', None) and current_user.profile.avatar_url or "",
+                    "moderator": current_user.is_staff,  # Los staff son moderadores
+                },
+            }
+        }
+        
+        logger.debug(f"Payload JWT generado para sala: {payload['room']}")
+        
+        # Log detallado de tiempos
+        import pytz
+        
+        # Obtener tiempo actual en UTC
+        now_utc = datetime.utcnow()
+        exp_utc = payload['exp']
+        
+        # Convertir a zona horaria local para logs
+        try:
+            local_tz = pytz.timezone('America/Santiago')  # Zona horaria de Chile
+            now_local = now_utc.replace(tzinfo=pytz.UTC).astimezone(local_tz)
+            exp_local = exp_utc.replace(tzinfo=pytz.UTC).astimezone(local_tz)
+        except:
+            now_local = now_utc
+            exp_local = exp_utc
+        
+        logger.info(f"=== TIEMPOS JWT ===")
+        logger.info(f"Tiempo actual (UTC): {now_utc}")
+        logger.info(f"Tiempo actual (Local): {now_local}")
+        logger.info(f"Tiempo expiración (UTC): {exp_utc}")
+        logger.info(f"Tiempo expiración (Local): {exp_local}")
+        logger.info(f"Duración del token: {exp_utc - now_utc}")
+        logger.info(f"==================")
+        
+        token = jwt.encode(payload, settings.JITSI_JWT_SECRET, algorithm="HS256")
+        logger.info(f"JWT generado exitosamente para usuario {current_user.username} en sala {payload['room']}")
+        
+        # Log detallado del token
+        logger.info(f"=== TOKEN JWT COMPLETO ===")
+        logger.info(f"Token: {token}")
+        logger.info(f"Payload: {payload}")
+        logger.info(f"Secret key length: {len(settings.JITSI_JWT_SECRET)}")
+        logger.info(f"==========================")
+        
+        return JsonResponse({"token": token})
+        
+    except Exception as e:
+        logger.error(f"Error generando JWT para usuario {current_user.username}: {str(e)}")
+        logger.error(f"Tipo de error: {type(e).__name__}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return JsonResponse({"error": "Error interno del servidor"}, status=500)
+
+
+@login_required
+def join_meeting(request, videollamada_id):
+    """
+    Vista para unirse a una videollamada específica con JWT token
+    """
+    from .models import Videollamada
+    
+    logger.info(f"Intento de unirse a videollamada {videollamada_id} - Usuario: {request.user.username}")
+    logger.debug(f"IP del usuario: {request.META.get('REMOTE_ADDR', 'desconocida')}")
+    
+    try:
+        # Obtener la videollamada
+        logger.debug(f"Buscando videollamada con ID: {videollamada_id}")
+        videollamada = Videollamada.objects.get(id=videollamada_id, activa=True)
+        logger.debug(f"Videollamada encontrada: {videollamada} (Curso: {videollamada.curso.nombre})")
+        
+        # Verificar que el usuario esté inscrito en el curso de la videollamada
+        logger.debug(f"Verificando acceso del usuario {request.user.username} al curso {videollamada.curso.nombre}")
+        if videollamada.curso not in request.user.cursos.all():
+            logger.warning(f"Acceso denegado: Usuario {request.user.username} no está inscrito en el curso {videollamada.curso.nombre}")
+            messages.error(request, 'No tienes acceso a esta videollamada. Debes estar inscrito en el curso correspondiente.')
+            return redirect('user_space')
+        
+        logger.debug(f"Acceso verificado: Usuario {request.user.username} tiene acceso al curso {videollamada.curso.nombre}")
+        
+        # Verificar que la videollamada esté activa ahora
+        logger.debug(f"Verificando si la videollamada {videollamada_id} está activa ahora")
+        if not videollamada.esta_activa_ahora():
+            logger.warning(f"Videollamada {videollamada_id} no está activa en este momento para usuario {request.user.username}")
+            messages.warning(request, 'Esta videollamada no está activa en este momento.')
+            return redirect('user_space')
+        
+        logger.debug(f"Videollamada {videollamada_id} está activa y disponible")
+        
+        # Verificar que tenga un enlace configurado
+        logger.debug(f"Verificando enlace de videollamada {videollamada_id}")
+        if not videollamada.link_videollamada:
+            logger.error(f"Videollamada {videollamada_id} no tiene enlace configurado")
+            messages.error(request, 'Esta videollamada no tiene un enlace configurado.')
+            return redirect('user_space')
+        
+        logger.debug(f"Enlace de videollamada {videollamada_id} verificado: {videollamada.link_videollamada}")
+        
+        # Generar JWT token para la videollamada usando la función existente
+        try:
+            # Extraer el nombre de la sala de la URL de la videollamada
+            from urllib.parse import urlparse
+            parsed_url = urlparse(videollamada.link_videollamada)
+            # Obtener la última parte de la URL (después del último /)
+            room_name = parsed_url.path.strip('/').split('/')[-1]
+            logger.debug(f"URL de videollamada: {videollamada.link_videollamada}")
+            logger.debug(f"Nombre de sala extraído: {room_name}")
+            
+            # Usar la función generate_jitsi_token para generar el token
+            logger.debug(f"Llamando a generate_jitsi_token para sala {room_name}")
+            token_response = generate_jitsi_token(request, room_name=room_name)
+            
+            if token_response.status_code != 200:
+                logger.error(f"Error generando JWT para videollamada {videollamada_id}: {token_response.content}")
+                messages.error(request, 'Error al generar el token de acceso a la videollamada.')
+                return redirect('user_space')
+            
+            logger.debug(f"JWT generado exitosamente para videollamada {videollamada_id}")
+            
+            # Extraer el token del response
+            import json
+            token_data = json.loads(token_response.content)
+            token = token_data.get('token')
+            
+            if not token:
+                logger.error(f"No se pudo obtener el token JWT para videollamada {videollamada_id}")
+                messages.error(request, 'Error al generar el token de acceso a la videollamada.')
+                return redirect('user_space')
+            
+            logger.debug(f"Token JWT extraído exitosamente para videollamada {videollamada_id}")
+            
+            # Log del tiempo de procesamiento
+            from datetime import datetime
+            processing_time = datetime.utcnow()
+            logger.info(f"=== PROCESAMIENTO JWT ===")
+            logger.info(f"Tiempo de procesamiento: {processing_time}")
+            logger.info(f"Token extraído y listo para uso")
+            logger.info(f"Token completo: {token}")
+            logger.info(f"========================")
+            
+            # Construir la URL de la videollamada con el token
+            base_url = videollamada.link_videollamada.rstrip('/')
+            logger.debug(f"URL base de videollamada: {base_url}")
+            
+            # Si la URL ya tiene parámetros, agregar el token, si no, agregar como primer parámetro
+            if '?' in base_url:
+                meeting_url = f"{base_url}&jwt={token}"
+            else:
+                meeting_url = f"{base_url}?jwt={token}"
+            
+            logger.debug(f"URL final de videollamada construida: {meeting_url[:100]}...")
+            
+            # Log de la acción exitosa con tiempo
+            redirect_time = datetime.utcnow()
+            logger.info(f"Usuario {request.user.username} se unió exitosamente a videollamada {videollamada.id} del curso {videollamada.curso.nombre}")
+            logger.info(f"Tiempo de redirección: {redirect_time}")
+            logger.info(f"Tiempo total de procesamiento: {redirect_time - processing_time}")
+            logger.info(f"Redirigiendo a: {meeting_url}")
+            
+            # Redirigir a la videollamada
+            return redirect(meeting_url)
+            
+        except Exception as e:
+            logger.error(f"Error generando JWT para videollamada {videollamada_id}: {str(e)}")
+            messages.error(request, 'Error al generar el token de acceso a la videollamada.')
+            return redirect('user_space')
+            
+    except Videollamada.DoesNotExist:
+        logger.warning(f"Videollamada {videollamada_id} no encontrada para usuario {request.user.username}")
+        messages.error(request, 'Videollamada no encontrada.')
+        return redirect('user_space')
+    except Exception as e:
+        logger.error(f"Error inesperado al unirse a videollamada {videollamada_id}: {str(e)}")
+        messages.error(request, 'Error inesperado al acceder a la videollamada.')
+        return redirect('user_space')

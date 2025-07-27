@@ -9,6 +9,7 @@ idna==3.10
 packaging==25.0
 pillow==10.4.0
 psycopg2-binary==2.9.10
+PyJWT==2.10.1
 python-dotenv==1.0.1
 pytz==2025.2
 requests==2.32.4

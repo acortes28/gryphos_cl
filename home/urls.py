@@ -62,4 +62,8 @@ urlpatterns = [
     
     # Session management
     path('extend-session/', views.extend_session, name='extend_session'),
+
+    # Jitsi URLs
+    path('jitsi/generate-token/', views.generate_jitsi_token, name='jitsi-token'),
+    path('join-meeting/<int:videollamada_id>/', views.join_meeting, name='join_meeting'),
 ]
