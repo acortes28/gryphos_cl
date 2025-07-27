@@ -1,0 +1,390 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %} Detalle de Inscripción - {{ inscripcion.nombre_interesado }} {% endblock title %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6>Detalle de Inscripción</h6>
+                            <p class="text-sm mb-0">
+                                <span class="font-weight-bold">ID:</span> {{ inscripcion.id }} | 
+                                <span class="font-weight-bold">Estado:</span> 
+                                {% if inscripcion.estado == 'pendiente' %}
+                                    <span class="badge badge-sm bg-warning">Pendiente</span>
+                                {% elif inscripcion.estado == 'pagado' %}
+                                    <span class="badge badge-sm bg-success">Pagado</span>
+                                {% elif inscripcion.estado == 'cancelado' %}
+                                    <span class="badge badge-sm bg-danger">Cancelado</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-6 text-end">
+                            <a href="{% url 'admin-inscripciones' %}" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-arrow-left me-2"></i>Volver
+                            </a>
+                            <a href="{% url 'admin:home_inscripcioncurso_change' inscripcion.id %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-edit me-2"></i>Editar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Información del Interesado -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Información del Interesado</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <p><strong>Nombre:</strong> {{ inscripcion.nombre_interesado }}</p>
+                                            <p><strong>Empresa:</strong> {{ inscripcion.nombre_empresa }}</p>
+                                            <p><strong>Correo:</strong> <a href="mailto:{{ inscripcion.correo_contacto }}">{{ inscripcion.correo_contacto }}</a></p>
+                                            {% if inscripcion.telefono_contacto %}
+                                                <p><strong>Teléfono:</strong> <a href="tel:{{ inscripcion.telefono_contacto }}">{{ inscripcion.telefono_contacto }}</a></p>
+                                            {% else %}
+                                                <p><strong>Teléfono:</strong> <span class="text-muted">No proporcionado</span></p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información del Curso -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Información del Curso</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <p><strong>Curso:</strong> {{ inscripcion.curso.nombre }}</p>
+                                            {% if inscripcion.curso.docente_nombre %}
+                                                <p><strong>Docente:</strong> {{ inscripcion.curso.docente_nombre }}</p>
+                                            {% endif %}
+                                            {% if inscripcion.curso.modalidad %}
+                                                <p><strong>Modalidad:</strong> {{ inscripcion.curso.modalidad }}</p>
+                                            {% endif %}
+                                            {% if inscripcion.curso.nivel %}
+                                                <p><strong>Nivel:</strong> {{ inscripcion.curso.nivel }}</p>
+                                            {% endif %}
+                                            {% if inscripcion.curso.duracion %}
+                                                <p><strong>Duración:</strong> {{ inscripcion.curso.duracion }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <!-- Fechas -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Fechas</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Fecha de Solicitud:</strong> {{ inscripcion.fecha_solicitud|date:"d/m/Y H:i" }}</p>
+                                    {% if inscripcion.fecha_pago %}
+                                        <p><strong>Fecha de Pago:</strong> {{ inscripcion.fecha_pago|date:"d/m/Y H:i" }}</p>
+                                    {% else %}
+                                        <p><strong>Fecha de Pago:</strong> <span class="text-muted">Pendiente</span></p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Usuario Creado -->
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Usuario del Sistema</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if inscripcion.usuario_creado %}
+                                        <p><strong>Usuario:</strong> {{ inscripcion.usuario_creado.username }}</p>
+                                        <p><strong>Email:</strong> {{ inscripcion.usuario_creado.email }}</p>
+                                        <p><strong>Estado:</strong> 
+                                            {% if inscripcion.usuario_creado.is_active %}
+                                                <span class="badge badge-sm bg-success">Activo</span>
+                                            {% else %}
+                                                <span class="badge badge-sm bg-danger">Inactivo</span>
+                                            {% endif %}
+                                        </p>
+                                        <p><strong>Fecha de Creación:</strong> {{ inscripcion.usuario_creado.date_joined|date:"d/m/Y H:i" }}</p>
+                                    {% else %}
+                                        <p class="text-muted">No se ha creado usuario aún</p>
+                                        {% if inscripcion.estado == 'pendiente' %}
+                                            <button type="button" class="btn btn-success btn-sm marcar-pagado-btn" data-inscripcion-id="{{ inscripcion.id }}">
+                                                <i class="fas fa-check me-2"></i>Marcar como Pagado
+                                            </button>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Observaciones -->
+                    {% if inscripcion.observaciones %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Observaciones</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p>{{ inscripcion.observaciones|linebreaks }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Acciones -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Acciones</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="btn-group" role="group">
+                                        {% if inscripcion.estado == 'pendiente' %}
+                                            <button type="button" class="btn btn-success marcar-pagado-btn" data-inscripcion-id="{{ inscripcion.id }}">
+                                                <i class="fas fa-check me-2"></i>Marcar como Pagado
+                                            </button>
+                                            <button type="button" class="btn btn-danger cambiar-estado-btn" data-inscripcion-id="{{ inscripcion.id }}" data-estado="cancelado">
+                                                <i class="fas fa-times me-2"></i>Cancelar
+                                            </button>
+                                        {% endif %}
+                                        
+                                        {% if inscripcion.usuario_creado %}
+                                            <a href="{% url 'admin:auth_user_change' inscripcion.usuario_creado.id %}" class="btn btn-info">
+                                                <i class="fas fa-user me-2"></i>Ver Usuario
+                                            </a>
+                                        {% endif %}
+                                        
+                                        {% if inscripcion.estado == 'pendiente' %}
+                                            <button type="button" class="btn btn-info reenviar-correo-btn" data-inscripcion-id="{{ inscripcion.id }}">
+                                                <i class="fas fa-envelope me-2"></i>Reenviar Correo
+                                            </button>
+                                        {% endif %}
+                                        
+                                        <a href="mailto:{{ inscripcion.correo_contacto }}?subject=Consulta sobre inscripción al curso {{ inscripcion.curso.nombre }}" class="btn btn-primary">
+                                            <i class="fas fa-envelope me-2"></i>Enviar Email
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar marcar como pagado -->
+<div class="modal fade" id="modalMarcarPagado" tabindex="-1" aria-labelledby="modalMarcarPagadoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalMarcarPagadoLabel">Confirmar Pago</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres marcar esta inscripción como pagada?</p>
+                <p class="text-warning"><small>Esto creará automáticamente un usuario y enviará un correo de bienvenida.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="confirmarMarcarPagado">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambiar estado -->
+<div class="modal fade" id="modalCambiarEstado" tabindex="-1" aria-labelledby="modalCambiarEstadoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCambiarEstadoLabel">Cambiar Estado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCambiarEstado">
+                    <div class="mb-3">
+                        <label for="nuevoEstado" class="form-label">Nuevo Estado</label>
+                        <select class="form-select" id="nuevoEstado" name="estado" required>
+                            <option value="pendiente">Pendiente de Pago</option>
+                            <option value="pagado">Pagado</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label">Observaciones (opcional)</label>
+                        <textarea class="form-control" id="observaciones" name="observaciones" rows="3">{{ inscripcion.observaciones }}</textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmarCambiarEstado">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let inscripcionIdActual = {{ inscripcion.id }};
+    
+    // Manejar clic en botón marcar como pagado
+    document.querySelectorAll('.marcar-pagado-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const modal = new bootstrap.Modal(document.getElementById('modalMarcarPagado'));
+            modal.show();
+        });
+    });
+    
+    // Confirmar marcar como pagado
+    document.getElementById('confirmarMarcarPagado').addEventListener('click', function() {
+        fetch(`/admin/marcar-pagado/${inscripcionIdActual}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    ${data.message}<br>
+                    Usuario creado: ${data.username}<br>
+                    Contraseña temporal: ${data.password_temp}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.card-header').appendChild(alertDiv);
+                
+                // Recargar la página después de 3 segundos
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+        
+        // Cerrar modal
+        bootstrap.Modal.getInstance(document.getElementById('modalMarcarPagado')).hide();
+    });
+    
+    // Manejar clic en botón cambiar estado
+    document.querySelectorAll('.cambiar-estado-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const estado = this.dataset.estado;
+            
+            // Pre-seleccionar el estado en el modal
+            document.getElementById('nuevoEstado').value = estado;
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalCambiarEstado'));
+            modal.show();
+        });
+    });
+    
+    // Confirmar cambiar estado
+    document.getElementById('confirmarCambiarEstado').addEventListener('click', function() {
+        const formData = new FormData(document.getElementById('formCambiarEstado'));
+        
+        fetch(`/admin/cambiar-estado/${inscripcionIdActual}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Recargar la página
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+        
+        // Cerrar modal
+        bootstrap.Modal.getInstance(document.getElementById('modalCambiarEstado')).hide();
+    });
+    
+    // Manejar clic en botón reenviar correo
+    document.querySelectorAll('.reenviar-correo-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (confirm('¿Estás seguro de que quieres reenviar el correo de instrucciones de pago?')) {
+                fetch(`/admin/reenviar-correo/${inscripcionIdActual}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Mostrar mensaje de éxito
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-info alert-dismissible fade show';
+                        alertDiv.innerHTML = `
+                            ${data.message}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        `;
+                        document.querySelector('.card-header').appendChild(alertDiv);
+                        
+                        // Recargar la página después de 2 segundos
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al procesar la solicitud');
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock javascripts %} 

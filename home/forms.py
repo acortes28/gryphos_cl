@@ -10,7 +10,15 @@ from .models import BlogPost, Curso
 User = get_user_model()
 
 # Opciones para el campo desplegable de cursos
-CURSOS_CAPACITACION = [(curso.id, curso.nombre) for curso in Curso.objects.all()]
+def get_cursos_capacitacion():
+    """Función para obtener los cursos de capacitación de forma dinámica"""
+    try:
+        return [(curso.id, curso.nombre) for curso in Curso.objects.all()]
+    except:
+        # Si hay problemas con la base de datos, retornar lista vacía
+        return []
+
+CURSOS_CAPACITACION = get_cursos_capacitacion()
 
 def validate_phone_number(value):
     # Limpiar el número de espacios y caracteres especiales

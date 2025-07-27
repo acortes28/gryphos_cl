@@ -81,8 +81,6 @@ input[name="telefono_contacto"] {
 
 {% block content %}
 
-</div></div>
-
   <header class="bg-gradient-dark">
    <div class="page-header min-vh-50" style="background-image: url({% static 'img/bggryphos-small.jpg' %});">
       <span class="mask bg-gradient-dark opacity-6"></span>
@@ -215,8 +213,14 @@ input[name="telefono_contacto"] {
               
               <div class="row">
                 <div class="col-md-12 text-center">
-                  <button type="submit" class="btn bg-gradient-primary btn-lg w-100">
-                    <i class="fas fa-paper-plane me-2"></i>Enviar
+                  <button type="submit" class="btn bg-gradient-primary btn-lg w-100" id="submitBtn">
+                    <span id="submitText">
+                      <i class="fas fa-paper-plane me-2"></i>Enviar
+                    </span>
+                    <span id="submitSpinner" style="display: none;">
+                      <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Enviando...
+                    </span>
                   </button>
                 </div>
               </div>
@@ -314,6 +318,20 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('input', function() {
             handleLabelState(this);
         });
+    });
+
+    // Manejo del spinner de carga
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const submitSpinner = document.getElementById('submitSpinner');
+
+    form.addEventListener('submit', function() {
+        // Mostrar spinner y deshabilitar botón
+        submitText.style.display = 'none';
+        submitSpinner.style.display = 'inline';
+        submitBtn.disabled = true;
+        submitBtn.classList.add('disabled');
     });
 });
 </script>

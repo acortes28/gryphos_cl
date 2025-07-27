@@ -5,7 +5,7 @@ from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso
 from django.http import JsonResponse, HttpResponse
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -17,7 +17,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.html import strip_tags
 from django.utils.safestring import mark_safe
-import re
+import requests
 import logging
 import traceback
 from datetime import datetime
@@ -322,6 +322,96 @@ def debug_session(request):
     return JsonResponse(debug_info, json_dumps_params={'indent': 2})
 
 
+def enviar_correo_instrucciones_pago(request, inscripcion):
+    """
+    Función para enviar correo con instrucciones de pago al interesado
+    """
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+    
+    curso_nombre = inscripcion.curso.nombre
+    fecha_solicitud = inscripcion.fecha_solicitud.strftime('%d/%m/%Y %H:%M')
+    
+    # Formatear el precio con separación de miles usando punto (formato chileno)
+    curso_precio_formateado = f"{inscripcion.curso.precio:,.0f}".replace(",", ".")
+    
+    # Renderizar el template HTML
+    html_message = render_to_string('emails/instrucciones_pago.html', {
+        'nombre_interesado': inscripcion.nombre_interesado,
+        'nombre_empresa': inscripcion.nombre_empresa,
+        'curso_nombre': curso_nombre,
+        'fecha_solicitud': fecha_solicitud,
+        'correo_contacto': inscripcion.correo_contacto,
+        'curso_precio': inscripcion.curso.precio,
+        'curso_precio_formateado': curso_precio_formateado,
+        'dias_plazo_pago': inscripcion.curso.dias_plazo_pago,
+    })
+    
+    # Crear versión de texto plano
+    plain_message = strip_tags(html_message)
+    
+    subject = f'Instrucciones de Pago - Curso {curso_nombre} - Gryphos Consulting'
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'contacto@gryphos.cl',
+            recipient_list=[inscripcion.correo_contacto],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        logger.info(f"Correo de instrucciones de pago enviado exitosamente a {inscripcion.correo_contacto}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Error enviando correo de instrucciones de pago: {e}")
+        return False
+
+
+def enviar_correo_bienvenida(request, user, password_temp, curso_nombre):
+    """
+    Función para enviar correo de bienvenida con credenciales al nuevo usuario
+    """
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+    
+    # Generar URLs
+    login_url = request.build_absolute_uri('/accounts/login/')
+    change_password_url = request.build_absolute_uri('/accounts/password_change/')
+    
+    # Renderizar el template HTML
+    html_message = render_to_string('emails/bienvenida_usuario.html', {
+        'nombre_usuario': user.get_full_name() or user.username,
+        'username': user.username,
+        'password_temp': password_temp,
+        'email': user.email,
+        'curso_nombre': curso_nombre,
+        'login_url': login_url,
+        'change_password_url': change_password_url,
+    })
+    
+    # Crear versión de texto plano
+    plain_message = strip_tags(html_message)
+    
+    subject = f'¡Bienvenido a Gryphos Consulting! - Acceso a {curso_nombre}'
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'contacto@gryphos.cl',
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        logger.info(f"Correo de bienvenida enviado exitosamente a {user.email}")
+        return True
+    except Exception as e:
+        logger.error(f"Error enviando correo de bienvenida: {e}")
+        return False
+
+
 def enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contacto, correo_contacto, curso_interes):
     """
     Función para enviar correo de inscripción al curso de capacitación
@@ -355,7 +445,7 @@ def enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contac
         )
         return True
     except Exception as e:
-        print(f"Error enviando correo de inscripción: {e}")
+        logger.error(f"Error enviando correo de inscripción: {e}")
         return False
 
 
@@ -363,6 +453,8 @@ def inscripcion_curso(request):
     """
     Vista para el formulario de inscripción al curso de capacitación
     """
+    from .models import InscripcionCurso
+    
     if request.method == 'POST':
         form = CursoCapacitacionForm(request.POST)
         if form.is_valid():
@@ -372,12 +464,38 @@ def inscripcion_curso(request):
             correo_contacto = form.cleaned_data['correo_contacto']
             curso_interes = form.cleaned_data['curso_interes']
             
-            # Enviar correo
-            if enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contacto, correo_contacto, curso_interes):
-                messages.success(request, '¡Inscripción enviada exitosamente! Nos pondremos en contacto contigo pronto.')
-                return redirect('inscripcion-curso')
-            else:
-                messages.error(request, 'Hubo un error al enviar la inscripción. Por favor, intenta nuevamente.')
+            try:
+                # Obtener el curso
+                curso = Curso.objects.get(id=curso_interes)
+                
+                # Crear la inscripción en la base de datos
+                inscripcion = InscripcionCurso.objects.create(
+                    nombre_interesado=nombre_interesado,
+                    nombre_empresa=nombre_empresa,
+                    telefono_contacto=telefono_contacto,
+                    correo_contacto=correo_contacto,
+                    curso=curso,
+                    estado='pendiente'
+                )
+                
+                # Enviar correo con instrucciones de pago al interesado
+                if enviar_correo_instrucciones_pago(request, inscripcion):
+                    # También enviar notificación al administrador
+                    enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contacto, correo_contacto, curso_interes)
+                    
+                    messages.success(request, '¡Inscripción enviada exitosamente! Revisa tu correo para las instrucciones de pago.')
+                    logger.info(f"Inscripción enviada exitosamente a {inscripcion.correo_contacto}")
+                    return redirect('inscripcion-curso')
+                else:
+                    # Si falla el envío del correo, eliminar la inscripción
+                    messages.error(request, 'Hubo un error al enviar las instrucciones de pago. Por favor, intenta nuevamente.')
+                    logger.error(f"Error al enviar las instrucciones de pago: de {inscripcion.correo_contacto} : {e}")
+                    inscripcion.delete()
+                    
+            except Curso.DoesNotExist:
+                messages.error(request, 'El curso seleccionado no existe.')
+            except Exception as e:
+                messages.error(request, f'Error al procesar la inscripción: {str(e)}')
         else:
             messages.error(request, 'Por favor, corrige los errores en el formulario.')
     else:
@@ -744,3 +862,243 @@ def extend_session(request):
         request.session.modified = True
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'error'}, status=400)
+
+
+@login_required
+def admin_inscripciones(request):
+    """
+    Panel de administrador para gestionar inscripciones a cursos
+    """
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('index')
+    
+    # Obtener todas las inscripciones ordenadas por fecha
+    inscripciones = InscripcionCurso.objects.all()
+    
+    # Filtros
+    estado_filter = request.GET.get('estado')
+    curso_filter = request.GET.get('curso')
+    
+    if estado_filter:
+        inscripciones = inscripciones.filter(estado=estado_filter)
+    
+    if curso_filter:
+        inscripciones = inscripciones.filter(curso_id=curso_filter)
+    
+    # Obtener cursos para el filtro
+    cursos = Curso.objects.filter(activo=True)
+    
+    context = {
+        'inscripciones': inscripciones,
+        'cursos': cursos,
+        'estados': InscripcionCurso.ESTADO_CHOICES,
+        'estado_filter': estado_filter,
+        'curso_filter': curso_filter,
+    }
+    
+    return render(request, 'admin/inscripciones_list.html', context)
+
+
+@login_required
+def admin_inscripcion_detail(request, inscripcion_id):
+    """
+    Vista detallada de una inscripción específica
+    """
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('index')
+    
+    try:
+        inscripcion = InscripcionCurso.objects.get(id=inscripcion_id)
+    except InscripcionCurso.DoesNotExist:
+        messages.error(request, 'La inscripción no existe.')
+        return redirect('admin-inscripciones')
+    
+    context = {
+        'inscripcion': inscripcion,
+    }
+    
+    return render(request, 'admin/inscripcion_detail.html', context)
+
+
+@login_required
+def admin_marcar_pagado(request, inscripcion_id):
+    """
+    Marcar una inscripción como pagada y crear el usuario
+    """
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para realizar esta acción.')
+        return JsonResponse({'success': False, 'message': 'Sin permisos'})
+    
+    try:
+        inscripcion = InscripcionCurso.objects.get(id=inscripcion_id)
+        
+        if inscripcion.estado == 'pendiente':
+            # Marcar como pagado y crear usuario
+            user, password_temp = inscripcion.marcar_como_pagado()
+            
+            if user and password_temp:
+                # Enviar correo de bienvenida
+                
+                if enviar_correo_bienvenida(request, user, password_temp, inscripcion.curso.nombre) and crear_direccion_gryphos(request, user, password_temp):
+                    messages.success(request, f'Inscripción marcada como pagada. Usuario creado: {user.username}')
+                    logger.info(f"Correo de bienvenida enviado exitosamente a {user.email}")
+                else:
+                    messages.warning(request, f'Usuario creado pero error al enviar correo de bienvenida. Usuario: {user.username}, Contraseña: {password_temp}')
+                    logger.error(f"Error al enviar correo de bienvenida: {e}")
+                
+                return JsonResponse({
+                    'success': True, 
+                    'message': 'Inscripción marcada como pagada',
+                    'username': user.username
+                })
+            else:
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Error al crear el usuario'
+                })
+        else:
+            return JsonResponse({
+                'success': False, 
+                'message': 'La inscripción ya no está pendiente'
+            })
+            
+    except InscripcionCurso.DoesNotExist:
+        return JsonResponse({
+            'success': False, 
+            'message': 'Inscripción no encontrada'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'message': f'Error: {str(e)}'
+        })
+
+
+@login_required
+def admin_cambiar_estado(request, inscripcion_id):
+    """
+    Cambiar el estado de una inscripción
+    """
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para realizar esta acción.')
+        return JsonResponse({'success': False, 'message': 'Sin permisos'})
+    
+    if request.method == 'POST':
+        nuevo_estado = request.POST.get('estado')
+        observaciones = request.POST.get('observaciones', '')
+        
+        if nuevo_estado not in dict(InscripcionCurso.ESTADO_CHOICES):
+            return JsonResponse({
+                'success': False, 
+                'message': 'Estado inválido'
+            })
+        
+        try:
+            inscripcion = InscripcionCurso.objects.get(id=inscripcion_id)
+            inscripcion.estado = nuevo_estado
+            inscripcion.observaciones = observaciones
+            inscripcion.save()
+            
+            messages.success(request, f'Estado de inscripción actualizado a: {inscripcion.get_estado_display()}')
+            return JsonResponse({
+                'success': True, 
+                'message': 'Estado actualizado correctamente'
+            })
+            
+        except InscripcionCurso.DoesNotExist:
+            return JsonResponse({
+                'success': False, 
+                'message': 'Inscripción no encontrada'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False, 
+                'message': f'Error: {str(e)}'
+            })
+    
+    return JsonResponse({
+        'success': False, 
+        'message': 'Método no permitido'
+    })
+
+
+@login_required
+def admin_reenviar_correo(request, inscripcion_id):
+    """
+    Vista para reenviar el correo de instrucciones de pago
+    """
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para realizar esta acción.')
+        return JsonResponse({'success': False, 'message': 'Sin permisos'})
+    
+    if request.method == 'POST':
+        try:
+            inscripcion = InscripcionCurso.objects.get(id=inscripcion_id)
+            
+            # Reenviar correo de instrucciones de pago
+            if enviar_correo_instrucciones_pago(request, inscripcion):
+                #messages.success(request, f'Correo de instrucciones de pago reenviado exitosamente a {inscripcion.correo_contacto}')
+                logger.info(f"Correo de instrucciones de pago reenviado exitosamente a {inscripcion.correo_contacto}")
+                return JsonResponse({
+                    'success': True, 
+                    'message': f'Correo reenviado exitosamente a {inscripcion.correo_contacto}'
+                })
+            else:
+                messages.error(request, 'Error al reenviar el correo de instrucciones de pago')
+                return JsonResponse({
+                    'success': False, 
+                    'message': 'Error al reenviar el correo de instrucciones de pago'
+                })
+                
+        except InscripcionCurso.DoesNotExist:
+            return JsonResponse({
+                'success': False, 
+                'message': 'Inscripción no encontrada'
+            })
+        except Exception as e:
+            logger.error(f"Error al reenviar correo: {e}")
+            return JsonResponse({
+                'success': False, 
+                'message': f'Error al reenviar correo: {str(e)}'
+            })
+    
+    return JsonResponse({
+        'success': False, 
+        'message': 'Método no permitido'
+    })
+
+def crear_direccion_gryphos(request, user, password_temp):
+    url = "https://mail.gryphos.cl/api/v1/add/mailbox"
+    headers = {
+        "Accept": "application/json",
+        "X-API-Key": f"{settings.API_KEY_MAILCOW}",
+        "Content-Type": "application/json"
+    }
+    data = {
+    "active": "1",
+    "domain": "gryphos.cl",
+    "local_part": user.username,
+    "name": user.get_full_name() or user.username,
+    "authsource": "mailcow",
+    "password": password_temp,
+    "password2": password_temp,
+    "quota": "3072",
+    "force_pw_update": "0",
+    "tls_enforce_in": "1",
+    "tls_enforce_out": "1",
+    "tags": [
+        "corporativo"
+    ]
+    }
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        logger.info(f"Dirección de correo creada exitosamente: {response.json()}")
+        return True
+    except Exception as e:
+        messages.error(request, f"Error al crear la dirección de correo: {e}")
+        logger.error(f"Error al crear la dirección de correo: {e}")
+        return False
+
+

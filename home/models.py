@@ -112,7 +112,9 @@ class Curso(models.Model):
     fecha_inicio = models.DateField(blank=True, null=True)
     fecha_fin = models.DateField(blank=True, null=True)
     activo = models.BooleanField(default=True)
-    
+    precio = models.DecimalField(max_digits=10, decimal_places=0, blank=True, null=True, help_text="Precio del curso")
+    dias_plazo_pago = models.IntegerField(help_text="Días de plazo para realizar el pago")
+
     # Nuevos campos para la página de detalle
     docente_nombre = models.CharField(max_length=100, blank=True, null=True)
     docente_titulos = models.TextField(blank=True, null=True, help_text="Títulos y certificaciones del docente")
@@ -292,3 +294,73 @@ class Videollamada(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+
+class InscripcionCurso(models.Model):
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente de Pago'),
+        ('pagado', 'Pagado'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    nombre_interesado = models.CharField(max_length=100)
+    nombre_empresa = models.CharField(max_length=100)
+    telefono_contacto = models.CharField(max_length=15, blank=True, null=True)
+    correo_contacto = models.EmailField()
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='inscripciones')
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+    fecha_pago = models.DateTimeField(blank=True, null=True)
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
+    usuario_creado = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, blank=True, null=True, related_name='inscripciones_creadas')
+    observaciones = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-fecha_solicitud']
+        verbose_name = 'Inscripción a Curso'
+        verbose_name_plural = 'Inscripciones a Cursos'
+    
+    def __str__(self):
+        return f"{self.nombre_interesado} - {self.curso.nombre} ({self.get_estado_display()})"
+    
+    def marcar_como_pagado(self):
+        """Marca la inscripción como pagada y crea el usuario"""
+        from django.utils import timezone
+        import secrets
+        import string
+        
+        if self.estado == 'pendiente':
+            self.estado = 'pagado'
+            self.fecha_pago = timezone.now()
+            
+            # Generar contraseña temporal
+            alphabet = string.ascii_letters + string.digits
+            password_temp = ''.join(secrets.choice(alphabet) for i in range(12))
+            
+            # Crear usuario
+            username = f"{self.nombre_interesado.lower().replace(' ', '_')}"
+            # Asegurar que el username sea único
+            counter = 1
+            original_username = username
+            while CustomUser.objects.filter(username=username).exists():
+                username = f"{original_username}_{counter}"
+                counter += 1
+            
+            user = CustomUser.objects.create_user(
+                username=username,
+                email=self.correo_contacto,
+                password=password_temp,
+                first_name=self.nombre_interesado.split()[0] if self.nombre_interesado.split() else '',
+                last_name=' '.join(self.nombre_interesado.split()[1:]) if len(self.nombre_interesado.split()) > 1 else '',
+                phone_number=self.telefono_contacto,
+                company_name=self.nombre_empresa,
+                is_active=True
+            )
+            
+            # Asignar el curso al usuario
+            user.cursos.add(self.curso)
+            
+            self.usuario_creado = user
+            self.save()
+            
+            return user, password_temp
+        
+        return None, None

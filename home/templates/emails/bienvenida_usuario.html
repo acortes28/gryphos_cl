@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenida al curso de {{ curso_nombre }} - Gryphos Consulting</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .logo {
+            max-width: 150px;
+            height: auto;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        .highlight {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #3498db;
+            color: white !important;
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #7f8c8d;
+            text-align: center;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 20px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        .icon {
+            color: #3498db;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://gryphos.cl/static/img/logo-ct-dark.png" alt="Gryphos Consulting" class="logo">
+        <h1>¡Bienvenido/a al Curso {{ curso_nombre }}!</h1>
+    </div>
+
+    <p>Estimado/a {{ nombre_usuario }},</p>
+
+    <p>Es un gusto confirmar tu inscripción en nuestro <strong>Curso Intensivo de Gestión para PYMES</strong>. En nombre de todo el equipo de Gryphos Consulting, queremos agradecerte por confiar en nosotros para esta importante etapa de crecimiento para tu negocio.</p>
+
+    <p>Te entregamos un correo electrónico exclusivo para este curso, el cual esta configurado para que lo uses a lo largo de este aprendizaje. A continuación está el usuario y contraseña que debes utilizar para ingresar a la plataforma de aprendizaje de Gryphos, a tu correo de gryphos y a las videollamadas.</p>
+
+    <li><strong>Usuario: </strong>{{ username }}</li>
+    <li><strong>Correo: </strong>{{ username }}@gryphos.cl</li>
+    <li><strong>Contraseña: </strong>{{ password_temp }}</li>
+
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="https://mail.gryphos.cl/" class="cta-button">Correo de Gryphos</a>
+    </div>
+
+    <p>Para la plataforma Gryphos y las videollamadas en Jitsi debes usar el <strong>usuario</strong> y <strong>contraseña</strong> que te hemos proporcionado.</p>
+
+    <p><small>(Recuerda no compartir tu usuario y contraseña con nadie)</small></p>
+
+    <div class="highlight">
+        <p><strong>Información importante para comenzar:</strong></p>
+        <ul style="list-style-type: none;">
+            <li>📅 <strong>Fecha de inicio:</strong> 18 de agosto de 2025</li>
+            <li>⏰ <strong>Horario:</strong> Lunes, miércoles y jueves de 19:30 a 21:30 hrs</li>
+            <li>💻 <strong>Plataforma:</strong> Jitsi (El link aparecerá en el calendario de tu correo elegido).</li>
+            <li>📚 <strong>Materiales:</strong> Se enviará la presentación y los archivos Excel después de cada clase.</li>
+        </ul>
+    </div>
+
+    <p>Para asegurar que aproveches al máximo esta experiencia, te recomendamos:</p>
+    <ul>
+        <li>Reservar en tu calendario las fechas de las sesiones.</li>
+        <li>Tener a mano información básica de tu empresa (opcional, para ejercicios prácticos).</li>
+        <li>Preparar un espacio tranquilo para las sesiones en vivo.</li>
+    </ul>
+
+    <p><strong>Próximos pasos:</strong><br>
+    Puedes ingresar a la plataforma de aprendizaje de Gryphos donde tendrás a disposición el material que se irá entregando y un foro donde puedes compartir dudas o información con los demás estudiantes.</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+        <a href="https://www.gryphos.cl/accounts/login/" class="cta-button">Plataforma Virtual</a>
+    </div>
+
+    <p>Si tienes alguna pregunta o problema con tus credenciales entregadas no dudes en contactarnos respondiendo este mismo correo.</p>
+
+    <p>Estamos comprometidos con tu éxito y preparando contenido de alto valor que podrás aplicar inmediatamente en tu negocio.</p>
+
+    <p>¡Nos vemos pronto!</p>
+
+    <p>Cordialmente,</p>
+    <p><strong>Alejandro Cortés V.</strong><br>
+    CEO<br>
+    Gryphos Consulting SpA<br>
+    contacto@gryphos.cl</p>
+
+    <div class="footer">
+        <p>© 2025 Gryphos Consulting SpA. Todos los derechos reservados.</p>
+        <p>Este correo fue enviado a {{ email }} como confirmación de tu inscripción.</p>
+    </div>
+</body>
+</html>

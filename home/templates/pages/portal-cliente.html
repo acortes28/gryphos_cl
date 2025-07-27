@@ -175,6 +175,37 @@
               </a>
             </div>
           </div>
+          
+          <!-- Sección de Administrador -->
+          {% if user.is_staff %}
+          <div class="mt-4">
+            <div class="card">
+              <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                  <i class="fas fa-cog me-2"></i>Panel de Administración
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <h6>Gestión de Inscripciones</h6>
+                    <p class="text-sm text-muted">Administra las inscripciones a cursos y confirma pagos.</p>
+                    <a href="{% url 'admin-inscripciones' %}" class="btn btn-info btn-sm">
+                      <i class="fas fa-users me-1"></i>Ver Inscripciones
+                    </a>
+                  </div>
+                  <div class="col-md-6">
+                    <h6>Panel de Django Admin</h6>
+                    <p class="text-sm text-muted">Acceso completo al panel de administración de Django.</p>
+                    <a href="{% url 'admin:index' %}" target="_blank" class="btn btn-secondary btn-sm">
+                      <i class="fas fa-tools me-1"></i>Django Admin
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>

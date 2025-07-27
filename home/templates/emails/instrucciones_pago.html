@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instrucciones de Pago - Curso de {{ curso_nombre }} - Gryphos Consulting</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .logo {
+            max-width: 150px;
+            height: auto;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        .highlight {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #3498db;
+            color: white !important;
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #7f8c8d;
+            text-align: center;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 20px;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        .icon {
+            color: #3498db;
+            margin-right: 10px;
+        }
+        .payment-method {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://gryphos.cl/static/img/logo-ct-dark.png" alt="Gryphos Consulting" class="logo">
+        <h1>Instrucciones para completar tu inscripción</h1>
+    </div>
+
+    <p>Estimado/a {{ nombre_interesado }},</p>
+
+    <p>¡Estamos encantados de que hayas decidido unirte a nuestro <strong>curso de {{ curso_nombre }}</strong>! Para completar tu inscripción y reservar tu cupo, te compartimos los datos de pago.</p>
+
+    <div class="highlight">
+        <p><strong>Detalles de tu inscripción:</strong></p>
+        <ul style="list-style-type: none;">
+            <li>📝 <strong>Curso:</strong> {{ curso_nombre }}.</li>
+            <li>💰 <strong>Inversión:</strong> ${{ curso_precio_formateado }} CLP.</li>
+            <li>📅 <strong>Días de plazo para pago:</strong> {{ dias_plazo_pago }} días para garantizar tu cupo.</li>
+        </ul>
+    </div>
+
+    <h3>Pago del curso:</h3>
+
+    <div class="payment-method">
+        <h4>💳 Transferencia Bancaria</h4>
+        <p><strong>Nombre del beneficiario:</strong> Alejandro Cortés V.</p>
+        <p><strong>RUT:</strong> 19147074-5</p>
+        <p><strong>Banco:</strong> Banco Estado</p>
+        <p><strong>Cuenta Corriente:</strong> 01900053653</p>
+        <p><strong>Email para enviar comprobante:</strong> finanzas@gryphos.cl</p>
+    </div>
+    
+    <p>Si tienes alguna duda sobre las opciones de pago, no dudes en responder este correo o contactar a nuestro equipo.</p>
+
+    <p><strong>Importante:</strong> Una vez realizado el pago, por favor envía tu comprobante a <a href="mailto:finanzas@gryphos.cl">finanzas@gryphos.cl</a> para que podamos confirmar tu inscripción y enviarte los accesos al curso.</p>
+    
+    
+    <h3>¿Qué incluye tu inversión?</h3>
+    <ul>
+        <li>12 sesiones en vivo del curso.</li>
+        <li>Material descargable y plantillas exclusivas.</li>
+        <li>Acceso a la plataforma virtual con recursos adicionales.</li>
+        <li>Certificado de participación al finalizar.</li>
+    </ul>
+
+
+    <p>Estamos ansiosos por comenzar este viaje de aprendizaje contigo y apoyar el crecimiento de tu negocio.</p>
+
+    <p>Cordialmente,</p>
+    <p><strong>Equipo de Administración</strong><br>
+    Gryphos Consulting SpA<br>
+    contacto@gryphos.cl<br></p>
+
+    <div class="footer">
+        <p>© 2025 Gryphos Consulting SpA. Todos los derechos reservados.</p>
+        <p>Este correo fue enviado a {{ nombre_interesado }} como parte del proceso de inscripción.</p>
+    </div>
+</body>
+</html>

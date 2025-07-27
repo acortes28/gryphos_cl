@@ -229,6 +229,8 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
+API_KEY_MAILCOW = os.environ.get('API_KEY_MAILCOW')
+
 # Configuración de Email
 if DEBUG:
     # Para desarrollo - muestra correos en consola

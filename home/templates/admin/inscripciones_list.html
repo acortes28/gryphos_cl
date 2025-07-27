@@ -1,0 +1,409 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %} Panel de Administración - Inscripciones {% endblock title %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6>Gestión de Inscripciones a Cursos</h6>
+                        </div>
+                        <div class="col-6 text-end">
+                            <button type="button" class="btn btn-info btn-sm me-2" onclick="window.location.reload()">
+                                <i class="fas fa-sync-alt me-2"></i>Actualizar
+                            </button>
+                            <a href="{% url 'index' %}" class="btn btn-secondary btn-sm me-2">
+                                <i class="fas fa-home me-2"></i>Volver al Home
+                            </a>
+                            <a href="{% url 'admin:home_inscripcioncurso_add' %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-2"></i>Nueva Inscripción
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filtros -->
+                <div class="card-body">
+                    <form method="get" class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="estado" class="form-label">Estado</label>
+                            <select name="estado" id="estado" class="form-select">
+                                <option value="">Todos los estados</option>
+                                {% for estado_value, estado_label in estados %}
+                                    <option value="{{ estado_value }}" {% if estado_filter == estado_value %}selected{% endif %}>
+                                        {{ estado_label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="curso" class="form-label">Curso</label>
+                            <select name="curso" id="curso" class="form-select">
+                                <option value="">Todos los cursos</option>
+                                {% for curso in cursos %}
+                                    <option value="{{ curso.id }}" {% if curso_filter == curso.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ curso.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-info me-2">
+                                <i class="fas fa-filter me-1"></i>Filtrar
+                            </button>
+                            <a href="{% url 'admin-inscripciones' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Tabla de inscripciones -->
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive p-0">
+                        <table class="table align-items-center mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Interesado</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Empresa</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Curso</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Estado</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Fecha Solicitud</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Usuario</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inscripcion in inscripciones %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm">{{ inscripcion.nombre_interesado }}</h6>
+                                                <p class="text-xs text-secondary mb-0">{{ inscripcion.correo_contacto }}</p>
+                                                {% if inscripcion.telefono_contacto %}
+                                                    <p class="text-xs text-secondary mb-0">{{ inscripcion.telefono_contacto }}</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <p class="text-xs font-weight-bold mb-0">{{ inscripcion.nombre_empresa }}</p>
+                                    </td>
+                                    <td>
+                                        <p class="text-xs font-weight-bold mb-0">{{ inscripcion.curso.nombre }}</p>
+                                    </td>
+                                    <td>
+                                        {% if inscripcion.estado == 'pendiente' %}
+                                            <span class="badge badge-sm bg-warning">Pendiente</span>
+                                        {% elif inscripcion.estado == 'pagado' %}
+                                            <span class="badge badge-sm bg-success">Pagado</span>
+                                        {% elif inscripcion.estado == 'cancelado' %}
+                                            <span class="badge badge-sm bg-danger">Cancelado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <p class="text-xs font-weight-bold mb-0">{{ inscripcion.fecha_solicitud|date:"d/m/Y H:i" }}</p>
+                                    </td>
+                                    <td>
+                                        {% if inscripcion.usuario_creado %}
+                                            <span class="badge badge-sm bg-info">{{ inscripcion.usuario_creado.username }}</span>
+                                        {% else %}
+                                            <span class="text-xs text-secondary">No creado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <!-- Debug info -->
+                                        <small class="text-muted d-block mb-1">
+                                            Estado: {{ inscripcion.estado }} | 
+                                            Es pendiente: {% if inscripcion.estado == 'pendiente' %}SÍ{% else %}NO{% endif %}
+                                        </small>
+                                        
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'admin-inscripcion-detail' inscripcion.id %}" 
+                                               class="btn btn-link text-secondary px-3 mb-0" 
+                                               title="Ver detalles">
+                                                <i class="fas fa-eye text-xs"></i>
+                                            </a>
+                                            
+                                            {% if inscripcion.estado == 'pendiente' %}
+                                                <button type="button" 
+                                                        class="btn btn-success btn-sm marcar-pagado-btn me-1" 
+                                                        data-inscripcion-id="{{ inscripcion.id }}"
+                                                        title="Marcar como pagado">
+                                                    <i class="fas fa-check me-1"></i>Pagar
+                                                </button>
+                                                
+                                                <button type="button" 
+                                                        class="btn btn-danger btn-sm cambiar-estado-btn me-1" 
+                                                        data-inscripcion-id="{{ inscripcion.id }}"
+                                                        data-estado="cancelado"
+                                                        title="Cancelar">
+                                                    <i class="fas fa-times me-1"></i>Cancelar
+                                                </button>
+                                            {% endif %}
+                                            
+                                            <a href="{% url 'admin:home_inscripcioncurso_change' inscripcion.id %}" 
+                                               class="btn btn-link text-primary px-3 mb-0" 
+                                               title="Editar">
+                                                <i class="fas fa-edit text-xs"></i>
+                                            </a>
+                                            
+                                            {% if inscripcion.estado == 'pendiente' %}
+                                                <button type="button" 
+                                                        class="btn btn-info btn-sm reenviar-correo-btn me-1" 
+                                                        data-inscripcion-id="{{ inscripcion.id }}"
+                                                        title="Reenviar correo de instrucciones de pago">
+                                                    <i class="fas fa-envelope me-1"></i>Reenviar
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <p class="text-muted">No se encontraron inscripciones</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar marcar como pagado -->
+<div class="modal fade" id="modalMarcarPagado" tabindex="-1" aria-labelledby="modalMarcarPagadoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalMarcarPagadoLabel">Confirmar Pago</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres marcar esta inscripción como pagada?</p>
+                <p class="text-warning"><small>Esto creará automáticamente un usuario y enviará un correo de bienvenida.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="confirmarMarcarPagado">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambiar estado -->
+<div class="modal fade" id="modalCambiarEstado" tabindex="-1" aria-labelledby="modalCambiarEstadoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalCambiarEstadoLabel">Cambiar Estado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formCambiarEstado">
+                    <div class="mb-3">
+                        <label for="nuevoEstado" class="form-label">Nuevo Estado</label>
+                        <select class="form-select" id="nuevoEstado" name="estado" required>
+                            {% for estado_value, estado_label in estados %}
+                                <option value="{{ estado_value }}">{{ estado_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="observaciones" class="form-label">Observaciones (opcional)</label>
+                        <textarea class="form-control" id="observaciones" name="observaciones" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmarCambiarEstado">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para reenviar correo -->
+<div class="modal fade" id="modalReenviarCorreo" tabindex="-1" aria-labelledby="modalReenviarCorreoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalReenviarCorreoLabel">Reenviar Correo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que quieres reenviar el correo de instrucciones de pago?</p>
+                <p class="text-info"><small>El correo se enviará a la dirección registrada en la inscripción.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-info" id="confirmarReenviarCorreo">Reenviar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let inscripcionIdActual = null;
+    
+    // Manejar clic en botón marcar como pagado
+    document.querySelectorAll('.marcar-pagado-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            inscripcionIdActual = this.dataset.inscripcionId;
+            const modal = new bootstrap.Modal(document.getElementById('modalMarcarPagado'));
+            modal.show();
+        });
+    });
+    
+    // Confirmar marcar como pagado
+    document.getElementById('confirmarMarcarPagado').addEventListener('click', function() {
+        if (!inscripcionIdActual) return;
+        
+        fetch(`/admin/marcar-pagado/${inscripcionIdActual}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    ${data.message}<br>
+                    Usuario creado: ${data.username}<br>
+                    Contraseña temporal: ${data.password_temp}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.card-header').appendChild(alertDiv);
+                
+                // Recargar la página después de 3 segundos
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+        
+        // Cerrar modal
+        bootstrap.Modal.getInstance(document.getElementById('modalMarcarPagado')).hide();
+    });
+    
+    // Manejar clic en botón cambiar estado
+    document.querySelectorAll('.cambiar-estado-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            inscripcionIdActual = this.dataset.inscripcionId;
+            const estado = this.dataset.estado;
+            
+            // Pre-seleccionar el estado en el modal
+            document.getElementById('nuevoEstado').value = estado;
+            
+            const modal = new bootstrap.Modal(document.getElementById('modalCambiarEstado'));
+            modal.show();
+        });
+    });
+    
+    // Confirmar cambiar estado
+    document.getElementById('confirmarCambiarEstado').addEventListener('click', function() {
+        if (!inscripcionIdActual) return;
+        
+        const formData = new FormData(document.getElementById('formCambiarEstado'));
+        
+        fetch(`/admin/cambiar-estado/${inscripcionIdActual}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Recargar la página
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+        
+        // Cerrar modal
+        bootstrap.Modal.getInstance(document.getElementById('modalCambiarEstado')).hide();
+    });
+    
+    // Manejar clic en botón reenviar correo
+    document.querySelectorAll('.reenviar-correo-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            inscripcionIdActual = this.dataset.inscripcionId;
+            const modal = new bootstrap.Modal(document.getElementById('modalReenviarCorreo'));
+            modal.show();
+        });
+    });
+    
+    // Confirmar reenviar correo
+    document.getElementById('confirmarReenviarCorreo').addEventListener('click', function() {
+        if (!inscripcionIdActual) return;
+        
+        fetch(`/admin/reenviar-correo/${inscripcionIdActual}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mostrar mensaje de éxito
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-info alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.querySelector('.card-header').appendChild(alertDiv);
+                
+                // Recargar la página después de 2 segundos
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+        
+        // Cerrar modal
+        bootstrap.Modal.getInstance(document.getElementById('modalReenviarCorreo')).hide();
+    });
+});
+</script>
+{% endblock javascripts %} 

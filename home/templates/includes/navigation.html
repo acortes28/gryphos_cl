@@ -64,9 +64,12 @@
                   <h6 class="dropdown-header text-dark font-weight-bolder d-flex align-items-center">
                     Usuario
                   </h6>
-                  {% if request.user.is_superuser %}
+                  {% if request.user.is_staff %}
                     <a href="{% url 'admin:index' %}" class="dropdown-item border-radius-md">
                       <span>Portal de Administradores</span>
+                    </a>
+                    <a href="{% url 'admin-inscripciones' %}" class="dropdown-item border-radius-md">
+                      <span>Gestión de Inscripciones</span>
                     </a>
                     <a href="{% url 'user_space' %}" class="dropdown-item border-radius-md">
                       <span>Portal de Miembros</span>

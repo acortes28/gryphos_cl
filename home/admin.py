@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django import forms
 from .models import CustomUser
-from .models import Curso, BlogPost, Videollamada
+from .models import Curso, BlogPost, Videollamada, InscripcionCurso
 
 class CustomUserAdmin(BaseUserAdmin):
     form = UserChangeForm
@@ -50,7 +50,7 @@ class VideollamadaInline(admin.TabularInline):
         return formset
 
 class CursoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'docente_nombre', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
+    list_display = ('nombre', 'docente_nombre', 'precio', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
     list_filter = ('activo', 'modalidad', 'nivel', 'fecha_inicio')
     search_fields = ('nombre', 'docente_nombre', 'descripcion')
     inlines = [VideollamadaInline]
@@ -59,7 +59,10 @@ class CursoAdmin(admin.ModelAdmin):
             'fields': ('nombre', 'descripcion', 'activo')
         }),
         ('Fechas', {
-            'fields': ('fecha_inicio', 'fecha_fin')
+            'fields': ('fecha_inicio', 'fecha_fin', 'dias_plazo_pago')
+        }),
+        ('Información Comercial', {
+            'fields': ('precio',)
         }),
         ('Información del Docente', {
             'fields': ('docente_nombre', 'docente_titulos', 'docente_trayectoria', 'docente_foto')
@@ -89,8 +92,71 @@ class VideollamadaAdmin(admin.ModelAdmin):
     search_fields = ('curso__nombre', 'descripcion')
     ordering = ('curso', 'dia_semana', 'hora_inicio')
 
+class InscripcionCursoAdmin(admin.ModelAdmin):
+    list_display = ('nombre_interesado', 'nombre_empresa', 'curso', 'estado', 'fecha_solicitud', 'fecha_pago', 'usuario_creado')
+    list_filter = ('estado', 'curso', 'fecha_solicitud', 'fecha_pago')
+    search_fields = ('nombre_interesado', 'nombre_empresa', 'correo_contacto', 'curso__nombre')
+    readonly_fields = ('fecha_solicitud', 'fecha_pago', 'usuario_creado')
+    ordering = ('-fecha_solicitud',)
+    
+    fieldsets = (
+        ('Información del Interesado', {
+            'fields': ('nombre_interesado', 'nombre_empresa', 'telefono_contacto', 'correo_contacto')
+        }),
+        ('Información del Curso', {
+            'fields': ('curso', 'estado')
+        }),
+        ('Fechas', {
+            'fields': ('fecha_solicitud', 'fecha_pago'),
+            'classes': ('collapse',)
+        }),
+        ('Usuario Creado', {
+            'fields': ('usuario_creado',),
+            'classes': ('collapse',)
+        }),
+        ('Observaciones', {
+            'fields': ('observaciones',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    actions = ['marcar_como_pagado', 'marcar_como_cancelado']
+    
+    def marcar_como_pagado(self, request, queryset):
+        """Acción para marcar inscripciones como pagadas"""
+        from django.contrib import messages
+        
+        for inscripcion in queryset.filter(estado='pendiente'):
+            user, password_temp = inscripcion.marcar_como_pagado()
+            if user and password_temp:
+                self.message_user(
+                    request, 
+                    f'Inscripción de {inscripcion.nombre_interesado} marcada como pagada. Usuario creado: {user.username}',
+                    messages.SUCCESS
+                )
+            else:
+                self.message_user(
+                    request, 
+                    f'Error al procesar inscripción de {inscripcion.nombre_interesado}',
+                    messages.ERROR
+                )
+    
+    marcar_como_pagado.short_description = "Marcar inscripciones seleccionadas como pagadas"
+    
+    def marcar_como_cancelado(self, request, queryset):
+        """Acción para marcar inscripciones como canceladas"""
+        updated = queryset.update(estado='cancelado')
+        self.message_user(
+            request, 
+            f'{updated} inscripción(es) marcada(s) como cancelada(s)',
+            messages.SUCCESS
+        )
+    
+    marcar_como_cancelado.short_description = "Marcar inscripciones seleccionadas como canceladas"
+
 # Registra tu modelo personalizado y la clase UserAdmin personalizada
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Curso, CursoAdmin)
 admin.site.register(BlogPost, BlogPostAdmin)
 admin.site.register(Videollamada, VideollamadaAdmin)
+admin.site.register(InscripcionCurso, InscripcionCursoAdmin)

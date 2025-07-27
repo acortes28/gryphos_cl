@@ -42,22 +42,6 @@
 
   {% endblock header %}
 
-  {# Bloque para mostrar mensajes de Django #}
-  {% if messages %}
-    <div class="container mt-4">
-      <div class="row justify-content-center">
-        <div class="col-lg-6 col-md-8 col-12">
-          {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show text-center" role="alert">
-              {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  {% endif %}
-
   {% block content %}{% endblock content %}
 
   {% block footer %}
