@@ -5691,7 +5691,7 @@ fieldset:disabled .btn {
 }
 
 .alert-primary {
-  --bs-alert-color: #8cb;
+  --bs-alert-color: #2f6054;
   --bs-alert-bg: #fbd2e0;
   --bs-alert-border-color: #f8bcd0;
 }
@@ -10598,7 +10598,7 @@ fieldset:disabled .btn {
 }
 
 .bg-success {
-  background-color: #4CAF50 !important;
+  background-color: #7fd1ae !important;
 }
 
 .bg-info {
@@ -20172,7 +20172,7 @@ fieldset:disabled .btn {
 
 */
 .alert-primary {
-  background-image: linear-gradient(195deg, #EC407A 0%, #D81B60 100%);
+  background-image: linear-gradient(195deg, #cbdae9 0%, #7fd1ae 100%);
 }
 
 .alert-secondary {
@@ -20184,11 +20184,11 @@ fieldset:disabled .btn {
 }
 
 .alert-info {
-  background-image: linear-gradient(195deg, #49a3f1 0%, #1A73E8 100%);
+  background-image: linear-gradient(195deg, #cbdae9 0%, #7fd1ae 100%);
 }
 
 .alert-warning {
-  background-image: linear-gradient(195deg, #FFA726 0%, #FB8C00 100%);
+  background-image: linear-gradient(195deg, #e79c25 0%, #e79c25 100%);
 }
 
 .alert-danger {

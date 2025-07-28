@@ -39,6 +39,12 @@ urlpatterns = [
     
     # Curso URLs
     path('curso/<int:curso_id>/', views.curso_detail, name='curso_detail'),
+    path('curso/<int:curso_id>/plataforma/', views.plataforma_aprendizaje, name='plataforma_aprendizaje'),
+    path('cursos/', views.cursos_list, name='cursos_list'),
+    path('cursos/<int:curso_id>/', views.curso_detail_public, name='curso_detail_public'),
+    
+    # Perfil de Usuario
+    path('mi-perfil/', views.mi_perfil, name='mi_perfil'),
     
     # Forum URLs
     path('forum/', views.forum_list, name='forum_list'),

@@ -5,8 +5,6 @@
 {% block body %} class="about-us bg-gray-200" {% endblock body %}
 {% block content %}
 
-</div></div>
-
   <header class="bg-gradient-dark">
    <div class="page-header min-vh-50" style="background-image: url('{% static 'img/bggryphos-small.jpg' %}');">
       <span class="mask bg-gradient-dark opacity-6"></span>
@@ -67,11 +65,8 @@
                       <small>{{ curso.descripcion }}</small>
                     </div>
                     <div>
-                      <a href="{% url 'curso_detail' curso.id %}" class="btn btn-outline-info btn-sm me-2">
-                        <i class="fas fa-eye me-1"></i>Ver curso
-                      </a>
-                      <a href="{% url 'forum_list' %}?curso_id={{ curso.id }}" class="btn btn-outline-primary btn-sm me-2">
-                        <i class="fas fa-comments me-1"></i>Ir al foro
+                      <a href="{% url 'plataforma_aprendizaje' curso.id %}" class="btn btn-outline-info btn-sm me-2">
+                        <i class="fas fa-graduation-cap me-1"></i>Ingresar
                       </a>
                       {% for videollamada in curso.videollamadas.all %}
                         {% if videollamada.activa and videollamada.link_videollamada and videollamada.esta_activa_ahora %}
@@ -103,6 +98,11 @@
                       <div class="card">
                         <div class="card-header">
                           <h6 class="mb-0">{{ curso.nombre }}</h6>
+                          {% if curso.fecha_inicio and curso.fecha_fin %}
+                            <small class="text-muted">
+                              Del {{ curso.fecha_inicio|date:"d/m/Y" }} al {{ curso.fecha_fin|date:"d/m/Y" }}
+                            </small>
+                          {% endif %}
                         </div>
                         <div class="card-body">
                           <div class="row">

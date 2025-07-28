@@ -1,0 +1,326 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+{% block title %} {{ curso.nombre }} - Gryphos Consulting {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+{% block content %}
+
+</div></div>
+
+<header class="bg-gradient-dark">
+  <div class="page-header min-vh-50" style="background-image: url('{% static 'img/bggryphos-small.jpg' %}');">
+     <span class="mask bg-gradient-dark opacity-6"></span>
+     <div class="container">
+       <div class="row justify-content-center">
+         <div class="col-lg-8 text-center mx-auto my-auto">
+           <h1 class="text-white">{{ curso.nombre }}</h1>
+           <p class="text-white mb-0">
+             <i class="fas fa-graduation-cap me-2"></i>
+             Detalle del Curso
+           </p>
+         </div>
+       </div>
+     </div>
+   </div>
+ </header>
+
+<div class="card card-body blur shadow-blur mx-4 mt-n6">
+<section>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-10 mx-auto">
+        
+        <!-- Información básica del curso -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h4 class="mb-0">
+              <i class="fas fa-info-circle me-2"></i>
+              Información del Curso
+            </h4>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <h5>{{ curso.nombre }}</h5>
+                <p class="text-muted">{{ curso.descripcion }}</p>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex flex-column">
+                  {% if curso.duracion %}
+                  <div class="mb-2">
+                    <strong><i class="fas fa-clock me-2"></i>Duración:</strong>
+                    <span class="ms-2">{{ curso.duracion }}</span>
+                  </div>
+                  {% endif %}
+                  {% if curso.modalidad %}
+                  <div class="mb-2">
+                    <strong><i class="fas fa-video me-2"></i>Modalidad:</strong>
+                    <span class="ms-2">{{ curso.modalidad }}</span>
+                  </div>
+                  {% endif %}
+                  {% if curso.nivel %}
+                  <div class="mb-2">
+                    <strong><i class="fas fa-chart-line me-2"></i>Nivel:</strong>
+                    <span class="ms-2">{{ curso.nivel }}</span>
+                  </div>
+                  {% endif %}
+                  {% if curso.fecha_inicio %}
+                  <div class="mb-2">
+                    <strong><i class="fas fa-calendar me-2"></i>Inicio:</strong>
+                    <span class="ms-2">{{ curso.fecha_inicio|date:"d/m/Y" }}</span>
+                  </div>
+                  {% endif %}
+                  {% if curso.fecha_fin %}
+                  <div class="mb-2">
+                    <strong><i class="fas fa-calendar-check me-2"></i>Fin:</strong>
+                    <span class="ms-2">{{ curso.fecha_fin|date:"d/m/Y" }}</span>
+                  </div>
+                  {% endif %}
+                  {% if curso.precio %}
+                  <div class="mb-2">
+                    <strong><i class="fas fa-dollar-sign me-2"></i>Precio:</strong>
+                    <span class="ms-2 text-success">${{ curso.precio|floatformat:0 }}</span>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Información del docente -->
+        {% if curso.docente_nombre %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <h4 class="mb-0">
+              <i class="fas fa-user-tie me-2"></i>
+              Docente del Curso
+            </h4>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              {% if curso.docente_foto %}
+              <div class="col-md-3 text-center">
+                <img src="{{ curso.docente_foto.url }}" alt="{{ curso.docente_nombre }}" class="img-fluid rounded-circle" style="max-width: 150px;">
+              </div>
+              <div class="col-md-9">
+              {% else %}
+              <div class="col-md-12">
+              {% endif %}
+                <h5>{{ curso.docente_nombre }}</h5>
+                {% if curso.docente_titulos %}
+                <div class="mb-3">
+                  <strong><i class="fas fa-award me-2"></i>Títulos y Certificaciones:</strong>
+                  <div class="mt-2">
+                    {{ curso.docente_titulos|linebreaks }}
+                  </div>
+                </div>
+                {% endif %}
+                {% if curso.docente_trayectoria %}
+                <div class="mb-3">
+                  <strong><i class="fas fa-briefcase me-2"></i>Trayectoria Profesional:</strong>
+                  <div class="mt-2">
+                    {{ curso.docente_trayectoria|linebreaks }}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Requisitos del curso -->
+        {% if curso.requisitos %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <h4 class="mb-0">
+              <i class="fas fa-list-check me-2"></i>
+              Requisitos del Curso
+            </h4>
+          </div>
+          <div class="card-body">
+            {{ curso.requisitos|linebreaks }}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Material introductorio -->
+        {% if curso.material_introductorio or curso.archivo_introductorio %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <h4 class="mb-0">
+              <i class="fas fa-book-open me-2"></i>
+              Material Introductorio
+            </h4>
+          </div>
+          <div class="card-body">
+            {% if curso.material_introductorio %}
+            <div class="mb-3">
+              {{ curso.material_introductorio|linebreaks }}
+            </div>
+            {% endif %}
+            {% if curso.archivo_introductorio %}
+            <div class="mt-3">
+              <a href="{{ curso.archivo_introductorio.url }}" class="btn btn-outline-primary" target="_blank">
+                <i class="fas fa-download me-2"></i>
+                Ver material introductorio
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Material del curso -->
+        {% if curso.material_curso or curso.archivo_curso %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <h4 class="mb-0">
+              <i class="fas fa-file-alt me-2"></i>
+              Material del Curso
+            </h4>
+          </div>
+          <div class="card-body">
+            {% if curso.material_curso %}
+            <div class="mb-3">
+              {{ curso.material_curso|linebreaks }}
+            </div>
+            {% endif %}
+            {% if curso.archivo_curso %}
+            <div class="mt-3">
+              <a href="{{ curso.archivo_curso.url }}" class="btn btn-outline-primary" target="_blank">
+                <i class="fas fa-download me-2"></i>
+                Descargar Material del Curso
+              </a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Botones de acción -->
+        <div class="text-center mb-4">
+          {% if request.user.is_authenticated %}
+            {% if usuario_inscrito %}
+              <span class="btn btn-success me-3 disabled">
+                <i class="fas fa-ticket-alt me-2"></i>
+                Inscrito
+              </span>
+            {% else %}
+              <button type="button" class="btn btn-success me-3" 
+                      data-bs-toggle="modal" 
+                      data-bs-target="#confirmacionModal{{ curso.id }}">
+                <i class="fas fa-check me-2"></i>
+                Inscribirse al Curso
+              </button>
+            {% endif %}
+          {% else %}
+            <a href="{% url 'inscripcion-curso' %}?curso={{ curso.id }}" class="btn btn-success me-3">
+              <i class="fas fa-user-plus me-2"></i>
+              Inscribirse al Curso
+            </a>
+          {% endif %}
+          <a href="{% url 'cursos_list' %}" class="btn btn-outline-secondary me-3">
+            <i class="fas fa-list me-2"></i>
+            Ver Todos los Cursos
+          </a>
+          <a href="{% url 'index' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-home me-2"></i>
+            Volver al Inicio
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+{% endblock content %}
+
+<!-- Modal de Confirmación para Usuario Logueado -->
+{% if request.user.is_authenticated and not usuario_inscrito %}
+<div class="modal fade" id="confirmacionModal{{ curso.id }}" tabindex="-1" aria-labelledby="confirmacionModalLabel{{ curso.id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="confirmacionModalLabel{{ curso.id }}">
+          <i class="fas fa-graduation-cap me-2"></i>
+          Confirmar Inscripción
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center mb-4">
+          <i class="fas fa-question-circle fa-3x text-success mb-3"></i>
+          <h6>¿Estás seguro de que quieres inscribirte en el curso?</h6>
+          <p class="text-muted mb-0"><strong>{{ curso.nombre }}</strong></p>
+        </div>
+        
+        <div class="alert alert-info">
+          <i class="fas fa-info-circle me-2"></i>
+          <strong>Proceso automático:</strong> Tu inscripción se procesará con los datos de tu perfil:
+          <ul class="mb-0 mt-2">
+            <li><strong>Nombre:</strong> {{ request.user.get_full_name|default:request.user.username }}</li>
+            <li><strong>Email:</strong> {{ request.user.email }}</li>
+            <li><strong>Empresa:</strong> {{ request.user.company_name|default:"No especificada" }}</li>
+          </ul>
+        </div>
+        
+        <div class="alert alert-warning">
+          <i class="fas fa-envelope me-2"></i>
+          <strong>Nota:</strong> Recibirás un correo con las instrucciones de pago una vez confirmada la inscripción.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>
+          Cancelar
+        </button>
+        <a href="{% url 'inscripcion-curso' %}?curso={{ curso.id }}" class="btn btn-success">
+          <i class="fas fa-check me-1"></i>
+          Confirmar Inscripción
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% block javascripts %}
+<!--  Plugin for TypedJS, full documentation here: https://github.com/inorganik/CountUp.js -->
+<script src="{% static 'js/plugins/countup.min.js' %}"></script>
+<script src="{% static 'js/plugins/choices.min.js' %}"></script>
+<script src="{% static 'js/plugins/prism.min.js' %}"></script>
+<script src="{% static 'js/plugins/highlight.min.js' %}"></script>
+<!--  Plugin for Parallax, full documentation here: https://github.com/dixonandmoe/rellax -->
+<script src="{% static 'js/plugins/rellax.min.js' %}"></script>
+<!--  Plugin for TiltJS, full documentation here: https://gijsroge.github.io/tilt.js/ -->
+<script src="{% static 'js/plugins/tilt.min.js' %}"></script>
+<!--  Plugin for Selectpicker - ChoicesJS, full documentation here: https://github.com/jshjohnson/Choices -->
+<script src="{% static 'js/plugins/choices.min.js' %}"></script>
+
+<!-- Script para inicializar modal de confirmación -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar que Bootstrap esté disponible
+    if (typeof bootstrap !== 'undefined') {
+        // Inicializar modal de confirmación
+        const modal = document.getElementById('confirmacionModal{{ curso.id }}');
+        if (modal) {
+            try {
+                new bootstrap.Modal(modal, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true
+                });
+            } catch (error) {
+                console.log('Error al inicializar modal:', error);
+            }
+        }
+    } else {
+        console.log('Bootstrap no está disponible');
+    }
+});
+</script>
+{% endblock javascripts %} 

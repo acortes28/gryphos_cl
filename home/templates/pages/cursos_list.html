@@ -1,0 +1,346 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+{% block title %} Cursos de Capacitación - Gryphos Consulting {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+{% block content %}
+
+</div></div>
+
+<header class="bg-gradient-dark">
+  <div class="page-header min-vh-50" style="background-image: url('{% static 'img/bggryphos-small.jpg' %}');">
+     <span class="mask bg-gradient-dark opacity-6"></span>
+     <div class="container">
+       <div class="row justify-content-center">
+         <div class="col-lg-8 text-center mx-auto my-auto">
+           <h1 class="text-white">Cursos de Capacitación</h1>
+           <p class="text-white mb-0">
+             <i class="fas fa-graduation-cap me-2"></i>
+             Descubre nuestros programas de formación profesional
+           </p>
+         </div>
+       </div>
+     </div>
+   </div>
+ </header>
+
+<div class="card card-body blur shadow-blur mx-4 mt-n6">
+
+<!-- Sección de Oferta de Valor -->
+<section class="mb-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="text-center mb-4">
+          <h2 class="text-dark mb-3">
+            <i class="fas fa-star text-warning me-3"></i>
+            Capacitate con nosotros
+          </h2>
+          <p class="lead text-muted">Descubre por qué elegirnos para tu formación profesional</p>
+        </div>
+        
+        <div class="row">
+          <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body text-center">
+                <div class="mb-3">
+                  <i class="fas fa-users fa-3x text-primary"></i>
+                </div>
+                <h5 class="card-title">Clases Personalizadas</h5>
+                <p class="card-text text-muted">
+                  Cada curso está diseñado para el aprendizaje desde tu realidad. 
+                  Nuestra metodología de enseñanza está orientada a la práctica.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body text-center">
+                <div class="mb-3">
+                  <i class="fas fa-video fa-3x text-success"></i>
+                </div>
+                <h5 class="card-title">Sesiones en Vivo</h5>
+                <p class="card-text text-muted">
+                  Todas nuestras clases se realizan en tiempo real con nuestros instructores. 
+                  Interactúa directamente y resuelve dudas al momento.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body text-center">
+                <div class="mb-3">
+                  <i class="fas fa-certificate fa-3x text-info"></i>
+                </div>
+                <h5 class="card-title">Certificación Profesional</h5>
+                <p class="card-text text-muted">
+                  Recibe certificados reconocidos que validan tus competencias 
+                  y mejoran tu perfil profesional en el mercado.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Banner destacado -->
+        <div class="alert alert-primary border-0 shadow-sm mt-4">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h5 class="mb-2">
+                <i class="fas fa-lightbulb text-warning me-2"></i>
+                ¿Por qué elegirnos?
+              </h5>
+              <p class="mb-0">
+                <strong>Experiencia comprobada</strong> en transformación digital, 
+                <strong>metodología práctica</strong> y <strong>resultados medibles</strong>. 
+                Nuestros cursos combinan teoría sólida con aplicación real en tu entorno laboral.
+                Además, contamos con una <strong>plataforma de aprendizaje personalizada e interactiva</strong> para hacer seguimiento de tus progresos.
+              </p>
+            </div>
+            <div class="col-md-4 text-center">
+              <div class="d-flex justify-content-center align-items-center">
+                <div class="text-center">
+                  <div class="h2 text-primary mb-0">100%</div>
+                  <small class="text-muted">En Vivo</small>
+                </div>
+                <div class="mx-3 text-muted">|</div>
+                <div class="text-center">
+                  <div class="h2 text-success mb-0">100%</div>
+                  <small class="text-muted">Personalizado</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        
+        <div class="text-center mb-4">
+          <h3 class="text-dark">
+            <i class="fas fa-graduation-cap me-2"></i>
+            Nuestros Cursos Disponibles
+          </h3>
+          <p class="text-muted">Explora nuestra oferta educativa diseñada para potenciar tu crecimiento profesional</p>
+        </div>
+        
+        {% if cursos %}
+          <div class="row">
+            {% for curso in cursos %}
+            <div class="col-lg-4 col-md-6 mb-4">
+              <div class="card h-100">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">
+                    <i class="fas fa-book me-2"></i>
+                    {{ curso.nombre }}
+                  </h5>
+                </div>
+                <div class="card-body">
+                  {% if curso.descripcion %}
+                  <p class="card-text">{{ curso.descripcion|truncatewords:30 }}</p>
+                  {% endif %}
+                  
+                  <div class="row mb-3">
+                    {% if curso.duracion %}
+                    <div class="col-6">
+                      <small class="text-muted">
+                        <i class="fas fa-clock me-1"></i>
+                        {{ curso.duracion }}
+                      </small>
+                    </div>
+                    {% endif %}
+                    {% if curso.modalidad %}
+                    <div class="col-6">
+                      <small class="text-muted">
+                        <i class="fas fa-video me-1"></i>
+                        {{ curso.modalidad }}
+                      </small>
+                    </div>
+                    {% endif %}
+                    {% if curso.fecha_inicio %}
+                    <div class="col-12">
+                      <small class="text-muted">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        {{ curso.fecha_inicio|date:"d/m/Y" }}
+                        -
+                        {{ curso.fecha_fin|date:"d/m/Y" }}
+                      </small>
+                    </div>
+                    {% endif %}
+                  </div>
+                  
+                  {% if curso.nivel %}
+                  <div class="mb-3">
+                    <span class="badge bg-primary">{{ curso.nivel }}</span>
+                  </div>
+                  {% endif %}
+                  
+                  {% if curso.precio %}
+                  <div class="mb-3">
+                    <h6 class="text-success mb-0">
+                      <i class="fas fa-dollar-sign me-1"></i>
+                      ${{ curso.precio|floatformat:0 }}
+                    </h6>
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="card-footer">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'curso_detail_public' curso.id %}" class="btn btn-primary btn-sm">
+                      <i class="fas fa-eye me-1"></i>
+                      Ver Detalles
+                    </a>
+                    {% if request.user.is_authenticated %}
+                      {% if curso.id in inscripciones_usuario %}
+                        <span class="btn btn-success btn-sm disabled">
+                          <i class="fas fa-ticket-alt me-1"></i>
+                          Inscrito
+                        </span>
+                      {% else %}
+                        <button type="button" class="btn btn-outline-success btn-sm" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#confirmacionModal{{ curso.id }}"
+                                data-curso-id="{{ curso.id }}"
+                                data-curso-nombre="{{ curso.nombre }}">
+                          <i class="fas fa-check me-1"></i>
+                          Inscribirse
+                        </button>
+                      {% endif %}
+                    {% else %}
+                      <a href="{% url 'inscripcion-curso' %}?curso={{ curso.id }}" class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-user-plus me-1"></i>
+                        Inscribirse
+                      </a>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5">
+            <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No hay cursos disponibles en este momento</h4>
+            <p class="text-muted">Estamos preparando nuevos programas de capacitación. ¡Vuelve pronto!</p>
+          </div>
+        {% endif %}
+        
+        <!-- Botón para volver al inicio -->
+        <div class="text-center mt-4">
+          <a href="{% url 'index' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>
+            Volver al Inicio
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+  <!-- Modales de Confirmación para Usuarios Logueados -->
+  {% if request.user.is_authenticated %}
+    {% for curso in cursos %}
+      {% if curso.id not in inscripciones_usuario %}
+      <div class="modal fade" id="confirmacionModal{{ curso.id }}" tabindex="-1" aria-labelledby="confirmacionModalLabel{{ curso.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+              <h5 class="modal-title" id="confirmacionModalLabel{{ curso.id }}">
+                <i class="fas fa-graduation-cap me-2"></i>
+                Confirmar Inscripción
+              </h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="text-center mb-4">
+                <i class="fas fa-question-circle fa-3x text-success mb-3"></i>
+                <h6>¿Estás seguro de que quieres inscribirte en el curso?</h6>
+                <p class="text-muted mb-0"><strong>{{ curso.nombre }}</strong></p>
+              </div>
+              
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Proceso automático:</strong> Tu inscripción se procesará con los datos de tu perfil:
+                <ul class="mb-0 mt-2">
+                  <li><strong>Nombre:</strong> {{ request.user.get_full_name|default:request.user.username }}</li>
+                  <li><strong>Email:</strong> {{ request.user.email }}</li>
+                  <li><strong>Empresa:</strong> {{ request.user.company_name|default:"No especificada" }}</li>
+                </ul>
+              </div>
+              
+              <div class="alert alert-warning">
+                <i class="fas fa-envelope me-2"></i>
+                <strong>Nota:</strong> Recibirás un correo con las instrucciones de pago una vez confirmada la inscripción.
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <i class="fas fa-times me-1"></i>
+                Cancelar
+              </button>
+              <a href="{% url 'inscripcion-curso' %}?curso={{ curso.id }}" class="btn btn-success">
+                <i class="fas fa-check me-1"></i>
+                Confirmar Inscripción
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<!--  Plugin for TypedJS, full documentation here: https://github.com/inorganik/CountUp.js -->
+<script src="{% static 'js/plugins/countup.min.js' %}"></script>
+<script src="{% static 'js/plugins/choices.min.js' %}"></script>
+<script src="{% static 'js/plugins/prism.min.js' %}"></script>
+<script src="{% static 'js/plugins/highlight.min.js' %}"></script>
+<!--  Plugin for Parallax, full documentation here: https://github.com/dixonandmoe/rellax -->
+<script src="{% static 'js/plugins/rellax.min.js' %}"></script>
+<!--  Plugin for TiltJS, full documentation here: https://gijsroge.github.io/tilt.js/ -->
+<script src="{% static 'js/plugins/tilt.min.js' %}"></script>
+<!--  Plugin for Selectpicker - ChoicesJS, full documentation here: https://github.com/jshjohnson/Choices -->
+<script src="{% static 'js/plugins/choices.min.js' %}"></script>
+
+<!-- Script para inicializar modales de confirmación -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar que Bootstrap esté disponible
+    if (typeof bootstrap !== 'undefined') {
+        // Inicializar todos los modales de confirmación
+        const modales = document.querySelectorAll('[id^="confirmacionModal"]');
+        modales.forEach(function(modal) {
+            if (modal) {
+                try {
+                    new bootstrap.Modal(modal, {
+                        backdrop: true,
+                        keyboard: true,
+                        focus: true
+                    });
+                } catch (error) {
+                    console.log('Error al inicializar modal:', error);
+                }
+            }
+        });
+    } else {
+        console.log('Bootstrap no está disponible');
+    }
+});
+</script>
+{% endblock javascripts %} 

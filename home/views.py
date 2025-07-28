@@ -181,15 +181,31 @@ class UserPasswordChangeView(auth_views.PasswordChangeView):
 
 def user_logout_view(request):
     logout(request)
-    return redirect('/accounts/login/')
+    return redirect('/')
 
 def index(request):
-    return render(request, 'pages/index.html')
+    # Si el usuario está logueado, redirigir al portal de miembros
+    if request.user.is_authenticated:
+        return redirect('user_space')
+    
+    # Obtener todos los cursos activos para mostrar en la página principal
+    cursos_activos = Curso.objects.filter(activo=True).order_by('nombre')
+    context = {
+        'cursos_activos': cursos_activos,
+    }
+    return render(request, 'pages/index.html', context)
 
 def que_hacemos(request):
+    # Si el usuario está logueado, redirigir al portal de miembros
+    if request.user.is_authenticated:
+        return redirect('user_space')
     return render(request, 'pages/que-hacemos.html')
 
 def quienes_somos(request):
+    # Si el usuario está logueado, redirigir al portal de miembros
+    if request.user.is_authenticated:
+        return redirect('user_space')
+    
     if request.method == 'POST':
         # Obtener datos del formulario
         nombre = request.POST.get('nombre', '')
@@ -456,6 +472,74 @@ def inscripcion_curso(request):
     """
     from .models import InscripcionCurso
     
+    # Si el usuario está logueado, usar proceso simplificado
+    if request.user.is_authenticated:
+        curso_id = request.GET.get('curso')
+        if curso_id:
+            try:
+                curso = Curso.objects.get(id=curso_id, activo=True)
+                
+                # Verificar si ya está inscrito en este curso
+                inscripcion_existente = InscripcionCurso.objects.filter(
+                    usuario_creado=request.user,
+                    curso=curso,
+                    estado__in=['pendiente', 'confirmada', 'en_proceso']
+                ).first()
+                
+                if inscripcion_existente:
+                    messages.warning(request, f'Ya estás inscrito en el curso "{curso.nombre}".')
+                    return redirect('cursos_list')
+                
+                # Crear inscripción automática para usuario logueado
+                inscripcion = InscripcionCurso.objects.create(
+                    nombre_interesado=f"{request.user.first_name} {request.user.last_name}".strip(),
+                    nombre_empresa=request.user.company_name or "No especificada",
+                    telefono_contacto=request.user.phone_number or "",
+                    correo_contacto=request.user.email,
+                    curso=curso,
+                    estado='pendiente',
+                    usuario_creado=request.user
+                )
+                
+                # Enviar correo con instrucciones de pago
+                if enviar_correo_instrucciones_pago(request, inscripcion):
+                    # También enviar notificación al administrador
+                    enviar_correo_inscripcion(
+                        inscripcion.nombre_interesado,
+                        inscripcion.nombre_empresa,
+                        inscripcion.telefono_contacto,
+                        inscripcion.correo_contacto,
+                        curso.nombre
+                    )
+                    
+                    messages.success(request, f'¡Solicitud de inscripción enviada exitosamente para el curso "{curso.nombre}"! Revisa tu correo para las instrucciones de pago.')
+                    logger.info(f"Inscripción automática enviada para usuario {request.user.username} al curso {curso.nombre}")
+                    return redirect('cursos_list')
+                else:
+                    messages.error(request, 'Hubo un error al enviar las instrucciones de pago. Por favor, intenta nuevamente.')
+                    inscripcion.delete()
+                    
+            except Curso.DoesNotExist:
+                messages.error(request, 'El curso seleccionado no existe.')
+                return redirect('cursos_list')
+            except Exception as e:
+                messages.error(request, f'Error al procesar la inscripción: {str(e)}')
+                return redirect('cursos_list')
+        else:
+            messages.warning(request, 'No se especificó ningún curso para inscribirse.')
+            return redirect('cursos_list')
+    
+    # Proceso normal para usuarios no logueados
+    # Obtener el curso pre-seleccionado desde la URL
+    curso_id = request.GET.get('curso')
+    curso_seleccionado = None
+    
+    if curso_id:
+        try:
+            curso_seleccionado = Curso.objects.get(id=curso_id, activo=True)
+        except Curso.DoesNotExist:
+            messages.warning(request, 'El curso seleccionado no está disponible.')
+    
     if request.method == 'POST':
         form = CursoCapacitacionForm(request.POST)
         if form.is_valid():
@@ -500,9 +584,16 @@ def inscripcion_curso(request):
         else:
             messages.error(request, 'Por favor, corrige los errores en el formulario.')
     else:
-        form = CursoCapacitacionForm()
+        # Si hay un curso pre-seleccionado, inicializar el formulario con ese curso
+        if curso_seleccionado:
+            form = CursoCapacitacionForm(initial={'curso_interes': curso_seleccionado.id})
+        else:
+            form = CursoCapacitacionForm()
     
-    context = {'form': form}
+    context = {
+        'form': form,
+        'curso_seleccionado': curso_seleccionado
+    }
     return render(request, 'pages/inscripcion-curso.html', context)
 
 
@@ -837,6 +928,132 @@ def curso_detail(request, curso_id):
     except Curso.DoesNotExist:
         messages.error(request, 'El curso no existe o no está disponible.')
         return redirect('user_space')
+
+
+@login_required
+def plataforma_aprendizaje(request, curso_id):
+    """
+    Vista para la plataforma de aprendizaje de un curso específico
+    """
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            messages.error(request, 'No tienes acceso a este curso. Debes estar inscrito para ver su contenido.')
+            return redirect('user_space')
+        
+        # Obtener la sección activa desde la URL
+        seccion_activa = request.GET.get('seccion', 'inicio')
+        
+        context = {
+            'curso': curso,
+            'seccion_activa': seccion_activa,
+        }
+        return render(request, 'pages/plataforma_aprendizaje.html', context)
+        
+    except Curso.DoesNotExist:
+        messages.error(request, 'El curso no existe o no está disponible.')
+        return redirect('user_space')
+
+
+def cursos_list(request):
+    """
+    Vista para mostrar todos los cursos de capacitación disponibles
+    """
+    from .models import InscripcionCurso
+    
+    cursos_activos = Curso.objects.filter(activo=True).order_by('nombre')
+    
+    # Si el usuario está logueado, obtener sus inscripciones
+    inscripciones_usuario = []
+    if request.user.is_authenticated:
+        inscripciones_usuario = InscripcionCurso.objects.filter(
+            usuario_creado=request.user,
+            estado__in=['pendiente', 'confirmada', 'en_proceso']
+        ).values_list('curso_id', flat=True)
+    
+    context = {
+        'cursos': cursos_activos,
+        'inscripciones_usuario': inscripciones_usuario,
+    }
+    return render(request, 'pages/cursos_list.html', context)
+
+
+@login_required
+def mi_perfil(request):
+    """
+    Vista para gestionar el perfil del usuario
+    """
+    if request.method == 'POST':
+        # Obtener datos del formulario
+        first_name = request.POST.get('first_name', '')
+        last_name = request.POST.get('last_name', '')
+        email = request.POST.get('email', '')
+        company_name = request.POST.get('company_name', '')
+        
+        # Validar que el email no esté en uso por otro usuario
+        if email != request.user.email:
+            if User.objects.filter(email=email).exclude(id=request.user.id).exists():
+                messages.error(request, 'Este correo electrónico ya está en uso por otro usuario.')
+                return redirect('mi_perfil')
+        
+        # Actualizar datos del usuario
+        request.user.first_name = first_name
+        request.user.last_name = last_name
+        request.user.email = email
+        request.user.company_name = company_name
+        
+        # Manejar subida de foto de perfil
+        if 'profile_photo' in request.FILES:
+            request.user.profile_photo = request.FILES['profile_photo']
+        
+        # Manejar eliminación de foto de perfil
+        if request.POST.get('delete_photo') == 'true':
+            if request.user.profile_photo:
+                request.user.profile_photo.delete(save=False)
+            request.user.profile_photo = None
+        
+        request.user.save()
+        messages.success(request, 'Perfil actualizado exitosamente.')
+        return redirect('mi_perfil')
+    
+    # Obtener cursos completados del usuario (puedes ajustar la lógica según tu modelo)
+    cursos_completados = request.user.cursos.all()  # Ajusta según tu lógica de cursos completados
+    
+    context = {
+        'cursos_completados': cursos_completados,
+    }
+    return render(request, 'pages/mi_perfil.html', context)
+
+
+def curso_detail_public(request, curso_id):
+    """
+    Vista pública para mostrar el detalle de un curso (sin restricción de login)
+    """
+    from .models import InscripcionCurso
+    
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        
+        # Verificar si el usuario está inscrito en este curso
+        usuario_inscrito = False
+        if request.user.is_authenticated:
+            usuario_inscrito = InscripcionCurso.objects.filter(
+                usuario_creado=request.user,
+                curso=curso,
+                estado__in=['pendiente', 'confirmada', 'en_proceso']
+            ).exists()
+        
+        context = {
+            'curso': curso,
+            'usuario_inscrito': usuario_inscrito,
+        }
+        return render(request, 'pages/curso_detail_public.html', context)
+        
+    except Curso.DoesNotExist:
+        messages.error(request, 'El curso no existe o no está disponible.')
+        return redirect('cursos_list')
 
 
 def custom_404(request, exception):

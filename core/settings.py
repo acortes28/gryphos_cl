@@ -338,3 +338,6 @@ LOGGING = {
         },
     },
 }
+
+# Configuración de redirección después del logout
+LOGOUT_REDIRECT_URL = '/'

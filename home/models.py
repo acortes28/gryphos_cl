@@ -10,6 +10,7 @@ class CustomUser(AbstractUser):
     company_rut = models.CharField(max_length=12, blank=True, null=True)  # Consider adding specific validation
     company_address = models.CharField(max_length=255, blank=True, null=True)
     admin_name = models.CharField(max_length=100, blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True, help_text="Foto de perfil del usuario")
 
 class Service(models.Model):
     name = models.CharField(max_length=100)
@@ -143,8 +144,16 @@ class Curso(models.Model):
         from datetime import datetime, timedelta
         
         ahora = timezone.localtime(timezone.now())
+        fecha_actual = ahora.date()
         dia_actual = ahora.weekday()
         hora_actual = ahora.time()
+        
+        # Verificar que la fecha actual esté dentro del rango del curso
+        if self.fecha_inicio and fecha_actual < self.fecha_inicio:
+            return []  # El curso aún no ha comenzado
+        
+        if self.fecha_fin and fecha_actual > self.fecha_fin:
+            return []  # El curso ya ha terminado
         
         proximas = []
         for videollamada in self.videollamadas.filter(activa=True):
@@ -256,10 +265,20 @@ class Videollamada(models.Model):
             # Usar la zona horaria configurada en Django
             logger.debug("Obteniendo tiempo actual...")
             ahora = timezone.localtime(timezone.now())
+            fecha_actual = ahora.date()
             hora_actual = ahora.time()
             dia_actual = ahora.weekday()
             
             logger.debug(f"Videollamada {self.id}: activa={self.activa}, dia_semana={self.dia_semana}, dia_actual={dia_actual}, hora_inicio={self.hora_inicio}, hora_fin={self.hora_fin}, hora_actual={hora_actual}")
+            
+            # Verificar que la fecha actual esté dentro del rango del curso
+            if self.curso.fecha_inicio and fecha_actual < self.curso.fecha_inicio:
+                logger.debug(f"Videollamada {self.id}: El curso aún no ha comenzado (fecha_actual={fecha_actual}, fecha_inicio_curso={self.curso.fecha_inicio})")
+                return False
+            
+            if self.curso.fecha_fin and fecha_actual > self.curso.fecha_fin:
+                logger.debug(f"Videollamada {self.id}: El curso ya ha terminado (fecha_actual={fecha_actual}, fecha_fin_curso={self.curso.fecha_fin})")
+                return False
             
             # Verificar cada condición por separado
             condicion_activa = self.activa
