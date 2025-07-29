@@ -40,6 +40,10 @@ urlpatterns = [
     # Curso URLs
     path('curso/<int:curso_id>/', views.curso_detail, name='curso_detail'),
     path('curso/<int:curso_id>/plataforma/', views.plataforma_aprendizaje, name='plataforma_aprendizaje'),
+    path('curso/<int:curso_id>/plataforma/foro/', views.plataforma_foro, name='plataforma_foro'),
+    path('curso/<int:curso_id>/plataforma/foro/ajax/', views.plataforma_foro_ajax, name='plataforma_foro_ajax'),
+    path('curso/<int:curso_id>/plataforma/foro/post/<int:post_id>/', views.plataforma_foro_post_detail, name='plataforma_foro_post_detail'),
+    path('curso/<int:curso_id>/plataforma/foro/crear/', views.plataforma_foro_create_post, name='plataforma_foro_create_post'),
     path('cursos/', views.cursos_list, name='cursos_list'),
     path('cursos/<int:curso_id>/', views.curso_detail_public, name='curso_detail_public'),
     

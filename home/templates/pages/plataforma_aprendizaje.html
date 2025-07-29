@@ -523,9 +523,14 @@
     </div>
     
     <div id="seccion-foro" class="section-content">
-      <h4>Foro de Discusión</h4>
-      <p>Aquí podrás participar en discusiones con tus compañeros y profesores.</p>
-      <!-- Contenido de la sección Foro -->
+      <div class="text-center py-5">
+        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+        <h4>Foro de Discusión</h4>
+        <p class="text-muted">Aquí podrás participar en discusiones con tus compañeros y profesores.</p>
+        <button class="btn btn-primary" onclick="cambiarSeccion('foro');">
+          <i class="fas fa-comments me-2"></i>Ir al Foro
+        </button>
+      </div>
     </div>
     
     <div id="seccion-recursos" class="section-content">
@@ -551,7 +556,7 @@
 <script>
 // Configuración de la plataforma
 const PLATAFORMA_CONFIG = {
-  cursoId: {{ curso.id }},
+  cursoId: {% if curso.id %}{{ curso.id }}{% else %}null{% endif %},
   secciones: {
     inicio: { titulo: 'Inicio', icono: 'fas fa-home' },
     foro: { titulo: 'Foro', icono: 'fas fa-comments' },
@@ -584,19 +589,123 @@ function cambiarSeccion(seccion) {
   const titleElement = document.getElementById('section-title');
   titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
   
-  // Simular carga (en producción esto sería una petición AJAX)
-  setTimeout(() => {
-    // Mostrar sección correspondiente
-    document.getElementById(`seccion-${seccion}`).classList.add('active');
-    
-    // Ocultar loading
-    document.getElementById('loading').classList.remove('show');
-    
-    // Actualizar URL sin recargar
-    const url = new URL(window.location);
-    url.searchParams.set('seccion', seccion);
-    window.history.pushState({}, '', url);
-  }, 300);
+  // Si es la sección del foro, cargar contenido dinámicamente
+  if (seccion === 'foro') {
+    cargarForoContenido();
+  } else {
+    // Simular carga para otras secciones
+    setTimeout(() => {
+      // Mostrar sección correspondiente
+      document.getElementById(`seccion-${seccion}`).classList.add('active');
+      
+      // Ocultar loading
+      document.getElementById('loading').classList.remove('show');
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('seccion', seccion);
+      window.history.pushState({}, '', url);
+    }, 300);
+  }
+}
+
+// Función para cargar contenido del foro
+function cargarForoContenido() {
+  const seccionForo = document.getElementById('seccion-foro');
+  
+  // Cargar contenido del foro vía AJAX
+  fetch(`{% url 'plataforma_foro_ajax' curso.id %}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        seccionForo.innerHTML = data.html;
+      } else {
+        seccionForo.innerHTML = `
+          <div class="alert alert-info">
+            <h4>Foro de Discusión</h4>
+            <p>Aquí podrás participar en discusiones con tus compañeros y profesores.</p>
+          </div>
+        `;
+      }
+      
+      // Mostrar sección del foro
+      seccionForo.classList.add('active');
+      
+      // Ocultar loading
+      document.getElementById('loading').classList.remove('show');
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('seccion', 'foro');
+      window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+      console.error('Error cargando el foro:', error);
+      seccionForo.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar el foro</h4>
+          <p>Hubo un problema al cargar el contenido del foro. Por favor, intenta nuevamente.</p>
+        </div>
+      `;
+      seccionForo.classList.add('active');
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para cargar el foro con filtros
+function cargarForoFiltrado(category) {
+  const seccionForo = document.getElementById('seccion-foro');
+  
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Construir URL con filtro para AJAX
+  let url = `{% url 'plataforma_foro_ajax' curso.id %}`;
+  if (category && category !== '') {
+    url += `?category=${category}`;
+  }
+  
+  // Cargar contenido del foro con filtro
+  fetch(url, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        seccionForo.innerHTML = data.html;
+        
+        // Actualizar botones activos
+        document.querySelectorAll('.btn-outline-primary').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        
+        // Activar el botón correspondiente
+        if (category && category !== '') {
+          const activeBtn = seccionForo.querySelector(`button[onclick*="${category}"]`);
+          if (activeBtn) {
+            activeBtn.classList.add('active');
+          }
+        } else {
+          const allCategoriesBtn = seccionForo.querySelector('button[onclick*="cargarForoFiltrado(\'\')"]');
+          if (allCategoriesBtn) {
+            allCategoriesBtn.classList.add('active');
+          }
+        }
+      }
+      
+      // Ocultar loading
+      document.getElementById('loading').classList.remove('show');
+    })
+    .catch(error => {
+      console.error('Error cargando el foro:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
 }
 
 // Event listeners para navegación

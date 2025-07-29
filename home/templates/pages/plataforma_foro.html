@@ -1,0 +1,288 @@
+{% extends 'pages/plataforma_aprendizaje.html' %}
+{% load static %}
+
+{% block title %}Foro - {{ curso.nombre }} - Plataforma de Aprendizaje{% endblock title %}
+
+{% block content %}
+{{ block.super }}
+
+<script>
+// Sobrescribir la función cambiarSeccion para manejar el foro
+function cambiarSeccion(seccion) {
+  if (seccion === 'foro') {
+    // Cargar el contenido del foro dinámicamente
+    cargarForo();
+  } else {
+    // Llamar a la función original para otras secciones
+    cambiarSeccionOriginal(seccion);
+  }
+}
+
+// Función original de cambiarSeccion (guardada como referencia)
+function cambiarSeccionOriginal(seccion) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Ocultar todas las secciones
+  document.querySelectorAll('.section-content').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  // Actualizar navegación
+  document.querySelectorAll('.nav-link').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  // Activar enlace correspondiente
+  document.querySelector(`[data-seccion="${seccion}"]`).classList.add('active');
+  
+  // Actualizar título
+  const config = PLATAFORMA_CONFIG.secciones[seccion];
+  const titleElement = document.getElementById('section-title');
+  titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
+  
+  // Simular carga (en producción esto sería una petición AJAX)
+  setTimeout(() => {
+    // Mostrar sección correspondiente
+    document.getElementById(`seccion-${seccion}`).classList.add('active');
+    
+    // Ocultar loading
+    document.getElementById('loading').classList.remove('show');
+    
+    // Actualizar URL sin recargar
+    const url = new URL(window.location);
+    url.searchParams.set('seccion', seccion);
+    window.history.pushState({}, '', url);
+  }, 300);
+}
+
+// Función para cargar el contenido del foro
+function cargarForo() {
+  const seccionForo = document.getElementById('seccion-foro');
+  
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Ocultar todas las secciones
+  document.querySelectorAll('.section-content').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  // Actualizar navegación
+  document.querySelectorAll('.nav-link').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  // Activar enlace del foro
+  document.querySelector('[data-seccion="foro"]').classList.add('active');
+  
+  // Actualizar título
+  const titleElement = document.getElementById('section-title');
+  titleElement.innerHTML = '<i class="fas fa-comments me-2"></i>Foro';
+  
+  // Limpiar parámetros de sección de la URL
+  const url = new URL(window.location);
+  url.searchParams.delete('seccion');
+  window.history.replaceState({}, '', url);
+  
+  // Simular carga (ya que estamos en la página del foro)
+  setTimeout(() => {
+    // Mostrar sección del foro
+    seccionForo.classList.add('active');
+    
+    // Ocultar loading
+    document.getElementById('loading').classList.remove('show');
+  }, 300);
+}
+
+// Función para cargar el foro con filtros
+function cargarForoFiltrado(category) {
+  const seccionForo = document.getElementById('seccion-foro');
+  
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Construir URL con filtro para AJAX
+  let url = `{% url 'plataforma_foro_ajax' curso.id %}`;
+  if (category && category !== '') {
+    url += `?category=${category}`;
+  }
+  
+  // Cargar contenido del foro con filtro
+  fetch(url, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        seccionForo.innerHTML = data.html;
+        
+        // Actualizar botones activos
+        document.querySelectorAll('.btn-outline-primary').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        
+        // Activar el botón correspondiente
+        if (category && category !== '') {
+          const activeBtn = seccionForo.querySelector(`button[onclick*="${category}"]`);
+          if (activeBtn) {
+            activeBtn.classList.add('active');
+          }
+        } else {
+          const allCategoriesBtn = seccionForo.querySelector('button[onclick*="cargarForoFiltrado(\'\')"]');
+          if (allCategoriesBtn) {
+            allCategoriesBtn.classList.add('active');
+          }
+        }
+      }
+      
+      // Ocultar loading
+      document.getElementById('loading').classList.remove('show');
+    })
+    .catch(error => {
+      console.error('Error cargando el foro:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Event listeners para navegación
+document.addEventListener('DOMContentLoaded', function() {
+  // Navegación del sidebar
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const seccion = this.getAttribute('data-seccion');
+      cambiarSeccion(seccion);
+    });
+  });
+  
+  // Limpiar parámetros de sección de la URL si estamos en el foro
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('seccion')) {
+    urlParams.delete('seccion');
+    const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+    window.history.replaceState({}, '', newUrl);
+  }
+  
+  // Si estamos en la página del foro, mostrar el contenido directamente
+  if (window.location.pathname.includes('/plataforma/foro/')) {
+    // Marcar el foro como activo
+    document.querySelector('[data-seccion="foro"]').classList.add('active');
+    
+    // Actualizar título
+    const titleElement = document.getElementById('section-title');
+    titleElement.innerHTML = '<i class="fas fa-comments me-2"></i>Foro';
+    
+    // Mostrar sección del foro
+    const seccionForo = document.getElementById('seccion-foro');
+    seccionForo.classList.add('active');
+    
+    // Cargar contenido del foro
+    cargarForoFiltrado('{{ current_category|default:"" }}');
+  } else {
+    // Inicializar con la sección activa desde la URL
+    const seccionActiva = urlParams.get('seccion') || 'inicio';
+    cambiarSeccion(seccionActiva);
+  }
+});
+
+// Manejar navegación del navegador (botones atrás/adelante)
+window.addEventListener('popstate', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const seccionActiva = urlParams.get('seccion') || 'inicio';
+  cambiarSeccion(seccionActiva);
+});
+</script>
+
+<!-- Contenido del foro que se cargará dinámicamente -->
+<div id="foro-content" style="display: none;">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header del foro -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 class="mb-1">Foro de Discusión</h4>
+          <p class="text-muted mb-0">Participa en discusiones con tus compañeros y profesores</p>
+        </div>
+        <div>
+          <a href="{% url 'plataforma_foro_create_post' curso.id %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nuevo Post
+          </a>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="mb-4">
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{% url 'plataforma_foro' curso.id %}" class="btn btn-outline-primary {% if not current_category %}active{% endif %}">
+            Todas las categorías
+          </a>
+          {% for category_code, category_name in categories %}
+            <a href="{% url 'plataforma_foro' curso.id %}?category={{ category_code }}" 
+               class="btn btn-outline-primary {% if current_category == category_code %}active{% endif %}">
+              {{ category_name }}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Lista de posts -->
+      <div class="card">
+        <div class="card-body p-0">
+          {% if posts %}
+            <div class="list-group list-group-flush">
+              {% for post in posts %}
+                <div class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                      <h6 class="mb-1">
+                        <a href="{% url 'plataforma_foro_post_detail' curso.id post.id %}" class="text-decoration-none">
+                          {{ post.title }}
+                        </a>
+                      </h6>
+                      <div class="d-flex align-items-center text-muted small mb-2">
+                        <span class="me-3">
+                          <i class="fas fa-user me-1"></i>{{ post.author.get_full_name|default:post.author.username }}
+                        </span>
+                        <span class="me-3">
+                          <i class="fas fa-calendar me-1"></i>{{ post.created_at|date:"d/m/Y H:i" }}
+                        </span>
+                        <span class="me-3">
+                          <i class="fas fa-comments me-1"></i>{{ post.get_comment_count }} comentarios
+                        </span>
+                        <span class="me-3">
+                          <i class="fas fa-eye me-1"></i>{{ post.get_view_count }} vistas
+                        </span>
+                        <span class="badge bg-primary">{{ post.get_category_display }}</span>
+                      </div>
+                      <p class="text-muted mb-0">
+                        {{ post.content|striptags|truncatewords:30 }}
+                      </p>
+                    </div>
+                    <div class="ms-3">
+                      <a href="{% url 'plataforma_foro_post_detail' curso.id post.id %}" class="btn btn-sm btn-outline-primary">
+                        Ver
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+              <h5 class="text-muted">No hay posts en este foro</h5>
+              <p class="text-muted">Sé el primero en crear una discusión</p>
+              <a href="{% url 'plataforma_foro_create_post' curso.id %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Crear Primer Post
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %} 

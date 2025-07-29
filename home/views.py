@@ -957,6 +957,141 @@ def plataforma_aprendizaje(request, curso_id):
         return redirect('user_space')
 
 
+@login_required
+def plataforma_foro(request, curso_id):
+    """
+    Vista para el foro dentro de la plataforma de aprendizaje
+    """
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            messages.error(request, 'No tienes acceso a este curso. Debes estar inscrito para ver su contenido.')
+            return redirect('user_space')
+        
+        # Obtener posts del curso
+        posts = Post.objects.filter(curso=curso, is_active=True).order_by('-created_at')
+        
+        # Filtros
+        category_filter = request.GET.get('category')
+        if category_filter:
+            posts = posts.filter(category=category_filter)
+        
+        context = {
+            'curso': curso,
+            'posts': posts,
+            'categories': Post.CATEGORY_CHOICES,
+            'current_category': category_filter,
+        }
+        
+        # Si es una petición AJAX, devolver solo el contenido
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            html = render_to_string('pages/plataforma_foro_content.html', context, request=request)
+            return JsonResponse({'html': html})
+        
+        # Si no es AJAX, renderizar la página completa
+        return render(request, 'pages/plataforma_foro.html', context)
+        
+    except Curso.DoesNotExist:
+        messages.error(request, 'El curso no existe o no está disponible.')
+        return redirect('user_space')
+
+
+@login_required
+def plataforma_foro_post_detail(request, curso_id, post_id):
+    """
+    Vista para ver un post individual dentro de la plataforma
+    """
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            messages.error(request, 'No tienes acceso a este curso. Debes estar inscrito para ver su contenido.')
+            return redirect('user_space')
+        
+        post = Post.objects.get(id=post_id, curso=curso, is_active=True)
+        
+        # Incrementar contador de vistas
+        post.views += 1
+        post.save()
+        
+        comments = post.comments.filter(is_active=True)
+        
+        if request.method == 'POST':
+            comment_form = CommentForm(request.POST)
+            if comment_form.is_valid():
+                comment = comment_form.save(commit=False)
+                comment.post = post
+                comment.author = request.user
+                comment.save()
+                messages.success(request, 'Comentario publicado exitosamente.')
+                return redirect('plataforma_foro_post_detail', curso_id=curso.id, post_id=post.id)
+        else:
+            comment_form = CommentForm()
+        
+        context = {
+            'curso': curso,
+            'post': post,
+            'comments': comments,
+            'comment_form': comment_form,
+        }
+        return render(request, 'pages/plataforma_foro_post_detail.html', context)
+        
+    except (Curso.DoesNotExist, Post.DoesNotExist):
+        messages.error(request, 'El curso o post no existe.')
+        return redirect('user_space')
+
+
+@login_required
+def plataforma_foro_create_post(request, curso_id):
+    """
+    Vista para crear un nuevo post dentro de la plataforma
+    """
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            messages.error(request, 'No tienes acceso a este curso. Debes estar inscrito para ver su contenido.')
+            return redirect('user_space')
+        
+        if request.method == 'POST':
+            form = PostForm(request.POST)
+            if form.is_valid():
+                post = form.save(commit=False)
+                post.author = request.user
+                post.curso = curso
+                
+                # Limpiar y validar HTML
+                content = post.content
+                allowed_tags = ['strong', 'em', 'u', 'b', 'i', 'br', 'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre']
+                allowed_attrs = ['class', 'style']
+                import bleach
+                try:
+                    content = bleach.clean(content, tags=allowed_tags, attributes=allowed_attrs, strip=True)
+                except ImportError:
+                    import re
+                    pattern = re.compile(r'<(?!\/?(?:' + '|'.join(allowed_tags) + r')\b)[^>]+>')
+                    content = pattern.sub('', content)
+                post.content = content
+                post.save()
+                messages.success(request, 'Post creado exitosamente.')
+                return redirect('plataforma_foro_post_detail', curso_id=curso.id, post_id=post.id)
+        else:
+            form = PostForm()
+            # Ocultar el campo curso ya que se asigna automáticamente
+            form.fields.pop('curso', None)
+        
+        context = {'form': form, 'curso': curso}
+        return render(request, 'pages/plataforma_foro_create_post.html', context)
+        
+    except Curso.DoesNotExist:
+        messages.error(request, 'El curso no existe o no está disponible.')
+        return redirect('user_space')
+
+
 def cursos_list(request):
     """
     Vista para mostrar todos los cursos de capacitación disponibles
@@ -1525,3 +1660,37 @@ def join_meeting(request, videollamada_id):
         logger.error(f"Error inesperado al unirse a videollamada {videollamada_id}: {str(e)}")
         messages.error(request, 'Error inesperado al acceder a la videollamada.')
         return redirect('user_space')
+
+@login_required
+def plataforma_foro_ajax(request, curso_id):
+    """
+    Vista AJAX para cargar el contenido del foro dinámicamente
+    """
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            return JsonResponse({'error': 'No tienes acceso a este curso'}, status=403)
+        
+        # Obtener posts del curso
+        posts = Post.objects.filter(curso=curso, is_active=True).order_by('-created_at')
+        
+        # Filtros
+        category_filter = request.GET.get('category')
+        if category_filter:
+            posts = posts.filter(category=category_filter)
+        
+        context = {
+            'curso': curso,
+            'posts': posts,
+            'categories': Post.CATEGORY_CHOICES,
+            'current_category': category_filter,
+        }
+        
+        # Renderizar solo el contenido del foro
+        html = render_to_string('pages/plataforma_foro_content.html', context, request=request)
+        return JsonResponse({'html': html})
+        
+    except Curso.DoesNotExist:
+        return JsonResponse({'error': 'El curso no existe'}, status=404)
