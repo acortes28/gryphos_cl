@@ -2129,7 +2129,7 @@ def estadisticas_curso(request, curso_id):
         })
     
     # Estadísticas por evaluación
-    evaluaciones = Evaluacion.objects.filter(curso=curso).order_by('fecha_evaluacion')
+    evaluaciones = Evaluacion.objects.filter(curso=curso).order_by('fecha_inicio')
     estadisticas_evaluaciones = []
     
     for evaluacion in evaluaciones:
@@ -2402,6 +2402,13 @@ def plataforma_entregas_ajax(request, curso_id):
     
     # Si es admin/staff, mostrar todas las entregas agrupadas por evaluación
     if user.is_staff or user.is_superuser:
+        # Obtener todos los estudiantes inscritos en el curso (no staff/admin)
+        estudiantes_curso = User.objects.filter(
+            cursos=curso,
+            is_staff=False,
+            is_superuser=False
+        ).order_by('first_name', 'last_name', 'username')
+        
         evaluaciones_con_entregas = Evaluacion.objects.filter(
             curso=curso
         ).prefetch_related(
@@ -2410,6 +2417,46 @@ def plataforma_entregas_ajax(request, curso_id):
                 queryset=Entrega.objects.select_related('estudiante').order_by('-fecha_entrega')
             )
         ).order_by('-fecha_inicio')
+        
+        # Para cada evaluación, crear una lista de todos los estudiantes con su información
+        for evaluacion in evaluaciones_con_entregas:
+            # Crear una lista de estudiantes con su información de entrega y calificación
+            estudiantes_con_info = []
+            
+            for estudiante in estudiantes_curso:
+                # Buscar si el estudiante tiene entrega para esta evaluación
+                entrega = evaluacion.entregas.filter(estudiante=estudiante).first()
+                
+                # Verificar si existe una calificación para este estudiante en esta evaluación
+                tiene_calificacion = Calificacion.objects.filter(
+                    evaluacion=evaluacion,
+                    estudiante=estudiante
+                ).exists()
+                
+                # Crear un objeto con toda la información del estudiante
+                info_estudiante = {
+                    'estudiante': estudiante,
+                    'entrega': entrega,
+                    'tiene_calificacion': tiene_calificacion,
+                    'tiene_entrega': entrega is not None
+                }
+                
+                estudiantes_con_info.append(info_estudiante)
+            
+            # Calcular estadísticas
+            total_estudiantes = len(estudiantes_con_info)
+            estudiantes_con_entrega = sum(1 for info in estudiantes_con_info if info['tiene_entrega'])
+            estudiantes_sin_entregar = total_estudiantes - estudiantes_con_entrega
+            estudiantes_calificados = sum(1 for info in estudiantes_con_info if info['tiene_calificacion'])
+            
+            # Agregar esta información a la evaluación
+            evaluacion.estudiantes_con_info = estudiantes_con_info
+            evaluacion.stats = {
+                'total_estudiantes': total_estudiantes,
+                'estudiantes_con_entrega': estudiantes_con_entrega,
+                'estudiantes_sin_entregar': estudiantes_sin_entregar,
+                'estudiantes_calificados': estudiantes_calificados
+            }
         
         html = render_to_string('pages/plataforma_entregas_admin_content.html', {
             'evaluaciones_con_entregas': evaluaciones_con_entregas,

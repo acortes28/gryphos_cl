@@ -508,7 +508,7 @@
         <div class="col-md-6">
           <p><strong>Nombre:</strong> {{ evaluacion.nombre }}</p>
           <p><strong>Tipo:</strong> {{ evaluacion.get_tipo_display }}</p>
-          <p><strong>Fecha:</strong> {{ evaluacion.fecha_evaluacion|date:"d/m/Y" }}</p>
+          <p><strong>Período:</strong> {{ evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ evaluacion.fecha_fin|date:"d/m/Y" }}</p>
           <p><strong>Nota Máxima:</strong> {{ evaluacion.nota_maxima }}</p>
           <p><strong>Ponderación:</strong> {{ evaluacion.ponderacion }}%</p>
         </div>
@@ -618,14 +618,19 @@ function toggleSidebar() {
   sidebar.classList.toggle('show');
 }
 
-{% if tiene_calificaciones %}
 // Habilitar/deshabilitar botón según confirmación (solo si hay calificaciones)
-document.getElementById('confirmacion').addEventListener('input', function() {
-  const btnEliminar = document.getElementById('btnEliminar');
-  if (this.value === 'ELIMINAR') {
-    btnEliminar.disabled = false;
-  } else {
-    btnEliminar.disabled = true;
+{% if tiene_calificaciones %}
+document.addEventListener('DOMContentLoaded', function() {
+  var input = document.getElementById('confirmacion');
+  var btnEliminar = document.getElementById('btnEliminar');
+  if (input && btnEliminar) {
+    input.addEventListener('input', function() {
+      if (this.value === 'ELIMINAR') {
+        btnEliminar.disabled = false;
+      } else {
+        btnEliminar.disabled = true;
+      }
+    });
   }
 });
 {% endif %}

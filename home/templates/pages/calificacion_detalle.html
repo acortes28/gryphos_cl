@@ -520,8 +520,8 @@
               <div class="info-value">{{ calificacion.evaluacion.get_tipo_display }}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">Fecha de Evaluación</div>
-              <div class="info-value">{{ calificacion.evaluacion.fecha_evaluacion|date:"d/m/Y" }}</div>
+              <div class="info-label">Período de Evaluación</div>
+              <div class="info-value">{{ calificacion.evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ calificacion.evaluacion.fecha_fin|date:"d/m/Y" }}</div>
             </div>
             <div class="info-item">
               <div class="info-label">Nota Máxima</div>

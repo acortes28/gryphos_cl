@@ -85,6 +85,22 @@
   .evaluacion-header.collapsed .toggle-icon {
     transform: rotate(-90deg);
   }
+  
+  .badge-calificado {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    border: none;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    transition: all 0.3s ease;
+  }
+  
+  .badge-calificado:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+  }
+  
+  .badge-calificado i {
+    font-size: 0.9rem;
+  }
 </style>
 
 <div class="admin-entregas-container">
@@ -113,7 +129,7 @@
               </div>
             </div>
             <div class="d-flex align-items-center">
-              <span class="badge bg-info me-2">{{ evaluacion.entregas.count }} entregas</span>
+              <span class="badge bg-info me-2">{{ evaluacion.stats.total_estudiantes }} estudiantes</span>
               <i class="fas fa-chevron-down toggle-icon"></i>
             </div>
           </div>
@@ -122,127 +138,129 @@
         <div class="evaluacion-content" id="evaluacion-{{ evaluacion.id }}">
           <div class="evaluacion-stats">
             <div class="stat-item">
-              <div class="stat-value">{{ evaluacion.entregas.count }}</div>
-              <div class="stat-label">Total Entregas</div>
+              <div class="stat-value">{{ evaluacion.stats.total_estudiantes }}</div>
+              <div class="stat-label">Total Estudiantes</div>
             </div>
             <div class="stat-item">
-              <div class="stat-value">
-                {% with entregas_pendientes=evaluacion.entregas.all|length %}
-                  {{ entregas_pendientes }}
-                {% endwith %}
-              </div>
-              <div class="stat-label">Pendientes</div>
+              <div class="stat-value">{{ evaluacion.stats.estudiantes_con_entrega }}</div>
+              <div class="stat-label">Con Entrega</div>
             </div>
             <div class="stat-item">
-              <div class="stat-value">
-                {% with entregas_entregadas=evaluacion.entregas.all|length %}
-                  {{ entregas_entregadas }}
-                {% endwith %}
-              </div>
-              <div class="stat-label">Entregadas</div>
+              <div class="stat-value">{{ evaluacion.stats.estudiantes_sin_entregar }}</div>
+              <div class="stat-label">Sin Entregar</div>
             </div>
             <div class="stat-item">
-              <div class="stat-value">
-                {% with entregas_tardias=evaluacion.entregas.all|length %}
-                  {{ entregas_tardias }}
-                {% endwith %}
-              </div>
-              <div class="stat-label">Tardías</div>
+              <div class="stat-value">{{ evaluacion.stats.estudiantes_calificados }}</div>
+              <div class="stat-label">Calificados</div>
             </div>
           </div>
           
-          {% if evaluacion.entregas.all %}
-            <div class="table-responsive entregas-table">
-              <table class="table table-bordered table-hover">
-                <thead class="table-light">
-                  <tr>
-                    <th>Estudiante</th>
-                    <th>Archivo</th>
-                    <th>Fecha de Entrega</th>
-                    <th>Estado</th>
-                    <th>Comentario</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for entrega in evaluacion.entregas.all %}
-                  <tr>
-                    <td>
-                      <div class="d-flex align-items-center">
-                        {% if entrega.estudiante.profile_photo %}
-                          <img src="{{ entrega.estudiante.profile_photo.url }}" alt="Foto" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                        {% else %}
-                          <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
-                            <i class="fas fa-user text-white" style="font-size: 0.8rem;"></i>
-                          </div>
-                        {% endif %}
-                        <div>
-                          <div class="fw-bold">{{ entrega.estudiante.get_full_name|default:entrega.estudiante.username }}</div>
-                          <small class="text-muted">{{ entrega.estudiante.email }}</small>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      {% if entrega.archivo %}
-                        <a href="{{ entrega.archivo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                          <i class="fas fa-download me-1"></i>{{ entrega.get_nombre_archivo }}
-                        </a>
-                        <br><small class="text-muted">{{ entrega.get_tamano_archivo }}</small>
+          <div class="table-responsive entregas-table">
+            <table class="table table-bordered table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Estudiante</th>
+                  <th>Archivo</th>
+                  <th>Fecha de Entrega</th>
+                  <th>Estado</th>
+                  <th>Comentario</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for info_estudiante in evaluacion.estudiantes_con_info %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% if info_estudiante.estudiante.profile_photo %}
+                        <img src="{{ info_estudiante.estudiante.profile_photo.url }}" alt="Foto" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
                       {% else %}
-                        <span class="text-muted">Sin archivo</span>
+                        <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                          <i class="fas fa-user text-white" style="font-size: 0.8rem;"></i>
+                        </div>
                       {% endif %}
-                    </td>
-                    <td>
-                      <div>{{ entrega.fecha_entrega|date:"d/m/Y" }}</div>
-                      <small class="text-muted">{{ entrega.fecha_entrega|date:"H:i" }}</small>
-                    </td>
-                    <td>
-                      {% if entrega.estado == 'pendiente' %}
+                      <div>
+                        <div class="fw-bold">{{ info_estudiante.estudiante.get_full_name|default:info_estudiante.estudiante.username }}</div>
+                        <small class="text-muted">{{ info_estudiante.estudiante.email }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    {% if info_estudiante.tiene_entrega and info_estudiante.entrega.archivo %}
+                      <a href="{{ info_estudiante.entrega.archivo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-download me-1"></i>{{ info_estudiante.entrega.get_nombre_archivo }}
+                      </a>
+                      <br><small class="text-muted">{{ info_estudiante.entrega.get_tamano_archivo }}</small>
+                    {% elif info_estudiante.tiene_entrega %}
+                      <span class="text-muted">Sin archivo</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Sin entregar</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if info_estudiante.tiene_entrega %}
+                      <div>{{ info_estudiante.entrega.fecha_entrega|date:"d/m/Y" }}</div>
+                      <small class="text-muted">{{ info_estudiante.entrega.fecha_entrega|date:"H:i" }}</small>
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if info_estudiante.tiene_entrega %}
+                      {% if info_estudiante.entrega.estado == 'pendiente' %}
                         <span class="badge bg-warning estado-badge">Pendiente</span>
-                      {% elif entrega.estado == 'entregado' %}
+                      {% elif info_estudiante.entrega.estado == 'entregado' %}
                         <span class="badge bg-info estado-badge">Entregado</span>
-                      {% elif entrega.estado == 'tardio' %}
+                      {% elif info_estudiante.entrega.estado == 'tardio' %}
                         <span class="badge bg-danger estado-badge">Tardío</span>
-                      {% elif entrega.estado == 'rechazado' %}
+                      {% elif info_estudiante.entrega.estado == 'rechazado' %}
                         <span class="badge bg-danger estado-badge">Rechazado</span>
-                      {% elif entrega.estado == 'aprobado' %}
+                      {% elif info_estudiante.entrega.estado == 'aprobado' %}
                         <span class="badge bg-success estado-badge">Aprobado</span>
                       {% endif %}
-                    </td>
-                    <td>
-                      {% if entrega.comentario %}
-                        <span title="{{ entrega.comentario }}">{{ entrega.comentario|truncatechars:50 }}</span>
-                      {% else %}
-                        <span class="text-muted">-</span>
-                      {% endif %}
-                    </td>
-                    <td>
-                      <div class="btn-group btn-group-sm">
+                    {% else %}
+                      <span class="badge bg-secondary estado-badge">Sin entregar</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if info_estudiante.tiene_entrega and info_estudiante.entrega.comentario %}
+                      <span title="{{ info_estudiante.entrega.comentario }}">{{ info_estudiante.entrega.comentario|truncatechars:50 }}</span>
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      {% if not info_estudiante.tiene_calificacion %}
                         <button class="btn btn-outline-primary" title="Evaluar" 
-                                data-entrega-id="{{ entrega.id }}" 
+                                data-entrega-id="{% if info_estudiante.tiene_entrega %}{{ info_estudiante.entrega.id }}{% endif %}" 
                                 data-evaluacion-id="{{ evaluacion.id }}"
-                                data-estudiante-id="{{ entrega.estudiante.id }}"
+                                data-estudiante-id="{{ info_estudiante.estudiante.id }}"
                                 onclick="evaluarEntrega(this)">
                           <i class="fas fa-star"></i> Evaluar
                         </button>
-                        <button class="btn btn-outline-warning" title="Reemplazar" 
-                                data-entrega-id="{{ entrega.id }}"
-                                onclick="abrirModalReemplazar(this)">
-                          <i class="fas fa-upload"></i> Reemplazar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          {% else %}
-            <div class="alert alert-info">
-              <i class="fas fa-info-circle me-2"></i>
-              No hay entregas registradas para esta evaluación.
-            </div>
-          {% endif %}
+                        {% if info_estudiante.tiene_entrega %}
+                          <button class="btn btn-outline-warning" title="Reemplazar" 
+                                  data-entrega-id="{{ info_estudiante.entrega.id }}"
+                                  onclick="abrirModalReemplazar(this)">
+                            <i class="fas fa-upload"></i> Reemplazar
+                          </button>
+                        {% endif %}
+                      {% else %}
+                        <div class="d-flex align-items-center">
+                          <span class="badge badge-calificado d-flex align-items-center" style="font-size: 0.8rem; padding: 0.5rem 0.75rem;">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Ya calificado
+                          </span>
+                        </div>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     {% endfor %}
