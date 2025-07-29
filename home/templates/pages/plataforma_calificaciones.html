@@ -499,6 +499,12 @@
                         <a href="{% url 'estadisticas_curso' curso.id %}" class="btn btn-sm btn-outline-info">
                           <i class="fas fa-chart-line me-1"></i>Ver Stats
                         </a>
+                        <a href="{% url 'editar_evaluacion' curso.id evaluacion.id %}" class="btn btn-sm btn-outline-warning">
+                          <i class="fas fa-edit me-1"></i>Editar
+                        </a>
+                        <a href="{% url 'eliminar_evaluacion' curso.id evaluacion.id %}" class="btn btn-sm btn-outline-danger">
+                          <i class="fas fa-trash-alt me-1"></i>Eliminar
+                        </a>
                       </div>
                     </div>
                   </div>

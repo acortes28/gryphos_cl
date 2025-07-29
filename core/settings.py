@@ -233,8 +233,6 @@ API_KEY_MAILCOW = os.environ.get('API_KEY_MAILCOW')
 
 JITSI_JWT_SECRET = os.environ.get('JITSI_JWT_SECRET')
 
-print("JITSI_JWT_SECRET -> " + JITSI_JWT_SECRET)
-
 # Configuración de Email
 if DEBUG:
     # Para desarrollo - muestra correos en consola

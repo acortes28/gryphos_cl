@@ -1993,7 +1993,7 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
     ).order_by('first_name', 'last_name', 'username')
     
     if request.method == 'POST':
-        form = CalificacionForm(request.POST, curso=curso)
+        form = CalificacionForm(request.POST, curso=curso, evaluacion=evaluacion)
         if form.is_valid():
             calificacion = form.save(commit=False)
             calificacion.evaluacion = evaluacion
@@ -2019,7 +2019,7 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
             
             return redirect('plataforma_calificaciones', curso_id=curso_id)
     else:
-        form = CalificacionForm(curso=curso)
+        form = CalificacionForm(curso=curso, evaluacion=evaluacion)
     
     context = {
         'curso': curso,
@@ -2122,3 +2122,87 @@ def estadisticas_curso(request, curso_id):
         'user': request.user,
     }
     return render(request, 'pages/estadisticas_curso.html', context)
+
+@login_required
+def eliminar_evaluacion(request, curso_id, evaluacion_id):
+    """
+    Vista para eliminar una evaluación (solo staff/admin)
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+    
+    # Verificar permisos
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para eliminar evaluaciones.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    # Verificar si la evaluación tiene calificaciones
+    tiene_calificaciones = evaluacion.calificaciones.exists()
+    
+    if request.method == 'POST':
+        # Si no tiene calificaciones, eliminar directamente
+        if not tiene_calificaciones:
+            nombre_evaluacion = evaluacion.nombre
+            evaluacion.delete()
+            messages.success(request, f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.')
+            return redirect('plataforma_calificaciones', curso_id=curso_id)
+        
+        # Si tiene calificaciones, verificar confirmación
+        confirmacion = request.POST.get('confirmacion', '').strip()
+        if confirmacion != 'ELIMINAR':
+            messages.error(request, 'Debes escribir "ELIMINAR" para confirmar la eliminación.')
+            context = {
+                'curso': curso,
+                'evaluacion': evaluacion,
+                'user': request.user,
+                'tiene_calificaciones': tiene_calificaciones,
+            }
+            return render(request, 'pages/eliminar_evaluacion.html', context)
+        
+        # Eliminar la evaluación y todas sus calificaciones asociadas
+        nombre_evaluacion = evaluacion.nombre
+        evaluacion.delete()
+        messages.success(request, f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    # Si es GET, mostrar página de confirmación
+    context = {
+        'curso': curso,
+        'evaluacion': evaluacion,
+        'user': request.user,
+        'tiene_calificaciones': tiene_calificaciones,
+    }
+    return render(request, 'pages/eliminar_evaluacion.html', context)
+
+@login_required
+def editar_evaluacion(request, curso_id, evaluacion_id):
+    """
+    Vista para editar una evaluación (solo staff/admin)
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+    
+    # Verificar permisos
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para editar evaluaciones.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    if request.method == 'POST':
+        form = EvaluacionForm(request.POST, instance=evaluacion)
+        if form.is_valid():
+            evaluacion = form.save(commit=False)
+            evaluacion.curso = curso
+            evaluacion.creado_por = request.user
+            evaluacion.save()
+            messages.success(request, f'Evaluación "{evaluacion.nombre}" actualizada exitosamente.')
+            return redirect('plataforma_calificaciones', curso_id=curso_id)
+    else:
+        form = EvaluacionForm(instance=evaluacion)
+    
+    context = {
+        'curso': curso,
+        'evaluacion': evaluacion,
+        'form': form,
+        'user': request.user,
+    }
+    return render(request, 'pages/editar_evaluacion.html', context)

@@ -349,12 +349,24 @@ class CalificacionForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         curso = kwargs.pop('curso', None)
+        evaluacion = kwargs.pop('evaluacion', None)
         super().__init__(*args, **kwargs)
         
         if curso:
-            # Filtrar solo estudiantes (no staff/admin) que están inscritos en el curso
-            self.fields['estudiante'].queryset = User.objects.filter(
+            # Obtener estudiantes inscritos en el curso (no staff/admin)
+            estudiantes_inscritos = User.objects.filter(
                 cursos=curso,
                 is_staff=False,
                 is_superuser=False
-            ).order_by('first_name', 'last_name', 'username')
+            )
+            
+            # Si hay una evaluación específica, excluir estudiantes ya calificados
+            if evaluacion:
+                # Obtener IDs de estudiantes ya calificados en esta evaluación
+                estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
+                # Filtrar estudiantes que NO están en la lista de calificados
+                estudiantes_disponibles = estudiantes_inscritos.exclude(id__in=estudiantes_calificados_ids)
+            else:
+                estudiantes_disponibles = estudiantes_inscritos
+            
+            self.fields['estudiante'].queryset = estudiantes_disponibles.order_by('first_name', 'last_name', 'username')

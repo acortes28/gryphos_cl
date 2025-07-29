@@ -1,0 +1,555 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Editar Evaluación - {{ evaluacion.nombre }} - {{ curso.nombre }}{% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+
+{% block header %}
+<!-- Ocultar la navegación en la plataforma de aprendizaje -->
+{% endblock header %}
+
+{% block content %}
+
+<style>
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  }
+  
+  .sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+  }
+  
+  .sidebar-nav {
+    padding: 20px 0;
+  }
+  
+  .sidebar-nav .nav-link {
+    color: rgba(255,255,255,0.8);
+    padding: 15px 25px;
+    border: none;
+    background: transparent;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  
+  .sidebar-nav .nav-link:hover,
+  .sidebar-nav .nav-link.active {
+    color: white;
+    background: rgba(255,255,255,0.1);
+    border-left: 4px solid #fff;
+  }
+  
+  .sidebar-nav .nav-link i {
+    margin-right: 12px;
+    width: 20px;
+    text-align: center;
+  }
+  
+  .main-content {
+    margin-left: 280px;
+    min-height: 100vh;
+    background: #f8f9fa;
+  }
+  
+  .content-header {
+    background: white;
+    padding: 20px 30px;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .content-body {
+    padding: 30px;
+  }
+  
+  .section-content {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  
+  .breadcrumb-custom {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .breadcrumb-custom .breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #6c757d;
+  }
+  
+  .form-card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+  }
+  
+  .form-control {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+  }
+  
+  .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  }
+  
+  .evaluacion-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+  }
+  
+  .evaluacion-info h4 {
+    color: white;
+    margin-bottom: 10px;
+  }
+  
+  .evaluacion-stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  
+  .stat-item {
+    text-align: center;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    display: block;
+  }
+  
+  .stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+  
+  .btn-portal-nav {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-portal-nav:hover {
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+  
+  .btn-logout-nav {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-logout-nav:hover {
+    color: white;
+    background: #c82333;
+    transform: translateY(-1px);
+  }
+  
+  .user-card {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-left: 15px;
+  }
+  
+  .user-info {
+    margin-right: 10px;
+  }
+  
+  .user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+  }
+  
+  .user-email {
+    font-size: 0.8rem;
+    color: #666;
+  }
+  
+  .avatar {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.9rem;
+  }
+  
+  .avatar-sm {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .mobile-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    display: none;
+  }
+  
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+      transform: translateX(0);
+    }
+    
+    .main-content {
+      margin-left: 0;
+    }
+    
+    .mobile-toggle {
+      display: block;
+    }
+  }
+</style>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h5 class="mb-0">
+      <i class="fas fa-graduation-cap me-2"></i>
+      {{ curso.nombre }}
+    </h5>
+    <small class="text-white-50">Plataforma de Aprendizaje</small>
+  </div>
+  
+  <nav class="sidebar-nav">
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}" class="nav-link">
+      <i class="fas fa-home"></i>
+      Inicio
+    </a>
+    
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=foro" class="nav-link">
+      <i class="fas fa-comments"></i>
+      Foro
+    </a>
+    
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=recursos" class="nav-link">
+      <i class="fas fa-book"></i>
+      Recursos
+    </a>
+    
+    <a href="{% url 'plataforma_calificaciones' curso.id %}" class="nav-link active">
+      <i class="fas fa-chart-line"></i>
+      Calificaciones
+    </a>
+    
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=soporte" class="nav-link">
+      <i class="fas fa-headset"></i>
+      Soporte al Estudiante
+    </a>
+  </nav>
+</div>
+
+<!-- Mobile Toggle Button -->
+<button class="mobile-toggle d-md-none" onclick="toggleSidebar()">
+  <i class="fas fa-bars"></i>
+</button>
+
+<!-- Main Content -->
+<div class="main-content">
+  <!-- Content Header -->
+  <div class="content-header">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb breadcrumb-custom">
+        <li class="breadcrumb-item">
+          <a href="{% url 'user_space' %}" class="text-decoration-none">
+            <i class="fas fa-arrow-left me-1"></i>Portal de Miembros
+          </a>
+        </li>
+        <li class="breadcrumb-item">
+          <a href="{% url 'plataforma_aprendizaje' curso.id %}" class="text-decoration-none">
+            {{ curso.nombre }}
+          </a>
+        </li>
+        <li class="breadcrumb-item">
+          <a href="{% url 'plataforma_calificaciones' curso.id %}" class="text-decoration-none">
+            Calificaciones
+          </a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+          Editar Evaluación
+        </li>
+      </ol>
+    </nav>
+    
+    <div class="d-flex justify-content-between align-items-start mt-3">
+      <div>
+        <h2 class="mb-1">
+          <i class="fas fa-edit me-2"></i>Editar Evaluación
+        </h2>
+        <p class="text-muted mb-0">Modificar la evaluación: {{ evaluacion.nombre }}</p>
+      </div>
+      
+      <div class="d-flex align-items-center">
+        <!-- Botones de acción -->
+        <div class="me-3 action-buttons">
+          <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-secondary me-2">
+            <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+          </a>
+          <a href="{% url 'user_space' %}" class="btn btn-portal-nav me-2">
+            <i class="fas fa-home me-1"></i>Ir a mi Portal
+          </a>
+          <a href="{% url 'logout' %}" class="btn btn-logout-nav">
+            <i class="fas fa-sign-out-alt me-1"></i>Cerrar Sesión
+          </a>
+        </div>
+        
+        <div class="user-card">
+          <div class="user-info">
+            <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+            <div class="user-email">{{ user.email }}</div>
+          </div>
+          <div class="user-avatar">
+            {% if user.profile_photo %}
+              <img src="{{ user.profile_photo.url }}" alt="Foto de perfil" class="avatar avatar-sm rounded-circle">
+            {% else %}
+              <div class="avatar avatar-sm bg-gradient-primary rounded-circle">
+                <i class="fas fa-user text-white"></i>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Content Body -->
+  <div class="content-body">
+    <!-- Información de la Evaluación -->
+    <div class="evaluacion-info">
+      <h4>
+        <i class="fas fa-clipboard-list me-2"></i>{{ evaluacion.nombre }}
+      </h4>
+      <p class="mb-3">{{ evaluacion.get_tipo_display }} - {{ evaluacion.fecha_evaluacion|date:"d/m/Y" }}</p>
+      <div class="evaluacion-stats">
+        <div class="stat-item">
+          <span class="stat-value">{{ evaluacion.nota_maxima }}</span>
+          <span class="stat-label">Nota Máxima</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">{{ evaluacion.ponderacion }}%</span>
+          <span class="stat-label">Ponderación</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">{{ evaluacion.get_calificaciones_count }}</span>
+          <span class="stat-label">Calificaciones Registradas</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">
+            {% if evaluacion.activa %}
+              <span class="badge bg-success">Activa</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactiva</span>
+            {% endif %}
+          </span>
+          <span class="stat-label">Estado</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Formulario de Edición -->
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="form-card">
+          <h4 class="mb-4">
+            <i class="fas fa-edit me-2"></i>Editar Evaluación
+          </h4>
+          
+          <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+              <label for="{{ form.tipo.id_for_label }}" class="form-label">
+                <i class="fas fa-tag me-1"></i>{{ form.tipo.label }} *
+              </label>
+              {{ form.tipo }}
+              {% if form.tipo.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.tipo.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+              {% if form.tipo.help_text %}
+                <small class="form-text text-muted">{{ form.tipo.help_text }}</small>
+              {% endif %}
+            </div>
+            
+            <div class="form-group">
+              <label for="{{ form.nombre.id_for_label }}" class="form-label">
+                <i class="fas fa-heading me-1"></i>{{ form.nombre.label }} *
+              </label>
+              {{ form.nombre }}
+              {% if form.nombre.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.nombre.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+              {% if form.nombre.help_text %}
+                <small class="form-text text-muted">{{ form.nombre.help_text }}</small>
+              {% endif %}
+            </div>
+            
+            <div class="form-group">
+              <label for="{{ form.fecha_evaluacion.id_for_label }}" class="form-label">
+                <i class="fas fa-calendar me-1"></i>{{ form.fecha_evaluacion.label }} *
+              </label>
+              {{ form.fecha_evaluacion }}
+              {% if form.fecha_evaluacion.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.fecha_evaluacion.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+              {% if form.fecha_evaluacion.help_text %}
+                <small class="form-text text-muted">{{ form.fecha_evaluacion.help_text }}</small>
+              {% endif %}
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="{{ form.nota_maxima.id_for_label }}" class="form-label">
+                    <i class="fas fa-star me-1"></i>{{ form.nota_maxima.label }} *
+                  </label>
+                  {{ form.nota_maxima }}
+                  {% if form.nota_maxima.errors %}
+                    <div class="text-danger small mt-1">
+                      {% for error in form.nota_maxima.errors %}
+                        {{ error }}
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                  {% if form.nota_maxima.help_text %}
+                    <small class="form-text text-muted">{{ form.nota_maxima.help_text }}</small>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="{{ form.ponderacion.id_for_label }}" class="form-label">
+                    <i class="fas fa-percentage me-1"></i>{{ form.ponderacion.label }} *
+                  </label>
+                  {{ form.ponderacion }}
+                  {% if form.ponderacion.errors %}
+                    <div class="text-danger small mt-1">
+                      {% for error in form.ponderacion.errors %}
+                        {{ error }}
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                  {% if form.ponderacion.help_text %}
+                    <small class="form-text text-muted">{{ form.ponderacion.help_text }}</small>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="{{ form.descripcion.id_for_label }}" class="form-label">
+                <i class="fas fa-align-left me-1"></i>{{ form.descripcion.label }}
+              </label>
+              {{ form.descripcion }}
+              {% if form.descripcion.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.descripcion.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+              {% if form.descripcion.help_text %}
+                <small class="form-text text-muted">{{ form.descripcion.help_text }}</small>
+              {% endif %}
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mt-4">
+              <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-secondary">
+                <i class="fas fa-times me-2"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-warning">
+                <i class="fas fa-save me-2"></i>Actualizar Evaluación
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.classList.toggle('show');
+}
+</script>
+
+{% endblock content %} 
