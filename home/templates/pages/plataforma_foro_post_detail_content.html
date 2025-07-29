@@ -1,16 +1,40 @@
+<style>
+  .form-control, textarea.form-control, select.form-control {
+    border: 1px solid #d2d6da !important;
+    background-color: #fff !important;
+    color: #495057;
+    box-shadow: none;
+  }
+  .form-control:focus, textarea.form-control:focus, select.form-control:focus {
+    border: 1.5px solid #596CFF !important;
+    background-color: #fff !important;
+    box-shadow: 0 0 0 0.1rem rgba(89,108,255,.15);
+  }
+  .form-label {
+    font-weight: 500;
+    color: #344767;
+    margin-bottom: 0.5rem;
+  }
+  .help-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+  }
+</style>
+
 <div class="row">
   <div class="col-12">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb" class="mb-4">
-      <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-          <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=foro" class="text-decoration-none">
-            <i class="fas fa-arrow-left me-1"></i>Volver al Foro
-          </a>
-        </li>
-        <li class="breadcrumb-item active">{{ post.title }}</li>
-      </ol>
-    </nav>
+    <!-- Header con botón Volver -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h4 class="mb-0">{{ post.title }}</h4>
+      </div>
+      <div>
+        <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=foro" class="btn btn-outline-secondary">
+          <i class="fas fa-arrow-left me-2"></i>Volver al Foro
+        </a>
+      </div>
+    </div>
 
     <!-- Post -->
     <div class="card mb-4">

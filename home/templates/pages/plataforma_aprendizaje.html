@@ -784,9 +784,6 @@ function cargarPostDetalle(postId) {
 function cargarForoFiltrado(category) {
   const seccionForo = document.getElementById('seccion-foro');
   
-  // Mostrar loading
-  document.getElementById('loading').classList.add('show');
-  
   // Construir URL con filtro para AJAX
   let url = `{% url 'plataforma_foro_ajax' curso.id %}`;
   if (category && category !== '') {
@@ -822,13 +819,9 @@ function cargarForoFiltrado(category) {
           }
         }
       }
-      
-      // Ocultar loading
-      document.getElementById('loading').classList.remove('show');
     })
     .catch(error => {
       console.error('Error cargando el foro:', error);
-      document.getElementById('loading').classList.remove('show');
     });
 }
 
