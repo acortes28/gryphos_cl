@@ -409,17 +409,18 @@ class Evaluacion(models.Model):
     curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='evaluaciones')
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, help_text="Tipo de evaluación")
     nombre = models.CharField(max_length=200, help_text="Nombre de la evaluación")
-    fecha_evaluacion = models.DateField(help_text="Fecha de evaluación")
+    fecha_inicio = models.DateField(help_text="Fecha de inicio de la evaluación", blank=True, null=True)
+    fecha_fin = models.DateField(help_text="Fecha de fin de la evaluación", blank=True, null=True)
     nota_maxima = models.DecimalField(max_digits=5, decimal_places=2, help_text="Nota máxima posible")
     ponderacion = models.DecimalField(max_digits=5, decimal_places=2, help_text="Ponderación en porcentaje")
     descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la evaluación")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
     activa = models.BooleanField(default=True, help_text="Indica si la evaluación está activa")
-    creado_por = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='evaluaciones_creadas')
+    creado_por = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='evaluaciones_creadas', blank=True, null=True)
     
     class Meta:
-        ordering = ['-fecha_evaluacion', '-fecha_creacion']
+        ordering = ['-fecha_inicio', '-fecha_creacion']
         verbose_name = 'Evaluación'
         verbose_name_plural = 'Evaluaciones'
         unique_together = ['curso', 'nombre']
@@ -467,3 +468,74 @@ class Calificacion(models.Model):
         if self.nota and self.evaluacion.ponderacion:
             return (self.nota / self.evaluacion.nota_maxima) * self.evaluacion.ponderacion
         return None
+
+class Entrega(models.Model):
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('entregado', 'Entregado'),
+        ('tardio', 'Tardío'),
+        ('rechazado', 'Rechazado'),
+        ('aprobado', 'Aprobado'),
+    ]
+    
+    evaluacion = models.ForeignKey(Evaluacion, on_delete=models.CASCADE, related_name='entregas')
+    estudiante = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='entregas')
+    archivo = models.FileField(upload_to='entregas/', help_text="Archivo de la entrega")
+    comentario = models.TextField(blank=True, null=True, help_text="Comentario opcional del estudiante")
+    fecha_entrega = models.DateTimeField(auto_now_add=True, help_text="Fecha y hora de entrega")
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente', help_text="Estado de la entrega")
+    calificacion = models.OneToOneField(Calificacion, on_delete=models.CASCADE, related_name='entrega', blank=True, null=True, help_text="Calificación asociada a esta entrega")
+    revisado_por = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, blank=True, null=True, related_name='entregas_revisadas')
+    fecha_revision = models.DateTimeField(blank=True, null=True, help_text="Fecha de revisión")
+    comentario_revisor = models.TextField(blank=True, null=True, help_text="Comentario del revisor")
+    
+    class Meta:
+        ordering = ['-fecha_entrega']
+        verbose_name = 'Entrega'
+        verbose_name_plural = 'Entregas'
+        unique_together = ['evaluacion', 'estudiante']
+    
+    def __str__(self):
+        return f"{self.estudiante.get_full_name()} - {self.evaluacion.nombre}"
+    
+    def get_nombre_archivo(self):
+        """Retorna el nombre del archivo sin la ruta"""
+        if self.archivo:
+            return self.archivo.name.split('/')[-1]
+        return "Sin archivo"
+    
+    def get_tamano_archivo(self):
+        """Retorna el tamaño del archivo en formato legible"""
+        if self.archivo and hasattr(self.archivo, 'size'):
+            size = self.archivo.size
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return f"{size:.1f} {unit}"
+                size /= 1024.0
+            return f"{size:.1f} TB"
+        return "N/A"
+    
+    def es_tardia(self):
+        """Verifica si la entrega es tardía"""
+        from django.utils import timezone
+        if self.evaluacion.fecha_fin:
+            return self.fecha_entrega.date() > self.evaluacion.fecha_fin
+        return False
+    
+    def puede_entregar(self):
+        """Verifica si el estudiante puede entregar"""
+        from django.utils import timezone
+        ahora = timezone.now()
+        
+        # Verificar que la evaluación esté activa
+        if not self.evaluacion.activa:
+            return False
+        
+        # Verificar fechas
+        if self.evaluacion.fecha_inicio and ahora.date() < self.evaluacion.fecha_inicio:
+            return False
+        
+        if self.evaluacion.fecha_fin and ahora.date() > self.evaluacion.fecha_fin:
+            return False
+        
+        return True

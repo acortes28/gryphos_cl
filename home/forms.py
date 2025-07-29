@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from .models import Post, Comment
 from .models import BlogPost, Curso
-from .models import Evaluacion, Calificacion
+from .models import Evaluacion, Calificacion, Entrega
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
@@ -266,7 +266,7 @@ class BlogPostForm(forms.ModelForm):
 class EvaluacionForm(forms.ModelForm):
     class Meta:
         model = Evaluacion
-        fields = ['tipo', 'nombre', 'fecha_evaluacion', 'nota_maxima', 'ponderacion', 'descripcion']
+        fields = ['tipo', 'nombre', 'fecha_inicio', 'fecha_fin', 'nota_maxima', 'ponderacion', 'descripcion']
         widgets = {
             'tipo': forms.Select(attrs={
                 'class': 'form-control',
@@ -276,7 +276,11 @@ class EvaluacionForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Nombre de la evaluación'
             }),
-            'fecha_evaluacion': forms.DateInput(attrs={
+            'fecha_inicio': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'fecha_fin': forms.DateInput(attrs={
                 'class': 'form-control',
                 'type': 'date'
             }),
@@ -302,7 +306,8 @@ class EvaluacionForm(forms.ModelForm):
         labels = {
             'tipo': 'Tipo de Evaluación',
             'nombre': 'Nombre de la Evaluación',
-            'fecha_evaluacion': 'Fecha de Evaluación',
+            'fecha_inicio': 'Fecha de Inicio',
+            'fecha_fin': 'Fecha de Fin',
             'nota_maxima': 'Nota Máxima',
             'ponderacion': 'Ponderación (%)',
             'descripcion': 'Descripción (Opcional)'
@@ -310,7 +315,8 @@ class EvaluacionForm(forms.ModelForm):
         help_texts = {
             'tipo': 'Selecciona el tipo de evaluación',
             'nombre': 'Nombre descriptivo de la evaluación',
-            'fecha_evaluacion': 'Fecha en que se realizará la evaluación',
+            'fecha_inicio': 'Fecha de inicio del período de evaluación',
+            'fecha_fin': 'Fecha límite para entregar la evaluación',
             'nota_maxima': 'Nota máxima que se puede obtener',
             'ponderacion': 'Porcentaje que representa esta evaluación en el curso',
             'descripcion': 'Descripción detallada de la evaluación (opcional)'
@@ -373,6 +379,91 @@ class EvaluacionForm(forms.ModelForm):
             raise ValidationError(f'Ya existe una evaluación con el nombre "{nombre}" en este curso.')
         
         return nombre
+    
+    def clean(self):
+        """Validación personalizada del formulario"""
+        cleaned_data = super().clean()
+        fecha_inicio = cleaned_data.get('fecha_inicio')
+        fecha_fin = cleaned_data.get('fecha_fin')
+        
+        if fecha_inicio and fecha_fin and fecha_inicio > fecha_fin:
+            raise ValidationError('La fecha de fin debe ser posterior a la fecha de inicio.')
+        
+        return cleaned_data
+
+class EntregaForm(forms.ModelForm):
+    class Meta:
+        model = Entrega
+        fields = ['archivo', 'comentario']
+        widgets = {
+            'archivo': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': '.pdf,.doc,.docx,.txt,.zip,.rar,.jpg,.jpeg,.png,.xlsx,.xls,.ppt,.pptx,.csv'
+            }),
+            'comentario': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Comentario opcional sobre tu entrega...'
+            })
+        }
+        labels = {
+            'archivo': 'Archivo de Entrega',
+            'comentario': 'Comentario (Opcional)'
+        }
+        help_texts = {
+            'archivo': 'Selecciona el archivo que deseas entregar (PDF, Word, Excel, PowerPoint, texto, comprimidos o imágenes). Tamaño máximo: 50MB',
+            'comentario': 'Puedes agregar un comentario explicativo sobre tu entrega'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.evaluacion = kwargs.pop('evaluacion', None)
+        self.estudiante = kwargs.pop('estudiante', None)
+        super().__init__(*args, **kwargs)
+    
+    def clean_archivo(self):
+        archivo = self.cleaned_data.get('archivo')
+        
+        if not archivo:
+            raise ValidationError('Debes seleccionar un archivo para entregar.')
+        
+        # Verificar tamaño del archivo (máximo 50MB)
+        if archivo.size > 50 * 1024 * 1024:  # 50MB
+            raise ValidationError('El archivo no puede ser mayor a 50MB.')
+        
+        # Verificar extensión del archivo
+        extensiones_permitidas = ['.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', '.jpg', '.jpeg', '.png', '.xlsx', '.xls', '.ppt', '.pptx', '.csv']
+        nombre_archivo = archivo.name.lower()
+        
+        if not any(nombre_archivo.endswith(ext) for ext in extensiones_permitidas):
+            raise ValidationError('Solo se permiten archivos PDF, Word, Excel, PowerPoint, texto, comprimidos e imágenes.')
+        
+        return archivo
+    
+    def clean(self):
+        """Validación personalizada del formulario"""
+        cleaned_data = super().clean()
+        
+        if not self.evaluacion:
+            raise ValidationError('No se ha especificado la evaluación.')
+        
+        if not self.estudiante:
+            raise ValidationError('No se ha especificado el estudiante.')
+        
+        # Verificar que el estudiante pueda entregar
+        if not self.evaluacion.activa:
+            raise ValidationError('Esta evaluación no está activa.')
+        
+        # Verificar fechas
+        from django.utils import timezone
+        ahora = timezone.now()
+        
+        if self.evaluacion.fecha_inicio and ahora.date() < self.evaluacion.fecha_inicio:
+            raise ValidationError('La evaluación aún no ha comenzado.')
+        
+        if self.evaluacion.fecha_fin and ahora.date() > self.evaluacion.fecha_fin:
+            raise ValidationError('La fecha límite para entregar ya ha pasado.')
+        
+        return cleaned_data
 
 class CalificacionForm(forms.ModelForm):
     class Meta:

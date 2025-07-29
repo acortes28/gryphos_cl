@@ -1,12 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 import time
 import re
-from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm
+from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm, EntregaForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -25,6 +25,7 @@ from datetime import datetime, timedelta
 import jwt
 from django.db.models import Avg, Min, Max, Count
 from decimal import Decimal
+from django.db.models import Prefetch
 
 logger = logging.getLogger(__name__)
 
@@ -2343,3 +2344,136 @@ def limpiar_retroalimentaciones(request):
     
     messages.success(request, f'Se limpiaron {contador} retroalimentaciones con caracteres de control.')
     return redirect('user_space')
+
+@login_required
+def plataforma_entregas_ajax(request, curso_id):
+    """Devuelve el HTML de la tabla de entregas y el formulario de subida para el usuario actual en el curso."""
+    from django.template.loader import render_to_string
+    from django.db.models import Prefetch, Q
+    curso = get_object_or_404(Curso, id=curso_id)
+    user = request.user
+    
+    # Manejar petición POST (subir entrega)
+    if request.method == 'POST':
+        print("DEBUG: Procesando petición POST para subir entrega")
+        evaluacion_id = request.POST.get('evaluacion')
+        print(f"DEBUG: Evaluación ID: {evaluacion_id}")
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id)
+        print(f"DEBUG: Evaluación encontrada: {evaluacion.nombre}")
+        
+        # Debug de archivos
+        if request.FILES:
+            for field_name, uploaded_file in request.FILES.items():
+                print(f"DEBUG: Archivo recibido - Campo: {field_name}, Nombre: {uploaded_file.name}, Tamaño: {uploaded_file.size} bytes ({uploaded_file.size / (1024*1024):.2f} MB)")
+        else:
+            print("DEBUG: No se recibieron archivos")
+        
+        form = EntregaForm(request.POST, request.FILES, evaluacion=evaluacion, estudiante=user)
+        
+        if form.is_valid():
+            print("DEBUG: Formulario válido, guardando entrega...")
+            entrega = form.save(commit=False)
+            entrega.evaluacion = evaluacion
+            entrega.estudiante = user
+            entrega.save()
+            print("DEBUG: Entrega guardada exitosamente")
+            messages.success(request, 'Entrega subida correctamente.')
+        else:
+            print("DEBUG: Formulario inválido")
+            print(f"DEBUG: Errores del formulario: {form.errors}")
+            # Para peticiones AJAX, incluir los errores en la respuesta
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                # Recrear el formulario con errores para que se muestren en el template
+                form = EntregaForm(request.POST, request.FILES, evaluacion=evaluacion, estudiante=user)
+            else:
+                messages.error(request, 'Error al subir la entrega. Verifica los datos.')
+    
+    # Si es admin/staff, mostrar todas las entregas agrupadas por evaluación
+    if user.is_staff or user.is_superuser:
+        evaluaciones_con_entregas = Evaluacion.objects.filter(
+            curso=curso
+        ).prefetch_related(
+            Prefetch(
+                'entregas',
+                queryset=Entrega.objects.select_related('estudiante').order_by('-fecha_entrega')
+            )
+        ).order_by('-fecha_inicio')
+        
+        html = render_to_string('pages/plataforma_entregas_admin_content.html', {
+            'evaluaciones_con_entregas': evaluaciones_con_entregas,
+            'curso': curso,
+            'user': user,
+        }, request=request)
+    else:
+        # Solo entregas del usuario actual
+        entregas = Entrega.objects.filter(evaluacion__curso=curso, estudiante=user).select_related('evaluacion').order_by('-fecha_entrega')
+        
+        # Evaluaciones activas para subir entrega
+        from django.utils import timezone
+        fecha_actual = timezone.now().date()
+        
+        # Obtener evaluaciones que están activas, dentro del rango de fechas y donde el usuario no ha entregado
+        evaluaciones_activas = Evaluacion.objects.filter(
+            curso=curso,
+            activa=True
+        ).filter(
+            # Solo evaluaciones que estén realmente dentro del rango de fechas actual
+            Q(
+                fecha_inicio__lte=fecha_actual,
+                fecha_fin__gte=fecha_actual
+            )
+        ).exclude(
+            # Excluir evaluaciones donde el usuario ya tiene entregas
+            entregas__estudiante=user
+        )
+        
+        # Debug de evaluaciones disponibles
+        evaluaciones_en_rango = Evaluacion.objects.filter(
+            curso=curso,
+            activa=True,
+            fecha_inicio__lte=fecha_actual,
+            fecha_fin__gte=fecha_actual
+        )
+        print(f"DEBUG: Evaluaciones en rango de fechas: {evaluaciones_en_rango.count()}")
+        
+        evaluaciones_sin_entregas = evaluaciones_en_rango.exclude(entregas__estudiante=user)
+        print(f"DEBUG: Evaluaciones en rango sin entregas del usuario: {evaluaciones_sin_entregas.count()}")
+        
+        # Debug: imprimir información detallada
+        print(f"DEBUG: Usuario: {user.username}")
+        print(f"DEBUG: Fecha actual: {fecha_actual}")
+        print(f"DEBUG: Total evaluaciones en el curso: {Evaluacion.objects.filter(curso=curso).count()}")
+        print(f"DEBUG: Evaluaciones activas: {Evaluacion.objects.filter(curso=curso, activa=True).count()}")
+        print(f"DEBUG: Evaluaciones con fechas válidas: {Evaluacion.objects.filter(curso=curso, activa=True).filter(Q(fecha_inicio__isnull=True, fecha_fin__isnull=True) | Q(fecha_inicio__lte=fecha_actual, fecha_fin__gte=fecha_actual)).count()}")
+        print(f"DEBUG: Entregas del usuario: {Entrega.objects.filter(evaluacion__curso=curso, estudiante=user).count()}")
+        print(f"DEBUG: Evaluaciones finales disponibles: {evaluaciones_activas.count()}")
+        
+        # Mostrar detalles de cada evaluación
+        for eval in Evaluacion.objects.filter(curso=curso):
+            print(f"DEBUG: Evaluación '{eval.nombre}' - Activa: {eval.activa}, Inicio: {eval.fecha_inicio}, Fin: {eval.fecha_fin}")
+            tiene_entrega = eval.entregas.filter(estudiante=user).exists()
+            print(f"DEBUG: - Usuario tiene entrega: {tiene_entrega}")
+            if eval.fecha_inicio and eval.fecha_fin:
+                en_rango = eval.fecha_inicio <= fecha_actual <= eval.fecha_fin
+                print(f"DEBUG: - En rango de fechas: {en_rango}")
+        
+        form = None
+        evaluacion_para_entregar = None
+        if evaluaciones_activas.exists():
+            evaluacion_para_entregar = evaluaciones_activas.first()
+            print(f"DEBUG: Evaluación seleccionada para entregar: {evaluacion_para_entregar.nombre}")
+            # Crear el formulario siempre que haya una evaluación disponible
+            form = EntregaForm(evaluacion=evaluacion_para_entregar, estudiante=user)
+            print(f"DEBUG: Formulario creado: {form is not None}")
+        else:
+            print("DEBUG: No hay evaluaciones activas para entregar")
+        print(f"DEBUG: Variables para template - entregas: {entregas.count()}, form: {form is not None}, evaluacion_para_entregar: {evaluacion_para_entregar.nombre if evaluacion_para_entregar else None}")
+        
+        html = render_to_string('pages/plataforma_entregas_content.html', {
+            'entregas': entregas,
+            'form': form,
+            'evaluacion_para_entregar': evaluacion_para_entregar,
+            'curso': curso,
+        }, request=request)
+    
+    return JsonResponse({'html': html})

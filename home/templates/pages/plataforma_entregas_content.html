@@ -1,0 +1,129 @@
+{% load static %}
+{% load custom_filters %}
+
+<!-- Tabla de entregas del usuario -->
+{% if entregas.exists %}
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>Evaluación</th>
+          <th>Archivo</th>
+          <th>Fecha de Entrega</th>
+          <th>Estado</th>
+          <th>Comentario</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entrega in entregas %}
+        <tr>
+          <td>{{ entrega.evaluacion.nombre }}</td>
+          <td>
+            {% if entrega.archivo %}
+              <a href="{{ entrega.archivo.url }}" target="_blank">{{ entrega.get_nombre_archivo }}</a>
+            {% else %}
+              <span class="text-muted">Sin archivo</span>
+            {% endif %}
+          </td>
+          <td>{{ entrega.fecha_entrega|date:'d/m/Y H:i' }}</td>
+          <td>{{ entrega.get_estado_display }}</td>
+          <td>{{ entrega.comentario|default:'-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-info">Aún no has realizado entregas en este curso.</div>
+{% endif %}
+
+<!-- Formulario para subir nueva entrega -->
+{% if form and evaluacion_para_entregar %}
+  <div id="formulario-entrega" class="card mt-4">
+    <div class="card-header bg-gradient-primary text-white">
+      Subir entrega para: <strong>{{ evaluacion_para_entregar.nombre }}</strong>
+      <span class="badge bg-info ms-2">{{ evaluacion_para_entregar.get_tipo_display }}</span>
+      <span class="badge bg-secondary ms-2">{{ evaluacion_para_entregar.fecha_inicio|date:'d/m/Y' }} - {{ evaluacion_para_entregar.fecha_fin|date:'d/m/Y' }}</span>
+    </div>
+    <div class="card-body">
+      <form id="form-subir-entrega" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="evaluacion" value="{{ evaluacion_para_entregar.id }}">
+        
+        <!-- Campo archivo -->
+        <div class="mb-3">
+          <label for="{{ form.archivo.id_for_label }}" class="form-label">{{ form.archivo.label }}</label>
+          {{ form.archivo }}
+          {% if form.archivo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.archivo.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if form.archivo.help_text %}
+            <div class="form-text">{{ form.archivo.help_text }}</div>
+          {% endif %}
+        </div>
+        
+        <!-- Campo comentario -->
+        <div class="mb-3">
+          <label for="{{ form.comentario.id_for_label }}" class="form-label">{{ form.comentario.label }}</label>
+          {{ form.comentario }}
+          {% if form.comentario.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.comentario.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if form.comentario.help_text %}
+            <div class="form-text">{{ form.comentario.help_text }}</div>
+          {% endif %}
+        </div>
+        
+        <!-- Errores generales del formulario -->
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+              {{ error }}
+            {% endfor %}
+          </div>
+        {% endif %}
+        
+        <button type="button" class="btn btn-success" onclick="confirmarEntrega()">
+          <i class="fas fa-upload me-1"></i>Subir Entrega
+        </button>
+      </form>
+      <div id="mensaje-entrega" class="mt-2"></div>
+    </div>
+  </div>
+{% elif not evaluacion_para_entregar %}
+  <div class="alert alert-primary mt-4">No hay evaluaciones activas para entregar en este momento.</div>
+{% endif %}
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="modalConfirmacionEntrega" tabindex="-1" aria-labelledby="modalConfirmacionEntregaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalConfirmacionEntregaLabel">
+          <i class="fas fa-exclamation-triangle text-warning me-2"></i>Confirmar Entrega
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>¿Estás seguro de que deseas subir esta entrega?</strong></p>
+        <p class="text-muted mb-0">Esta acción no se puede deshacer. Una vez enviada, no podrás modificar o eliminar la entrega.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-success" id="btnConfirmarEntrega">
+          <i class="fas fa-check me-1"></i>Sí, Subir Entrega
+        </button>
+      </div>
+    </div>
+  </div>
+</div> 

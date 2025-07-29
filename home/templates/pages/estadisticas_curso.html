@@ -546,7 +546,7 @@
                   <td>
                     <span class="badge bg-primary badge-stats">{{ stats.evaluacion.get_tipo_display }}</span>
                   </td>
-                  <td>{{ stats.evaluacion.fecha_evaluacion|date:"d/m/Y" }}</td>
+                  <td>{{ stats.evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ stats.evaluacion.fecha_fin|date:"d/m/Y" }}</td>
                   <td>
                     <span class="badge bg-info badge-stats">{{ stats.total_calificaciones }}</span>
                   </td>

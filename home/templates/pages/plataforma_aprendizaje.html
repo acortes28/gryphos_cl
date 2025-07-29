@@ -444,6 +444,10 @@
       <i class="fas fa-headset"></i>
       Soporte al Estudiante
     </a>
+    <a href="#" data-seccion="entregas" class="nav-link">
+      <i class="fas fa-upload"></i>
+      Entregas
+    </a>
   </nav>
 </div>
 
@@ -555,6 +559,18 @@
       <p>Obtén ayuda y soporte cuando lo necesites.</p>
       <!-- Contenido de la sección Soporte -->
     </div>
+    <div id="seccion-entregas" class="section-content">
+      <h4>Entregas de Evaluaciones</h4>
+      <p>Aquí puedes ver tus entregas y subir archivos para las evaluaciones activas.</p>
+      <!-- Tabla de entregas del usuario -->
+      <div id="tabla-entregas-placeholder">
+        <div class="alert alert-info">Cargando tus entregas...</div>
+      </div>
+      <!-- Botón para subir nueva entrega (se mostrará si hay evaluaciones abiertas) -->
+      <div id="boton-subir-entrega-placeholder" class="mt-3">
+        <!-- Aquí irá el botón dinámico para subir entrega -->
+      </div>
+    </div>
   </div>
 </div>
 
@@ -567,7 +583,8 @@ const PLATAFORMA_CONFIG = {
     foro: { titulo: 'Foro', icono: 'fas fa-comments' },
     recursos: { titulo: 'Recursos', icono: 'fas fa-book' },
     calificaciones: { titulo: 'Calificaciones', icono: 'fas fa-chart-line' },
-    soporte: { titulo: 'Soporte al Estudiante', icono: 'fas fa-headset' }
+    soporte: { titulo: 'Soporte al Estudiante', icono: 'fas fa-headset' },
+    entregas: { titulo: 'Entregas', icono: 'fas fa-upload' }
   }
 };
 
@@ -600,6 +617,33 @@ function cambiarSeccion(seccion) {
   } else if (seccion === 'calificaciones') {
     // Redirigir a la página de calificaciones
     window.location.href = `{% url 'plataforma_calificaciones' curso.id %}`;
+  } else if (seccion === 'entregas') {
+    // Limpiar mensajes anteriores
+    const mensajeDiv = document.getElementById('mensaje-entrega');
+    if (mensajeDiv) {
+      mensajeDiv.innerHTML = '';
+    }
+    
+    // Cargar entregas vía AJAX
+    fetch(`{% url 'plataforma_entregas_ajax' curso.id %}`, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('tabla-entregas-placeholder').innerHTML = data.html;
+        document.getElementById('seccion-entregas').classList.add('active');
+        document.getElementById('loading').classList.remove('show');
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'entregas');
+        window.history.pushState({}, '', url);
+        // Inicializar el formulario de subida si existe
+        inicializarFormularioEntrega();
+        // Inicializar las funciones de colapso para evaluaciones
+        inicializarEvaluacionesColapsables();
+      });
   } else {
     // Simular carga para otras secciones
     setTimeout(() => {
@@ -869,6 +913,136 @@ window.addEventListener('popstate', function() {
   const seccionActiva = urlParams.get('seccion') || 'inicio';
   cambiarSeccion(seccionActiva);
 });
+
+// Función para mostrar el modal de confirmación
+function confirmarEntrega() {
+  const form = document.getElementById('form-subir-entrega');
+  if (form) {
+    // Validar que el formulario tenga datos
+    const formData = new FormData(form);
+    const archivo = formData.get('archivo');
+    
+    if (!archivo || archivo.size === 0) {
+      alert('Por favor, selecciona un archivo para entregar.');
+      return;
+    }
+    
+    // Mostrar el modal de confirmación
+    const modal = new bootstrap.Modal(document.getElementById('modalConfirmacionEntrega'));
+    modal.show();
+  }
+}
+
+// Función para manejar la subida de entrega
+function subirEntrega() {
+  const form = document.getElementById('form-subir-entrega');
+  if (form) {
+    // Limpiar mensajes anteriores
+    const mensajeDiv = document.getElementById('mensaje-entrega');
+    mensajeDiv.innerHTML = '';
+    
+    // Mostrar indicador de carga
+    const submitBtn = document.getElementById('btnConfirmarEntrega');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Subiendo...';
+    submitBtn.disabled = true;
+    
+    const formData = new FormData(form);
+    fetch(`{% url 'plataforma_entregas_ajax' curso.id %}`, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: formData
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Cerrar el modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmacionEntrega'));
+      modal.hide();
+      
+      // Actualizar el contenido de la página
+      document.getElementById('tabla-entregas-placeholder').innerHTML = data.html;
+      
+              // Verificar si hay errores en el formulario actualizado
+        const newForm = document.getElementById('form-subir-entrega');
+        if (newForm) {
+          const errorElements = newForm.querySelectorAll('.text-danger, .alert-danger');
+          if (errorElements.length > 0) {
+            // Hay errores, mostrar mensaje de error
+            mensajeDiv.innerHTML = '<div class="alert alert-danger">Por favor, corrige los errores en el formulario.</div>';
+          } else {
+            // No hay errores, mostrar mensaje de éxito y ocultar el formulario
+            mensajeDiv.innerHTML = '<div class="alert alert-success">Entrega subida correctamente.</div>';
+            // Ocultar el contenedor del formulario
+            const contenedorFormulario = document.getElementById('formulario-entrega');
+            if (contenedorFormulario) {
+              contenedorFormulario.style.display = 'none';
+            }
+            // También limpiar el formulario para evitar que se mantenga el estado
+            newForm.reset();
+          }
+        } else {
+          // No hay formulario, probablemente ya no hay evaluaciones activas
+          mensajeDiv.innerHTML = '<div class="alert alert-success">Entrega subida correctamente.</div>';
+        }
+      
+      // Reinicializar el formulario
+      inicializarFormularioEntrega();
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al subir la entrega. Por favor, intenta nuevamente.</div>';
+    })
+    .finally(() => {
+      // Restaurar el botón
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+    });
+  }
+}
+
+// Agregar función para manejar el formulario de entrega
+function inicializarFormularioEntrega() {
+  // Configurar el botón de confirmación del modal
+  const btnConfirmar = document.getElementById('btnConfirmarEntrega');
+  if (btnConfirmar) {
+    btnConfirmar.onclick = subirEntrega;
+  }
+}
+
+// Función para manejar el colapso de evaluaciones
+function toggleEvaluacion(evaluacionId) {
+  const header = event.target.closest('.evaluacion-header');
+  const content = document.getElementById(`evaluacion-${evaluacionId}`);
+  
+  if (content.classList.contains('show')) {
+    content.classList.remove('show');
+    header.classList.add('collapsed');
+  } else {
+    content.classList.add('show');
+    header.classList.remove('collapsed');
+  }
+}
+
+// Función para inicializar las evaluaciones colapsables
+function inicializarEvaluacionesColapsables() {
+  // Expandir la primera evaluación por defecto
+  const firstEvaluacion = document.querySelector('.evaluacion-card');
+  if (firstEvaluacion) {
+    const header = firstEvaluacion.querySelector('.evaluacion-header');
+    const content = firstEvaluacion.querySelector('.evaluacion-content');
+    if (content) {
+      content.classList.add('show');
+      header.classList.remove('collapsed');
+    }
+  }
+}
 </script>
 
 {% endblock content %} 

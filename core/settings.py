@@ -44,6 +44,10 @@ DEBUG = True
 
 print("DEBUG -> " + str(DEBUG))
 
+# Configuración para archivos grandes
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50MB
+
 # Docker HOST
 ALLOWED_HOSTS = [
     '149.50.141.70', 
@@ -159,7 +163,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},]
 
-LANGUAGE_CODE = "es-cl"
+LANGUAGE_CODE = "es-CL"
 
 TIME_ZONE = 'America/Santiago'
 

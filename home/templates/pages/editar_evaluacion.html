@@ -493,7 +493,7 @@
   <div class="content-body">
     <!-- Información de la Evaluación -->
     <div class="evaluacion-info">
-      <p class="mb-3">{{ evaluacion.get_tipo_display }} - {{ evaluacion.fecha_evaluacion|date:"d/m/Y" }}</p>
+      <p class="mb-3">{{ evaluacion.get_tipo_display }} - {{ evaluacion.fecha_inicio|date:"d/m/Y" }} a {{ evaluacion.fecha_fin|date:"d/m/Y" }}</p>
       <div class="evaluacion-stats">
         <div class="stat-item">
           <span class="stat-value">{{ evaluacion.nota_maxima }}</span>
@@ -570,21 +570,43 @@
               {% endif %}
             </div>
             
-            <div class="form-group">
-              <label for="{{ form.fecha_evaluacion.id_for_label }}" class="form-label">
-                <i class="fas fa-calendar me-1"></i>{{ form.fecha_evaluacion.label }} *
-              </label>
-              {{ form.fecha_evaluacion }}
-              {% if form.fecha_evaluacion.errors %}
-                <div class="text-danger small mt-1">
-                  {% for error in form.fecha_evaluacion.errors %}
-                    {{ error }}
-                  {% endfor %}
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="{{ form.fecha_inicio.id_for_label }}" class="form-label">
+                    <i class="fas fa-calendar-plus me-1"></i>{{ form.fecha_inicio.label }} *
+                  </label>
+                  {{ form.fecha_inicio }}
+                  {% if form.fecha_inicio.errors %}
+                    <div class="text-danger small mt-1">
+                      {% for error in form.fecha_inicio.errors %}
+                        {{ error }}
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                  {% if form.fecha_inicio.help_text %}
+                    <small class="form-text text-muted">{{ form.fecha_inicio.help_text }}</small>
+                  {% endif %}
                 </div>
-              {% endif %}
-              {% if form.fecha_evaluacion.help_text %}
-                <small class="form-text text-muted">{{ form.fecha_evaluacion.help_text }}</small>
-              {% endif %}
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="{{ form.fecha_fin.id_for_label }}" class="form-label">
+                    <i class="fas fa-calendar-check me-1"></i>{{ form.fecha_fin.label }} *
+                  </label>
+                  {{ form.fecha_fin }}
+                  {% if form.fecha_fin.errors %}
+                    <div class="text-danger small mt-1">
+                      {% for error in form.fecha_fin.errors %}
+                        {{ error }}
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                  {% if form.fecha_fin.help_text %}
+                    <small class="form-text text-muted">{{ form.fecha_fin.help_text }}</small>
+                  {% endif %}
+                </div>
+              </div>
             </div>
             
             <div class="row">
