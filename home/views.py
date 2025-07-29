@@ -26,6 +26,7 @@ import jwt
 from django.db.models import Avg, Min, Max, Count
 from decimal import Decimal
 from django.db.models import Prefetch
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -2052,6 +2053,17 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
             return redirect('plataforma_calificaciones', curso_id=curso_id)
     else:
         form = CalificacionForm(curso=curso, evaluacion=evaluacion)
+        
+        # Si se especifica un estudiante en la URL, precargarlo en el formulario
+        estudiante_id = request.GET.get('estudiante')
+        if estudiante_id:
+            try:
+                estudiante = User.objects.get(id=estudiante_id, cursos=curso)
+                form.initial['estudiante'] = estudiante
+                print(f"Estudiante precargado: {estudiante.get_full_name()} (ID: {estudiante.id})")
+            except User.DoesNotExist:
+                print(f"Estudiante no encontrado con ID: {estudiante_id}")
+                pass
     
     context = {
         'curso': curso,
@@ -2477,3 +2489,43 @@ def plataforma_entregas_ajax(request, curso_id):
         }, request=request)
     
     return JsonResponse({'html': html})
+
+@login_required
+def reemplazar_archivo_entrega(request):
+    """
+    Vista para reemplazar el archivo de una entrega existente.
+    Solo accesible para staff/superuser.
+    """
+    if not request.user.is_staff and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'error': 'No tienes permisos para realizar esta acción'})
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'})
+    
+    try:
+        entrega_id = request.POST.get('entrega_id')
+        nuevo_archivo = request.FILES.get('archivo')
+        comentario = request.POST.get('comentario', '')
+        
+        if not entrega_id or not nuevo_archivo:
+            return JsonResponse({'success': False, 'error': 'Datos incompletos'})
+        
+        # Obtener la entrega
+        entrega = get_object_or_404(Entrega, id=entrega_id)
+        
+        # Eliminar el archivo anterior si existe
+        if entrega.archivo:
+            if os.path.exists(entrega.archivo.path):
+                os.remove(entrega.archivo.path)
+        
+        # Actualizar la entrega con el nuevo archivo
+        entrega.archivo = nuevo_archivo
+        if comentario:
+            entrega.comentario = comentario
+        entrega.save()
+        
+        return JsonResponse({'success': True, 'message': 'Archivo reemplazado correctamente'})
+        
+    except Exception as e:
+        logger.error(f"Error al reemplazar archivo de entrega: {str(e)}")
+        return JsonResponse({'success': False, 'error': f'Error al reemplazar el archivo: {str(e)}'})

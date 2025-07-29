@@ -93,4 +93,5 @@ urlpatterns = [
 
     # Entregas URLs
     path('plataforma/curso/<int:curso_id>/entregas/ajax/', views.plataforma_entregas_ajax, name='plataforma_entregas_ajax'),
+    path('reemplazar-archivo-entrega/', views.reemplazar_archivo_entrega, name='reemplazar_archivo_entrega'),
 ]

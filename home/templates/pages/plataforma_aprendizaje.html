@@ -643,6 +643,8 @@ function cambiarSeccion(seccion) {
         inicializarFormularioEntrega();
         // Inicializar las funciones de colapso para evaluaciones
         inicializarEvaluacionesColapsables();
+        // Inicializar el modal de reemplazo
+        inicializarModalReemplazo();
       });
   } else {
     // Simular carga para otras secciones
@@ -1021,26 +1023,142 @@ function toggleEvaluacion(evaluacionId) {
   const header = event.target.closest('.evaluacion-header');
   const content = document.getElementById(`evaluacion-${evaluacionId}`);
   
-  if (content.classList.contains('show')) {
-    content.classList.remove('show');
+  if (!content) {
+    console.error('No se encontró el contenido para evaluacion:', evaluacionId);
+    return;
+  }
+  
+  // Usar style.display en lugar de clases
+  const isVisible = content.style.display !== 'none' && content.style.display !== '';
+  
+  if (isVisible) {
+    content.style.display = 'none';
     header.classList.add('collapsed');
   } else {
-    content.classList.add('show');
+    content.style.display = 'block';
     header.classList.remove('collapsed');
   }
 }
 
 // Función para inicializar las evaluaciones colapsables
 function inicializarEvaluacionesColapsables() {
+  console.log('Inicializando evaluaciones colapsables...');
+  
   // Expandir la primera evaluación por defecto
   const firstEvaluacion = document.querySelector('.evaluacion-card');
   if (firstEvaluacion) {
     const header = firstEvaluacion.querySelector('.evaluacion-header');
     const content = firstEvaluacion.querySelector('.evaluacion-content');
     if (content) {
-      content.classList.add('show');
+      content.style.display = 'block';
       header.classList.remove('collapsed');
+      console.log('Primera evaluación expandida');
     }
+  }
+  
+  // Agregar event listeners a todos los headers
+  const evaluacionHeaders = document.querySelectorAll('.evaluacion-header');
+  evaluacionHeaders.forEach((header, index) => {
+    const evaluacionId = header.getAttribute('data-evaluacion-id');
+    if (evaluacionId) {
+      // Configurar el estado inicial
+      const content = document.getElementById(`evaluacion-${evaluacionId}`);
+      if (content) {
+        if (index === 0) {
+          content.style.display = 'block';
+          header.classList.remove('collapsed');
+        } else {
+          content.style.display = 'none';
+          header.classList.add('collapsed');
+        }
+      }
+      
+      // Agregar event listener
+      header.addEventListener('click', function() {
+        console.log('Click en evaluación:', evaluacionId);
+        toggleEvaluacion(evaluacionId);
+      });
+    }
+  });
+  
+  console.log('Evaluaciones inicializadas:', evaluacionHeaders.length);
+}
+
+// Funciones para los botones de acción de entregas
+function evaluarEntrega(button) {
+  const entregaId = button.getAttribute('data-entrega-id');
+  const evaluacionId = button.getAttribute('data-evaluacion-id');
+  const estudianteId = button.getAttribute('data-estudiante-id');
+  // Obtener el curso_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const cursoId = urlParams.get('curso_id') || window.location.pathname.split('/')[2];
+  
+  console.log('Evaluando entrega:', { entregaId, evaluacionId, estudianteId, cursoId });
+  
+  // Redirigir a la página de calificar estudiante con el estudiante precargado
+  window.location.href = `/curso/${cursoId}/calificaciones/calificar/${evaluacionId}/?estudiante=${estudianteId}`;
+}
+
+function abrirModalReemplazar(button) {
+  const entregaId = button.getAttribute('data-entrega-id');
+  console.log('Abriendo modal para entrega:', entregaId);
+  
+  document.getElementById('entregaId').value = entregaId;
+  
+  // Verificar que Bootstrap esté disponible
+  if (typeof bootstrap !== 'undefined') {
+    const modal = new bootstrap.Modal(document.getElementById('modalReemplazar'));
+    modal.show();
+  } else {
+    console.error('Bootstrap no está disponible');
+    alert('Error: Bootstrap no está disponible');
+  }
+}
+
+// Función para inicializar el modal de reemplazo
+function inicializarModalReemplazo() {
+  const form = document.getElementById('formReemplazar');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      
+      // Obtener el token CSRF del formulario
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      
+      fetch('/reemplazar-archivo-entrega/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': csrfToken
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          // Cerrar modal y recargar la página
+          if (typeof bootstrap !== 'undefined') {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalReemplazar'));
+            if (modal) {
+              modal.hide();
+            }
+          }
+          location.reload();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error al reemplazar el archivo: ' + error.message);
+      });
+    });
   }
 }
 </script>
