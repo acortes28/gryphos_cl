@@ -428,12 +428,6 @@
       <div class="d-flex align-items-center">
         <!-- Botones de acción -->
         <div class="me-3 action-buttons">
-          <a href="{% url 'estadisticas_curso' curso.id %}" class="btn btn-info me-2">
-            <i class="fas fa-chart-bar me-1"></i>Ver Estadísticas
-          </a>
-          <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-secondary me-2">
-            <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
-          </a>
           <a href="{% url 'user_space' %}" class="btn btn-portal-nav me-2">
             <i class="fas fa-home me-1"></i>Ir a mi Portal
           </a>
@@ -466,9 +460,14 @@
     <div class="row justify-content-center">
       <div class="col-lg-8">
         <div class="form-card">
-          <h4 class="mb-4">
-            <i class="fas fa-clipboard-list me-2"></i>Información de la Evaluación
-          </h4>
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0">
+              <i class="fas fa-clipboard-list me-2"></i>Información de la Evaluación
+            </h4>
+            <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </a>
+          </div>
           
           <form method="post">
             {% csrf_token %}

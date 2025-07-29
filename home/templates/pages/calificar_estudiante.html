@@ -379,6 +379,162 @@
       display: block;
     }
   }
+  
+  /* Estilos para el modal de edición */
+  .modal-edit-calificacion {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+  }
+  
+  .modal-content-edit {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: modalSlideIn 0.3s ease-out;
+  }
+  
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-50px) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  .modal-header-edit {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 25px;
+    border-radius: 15px 15px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .modal-header-edit h5 {
+    margin: 0;
+    font-weight: 600;
+  }
+  
+  .close-modal {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .close-modal:hover {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  
+  .modal-body-edit {
+    padding: 25px;
+  }
+  
+  .modal-footer-edit {
+    padding: 20px 25px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .btn-edit-calificacion {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  
+  .btn-edit-calificacion:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  }
+  
+  .btn-edit-calificacion.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  
+  .btn-cancel-edit {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  
+  .btn-cancel-edit:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+  }
+  
+  .form-group-edit {
+    margin-bottom: 20px;
+  }
+  
+  .form-label-edit {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    display: block;
+  }
+  
+  .form-control-edit {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+  }
+  
+  .form-control-edit:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  }
+  
+  .estudiante-info-edit {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+  }
+  
+  .estudiante-nombre-edit {
+    font-weight: 600;
+    color: #344767;
+    margin-bottom: 5px;
+  }
+  
+  .estudiante-email-edit {
+    color: #6c757d;
+    font-size: 0.9rem;
+  }
 </style>
 
 <!-- Sidebar -->
@@ -634,9 +790,19 @@
                               <span class="badge bg-secondary">Sin calificar</span>
                             {% endif %}
                           </div>
-                          <small class="text-muted">
+                          <small class="text-muted mb-2 d-block">
                             Calificada el {{ calificacion.fecha_calificacion|date:"d/m/Y" }}
                           </small>
+                          <button type="button" class="btn btn-edit-calificacion btn-sm edit-calificacion-btn"
+                                  data-estudiante-id="{{ estudiante.id }}"
+                                  data-estudiante-nombre="{{ estudiante.get_full_name|default:estudiante.username|escapejs }}"
+                                  data-estudiante-email="{{ estudiante.email|escapejs }}"
+                                  data-calificacion-id="{{ calificacion.id }}"
+                                  data-nota-actual="{{ calificacion.nota|default:"" }}"
+                                  data-nota-maxima="{{ evaluacion.nota_maxima }}"
+                                  data-retroalimentacion="{{ calificacion.retroalimentacion|default:""|escapejs }}">
+                            <i class="fas fa-edit me-1"></i>Editar
+                          </button>
                         {% endif %}
                       {% empty %}
                         <span class="badge bg-secondary">Sin calificar</span>
@@ -659,11 +825,144 @@
   </div>
 </div>
 
+<!-- Modal para editar calificación -->
+<div id="editCalificacionModal" class="modal-edit-calificacion">
+  <div class="modal-content-edit">
+    <div class="modal-header-edit">
+      <h5><i class="fas fa-edit me-2"></i>Editar Calificación</h5>
+      <span class="close-modal" onclick="closeEditModal()">&times;</span>
+    </div>
+    <div class="modal-body-edit">
+      <div class="estudiante-info-edit">
+        <div class="estudiante-nombre-edit" id="modalEstudianteNombre"></div>
+        <div class="estudiante-email-edit" id="modalEstudianteEmail"></div>
+      </div>
+      
+      <form id="editCalificacionForm" method="post" action="{% url 'editar_calificacion' %}">
+        {% csrf_token %}
+        <input type="hidden" id="editCalificacionId" name="calificacion_id">
+        <input type="hidden" id="editEstudianteId" name="estudiante_id">
+        <input type="hidden" id="editEvaluacionId" name="evaluacion_id" value="{{ evaluacion.id }}">
+        
+        <div class="form-group-edit">
+          <label for="editNota" class="form-label-edit">
+            <i class="fas fa-star me-1"></i>Nueva Nota *
+          </label>
+          <input type="number" 
+                 id="editNota" 
+                 name="nota" 
+                 class="form-control-edit" 
+                 step="0.1" 
+                 min="0" 
+                 max="10" 
+                 required>
+          <small class="text-muted">Nota máxima: <span id="modalNotaMaxima"></span></small>
+        </div>
+        
+        <div class="form-group-edit">
+          <label for="editRetroalimentacion" class="form-label-edit">
+            <i class="fas fa-comment me-1"></i>Retroalimentación (Opcional)
+          </label>
+          <textarea id="editRetroalimentacion" 
+                    name="retroalimentacion" 
+                    class="form-control-edit" 
+                    rows="3" 
+                    placeholder="Agrega retroalimentación para el estudiante..."
+                    style="white-space: pre-wrap;"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer-edit">
+      <button type="button" class="btn-cancel-edit" onclick="closeEditModal()">
+        <i class="fas fa-times me-1"></i>Cancelar
+      </button>
+      <button type="button" class="btn-edit-calificacion" onclick="saveEditCalificacion()">
+        <i class="fas fa-save me-1"></i>Guardar Cambios
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
   sidebar.classList.toggle('show');
 }
+
+// Funciones para el modal de edición
+function openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion) {
+  document.getElementById('modalEstudianteNombre').textContent = estudianteNombre;
+  document.getElementById('modalEstudianteEmail').textContent = estudianteEmail;
+  document.getElementById('editCalificacionId').value = calificacionId;
+  document.getElementById('editEstudianteId').value = estudianteId;
+  document.getElementById('editNota').value = notaActual;
+  document.getElementById('modalNotaMaxima').textContent = notaMaxima;
+  document.getElementById('editNota').max = notaMaxima;
+  
+  // Limpiar caracteres de control de línea en la retroalimentación
+  const retroalimentacionLimpia = retroalimentacion
+    .replace(/\\u000D\\u000A/g, '\n')  // Reemplazar caracteres de control con saltos de línea
+    .replace(/\\u000D/g, '\n')          // Solo CR
+    .replace(/\\u000A/g, '\n')          // Solo LF
+    .replace(/\\n/g, '\n')              // Secuencias de escape
+    .replace(/\\r/g, '\n');             // Carriage return
+  document.getElementById('editRetroalimentacion').value = retroalimentacionLimpia;
+  
+  document.getElementById('editCalificacionModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+// Event listener para los botones de editar
+document.addEventListener('DOMContentLoaded', function() {
+  const editButtons = document.querySelectorAll('.edit-calificacion-btn');
+  
+  editButtons.forEach(function(button) {
+    button.addEventListener('click', function() {
+      const estudianteId = this.getAttribute('data-estudiante-id');
+      const estudianteNombre = this.getAttribute('data-estudiante-nombre');
+      const estudianteEmail = this.getAttribute('data-estudiante-email');
+      const calificacionId = this.getAttribute('data-calificacion-id');
+      const notaActual = this.getAttribute('data-nota-actual');
+      const notaMaxima = this.getAttribute('data-nota-maxima');
+      const retroalimentacion = this.getAttribute('data-retroalimentacion');
+      
+      openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion);
+    });
+  });
+});
+
+function closeEditModal() {
+  document.getElementById('editCalificacionModal').style.display = 'none';
+  document.body.style.overflow = 'auto';
+}
+
+function saveEditCalificacion() {
+  const form = document.getElementById('editCalificacionForm');
+  const nota = document.getElementById('editNota').value;
+  
+  if (!nota || nota < 0 || nota > document.getElementById('editNota').max) {
+    alert('Por favor ingresa una nota válida.');
+    return;
+  }
+  
+  // Enviar formulario
+  form.submit();
+}
+
+// Cerrar modal al hacer clic fuera de él
+window.onclick = function(event) {
+  const modal = document.getElementById('editCalificacionModal');
+  if (event.target === modal) {
+    closeEditModal();
+  }
+}
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeEditModal();
+  }
+});
 </script>
 
 {% endblock content %} 

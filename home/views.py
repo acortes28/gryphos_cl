@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 import time
+import re
 from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
@@ -2023,15 +2024,27 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                 estudiante=calificacion.estudiante
             ).first()
             
+            # Limpiar caracteres de control de línea en la retroalimentación
+            if calificacion.retroalimentacion:
+                # Reemplazar caracteres de control con saltos de línea normales
+                retroalimentacion_limpia = re.sub(r'\\u000D\\u000A', '\n', calificacion.retroalimentacion)
+                retroalimentacion_limpia = re.sub(r'\\u000D', '\n', retroalimentacion_limpia)
+                retroalimentacion_limpia = re.sub(r'\\u000A', '\n', retroalimentacion_limpia)
+                retroalimentacion_limpia = re.sub(r'\\n', '\n', retroalimentacion_limpia)
+                retroalimentacion_limpia = re.sub(r'\\r', '\n', retroalimentacion_limpia)
+            else:
+                retroalimentacion_limpia = calificacion.retroalimentacion
+            
             if calificacion_existente:
                 # Actualizar calificación existente
                 calificacion_existente.nota = calificacion.nota
-                calificacion_existente.retroalimentacion = calificacion.retroalimentacion
+                calificacion_existente.retroalimentacion = retroalimentacion_limpia
                 calificacion_existente.calificado_por = request.user
                 calificacion_existente.save()
                 messages.success(request, f'Calificación actualizada para {calificacion.estudiante.get_full_name()}.')
             else:
                 # Crear nueva calificación
+                calificacion.retroalimentacion = retroalimentacion_limpia
                 calificacion.save()
                 messages.success(request, f'Calificación registrada para {calificacion.estudiante.get_full_name()}.')
             
@@ -2224,3 +2237,109 @@ def editar_evaluacion(request, curso_id, evaluacion_id):
         'user': request.user,
     }
     return render(request, 'pages/editar_evaluacion.html', context)
+
+@login_required
+def editar_calificacion(request):
+    """
+    Vista para editar una calificación existente (solo staff/admin)
+    """
+    if request.method != 'POST':
+        messages.error(request, 'Método no permitido.')
+        return redirect('user_space')
+    
+    # Verificar permisos
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para editar calificaciones.')
+        return redirect('user_space')
+    
+    # Obtener datos del formulario
+    calificacion_id = request.POST.get('calificacion_id')
+    estudiante_id = request.POST.get('estudiante_id')
+    evaluacion_id = request.POST.get('evaluacion_id')
+    nueva_nota = request.POST.get('nota')
+    retroalimentacion = request.POST.get('retroalimentacion', '')
+    
+    try:
+        # Obtener objetos
+        calificacion = get_object_or_404(Calificacion, id=calificacion_id)
+        estudiante = get_object_or_404(User, id=estudiante_id)
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id)
+        
+        # Verificar que la calificación pertenezca a la evaluación correcta
+        if calificacion.evaluacion != evaluacion:
+            messages.error(request, 'La calificación no pertenece a esta evaluación.')
+            return redirect('plataforma_calificaciones', curso_id=evaluacion.curso.id)
+        
+        # Verificar que el estudiante esté inscrito en el curso
+        if estudiante not in evaluacion.curso.usuarios.all():
+            messages.error(request, 'El estudiante no está inscrito en este curso.')
+            return redirect('plataforma_calificaciones', curso_id=evaluacion.curso.id)
+        
+        # Validar la nota
+        try:
+            nueva_nota = float(nueva_nota)
+            if nueva_nota < 0 or nueva_nota > evaluacion.nota_maxima:
+                messages.error(request, f'La nota debe estar entre 0 y {evaluacion.nota_maxima}.')
+                return redirect('calificar_estudiante', curso_id=evaluacion.curso.id, evaluacion_id=evaluacion.id)
+        except (ValueError, TypeError):
+            messages.error(request, 'La nota debe ser un número válido.')
+            return redirect('calificar_estudiante', curso_id=evaluacion.curso.id, evaluacion_id=evaluacion.id)
+        
+        # Limpiar caracteres de control de línea en la retroalimentación
+        if retroalimentacion:
+            # Reemplazar caracteres de control con saltos de línea normales
+            retroalimentacion_limpia = re.sub(r'\\u000D\\u000A', '\n', retroalimentacion)
+            retroalimentacion_limpia = re.sub(r'\\u000D', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\u000A', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\n', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\r', '\n', retroalimentacion_limpia)
+        else:
+            retroalimentacion_limpia = retroalimentacion
+        
+        # Actualizar la calificación
+        calificacion.nota = nueva_nota
+        calificacion.retroalimentacion = retroalimentacion_limpia
+        calificacion.calificado_por = request.user
+        calificacion.save()
+        
+        messages.success(request, f'Calificación actualizada exitosamente para {estudiante.get_full_name()}.')
+        return redirect('calificar_estudiante', curso_id=evaluacion.curso.id, evaluacion_id=evaluacion.id)
+        
+    except Exception as e:
+        messages.error(request, f'Error al actualizar la calificación: {str(e)}')
+        return redirect('plataforma_calificaciones', curso_id=evaluacion.curso.id)
+
+@login_required
+def limpiar_retroalimentaciones(request):
+    """
+    Vista temporal para limpiar caracteres de control en retroalimentaciones existentes
+    SOLO EJECUTAR UNA VEZ
+    """
+    if not request.user.is_superuser:
+        messages.error(request, 'Solo superusuarios pueden ejecutar esta acción.')
+        return redirect('user_space')
+    
+    from .models import Calificacion
+    
+    # Obtener todas las calificaciones con retroalimentación
+    calificaciones = Calificacion.objects.filter(retroalimentacion__isnull=False).exclude(retroalimentacion='')
+    
+    contador = 0
+    for calificacion in calificaciones:
+        if calificacion.retroalimentacion:
+            # Limpiar caracteres de control
+            retroalimentacion_original = calificacion.retroalimentacion
+            retroalimentacion_limpia = re.sub(r'\\u000D\\u000A', '\n', calificacion.retroalimentacion)
+            retroalimentacion_limpia = re.sub(r'\\u000D', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\u000A', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\n', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\r', '\n', retroalimentacion_limpia)
+            
+            # Solo actualizar si hay cambios
+            if retroalimentacion_original != retroalimentacion_limpia:
+                calificacion.retroalimentacion = retroalimentacion_limpia
+                calificacion.save()
+                contador += 1
+    
+    messages.success(request, f'Se limpiaron {contador} retroalimentaciones con caracteres de control.')
+    return redirect('user_space')
