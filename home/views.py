@@ -1127,7 +1127,9 @@ def plataforma_foro_create_post(request, curso_id):
                 post.content = content
                 post.save()
                 messages.success(request, 'Post creado exitosamente.')
-                return redirect('plataforma_aprendizaje', curso_id=curso.id)
+                from django.urls import reverse
+                redirect_url = f"{reverse('plataforma_aprendizaje', kwargs={'curso_id': curso.id})}?seccion=foro"
+                return redirect(redirect_url)
         else:
             form = PostForm()
             # Ocultar el campo curso ya que se asigna automáticamente
@@ -1139,6 +1141,75 @@ def plataforma_foro_create_post(request, curso_id):
     except Curso.DoesNotExist:
         messages.error(request, 'El curso no existe o no está disponible.')
         return redirect('user_space')
+
+
+@login_required
+def plataforma_foro_delete_post(request, curso_id, post_id):
+    """
+    Vista para eliminar un post dentro de la plataforma (solo el autor puede eliminarlo)
+    """
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            messages.error(request, 'No tienes acceso a este curso. Debes estar inscrito para ver su contenido.')
+            return redirect('user_space')
+        
+        # Buscar el post y verificar que el usuario sea el autor
+        post = Post.objects.get(id=post_id, curso=curso, author=request.user, is_active=True)
+        
+        # Marcar como inactivo en lugar de eliminar físicamente
+        post.is_active = False
+        post.save()
+        
+        messages.success(request, 'Post eliminado exitosamente.')
+        
+    except Curso.DoesNotExist:
+        messages.error(request, 'El curso no existe o no está disponible.')
+    except Post.DoesNotExist:
+        messages.error(request, 'No tienes permisos para eliminar este post o el post no existe.')
+    
+    # Redirigir de vuelta a la plataforma del curso en la sección foro
+    from django.urls import reverse
+    redirect_url = f"{reverse('plataforma_aprendizaje', kwargs={'curso_id': curso_id})}?seccion=foro"
+    return redirect(redirect_url)
+
+
+# @login_required
+# def plataforma_foro_delete_comment(request, curso_id, comment_id):
+#     """
+#     Vista para eliminar un comentario dentro de la plataforma (solo el autor puede eliminarlo)
+#     """
+#     try:
+#         curso = Curso.objects.get(id=curso_id, activo=True)
+        
+#         # Verificar que el usuario esté inscrito en el curso
+#         if curso not in request.user.cursos.all():
+#             messages.error(request, 'No tienes acceso a este curso. Debes estar inscrito para ver su contenido.')
+#             return redirect('user_space')
+        
+#         # Buscar el comentario y verificar que el usuario sea el autor
+#         comment = Comment.objects.get(id=comment_id, author=request.user, is_active=True)
+        
+#         # Verificar que el comentario pertenezca a un post del curso
+#         if comment.post.curso != curso:
+#             messages.error(request, 'No tienes permisos para eliminar este comentario.')
+#             return redirect('plataforma_aprendizaje', curso_id=curso_id)
+        
+#         # Marcar como inactivo en lugar de eliminar físicamente
+#         comment.is_active = False
+#         comment.save()
+        
+#         messages.success(request, 'Comentario eliminado exitosamente.')
+        
+#     except Curso.DoesNotExist:
+#         messages.error(request, 'El curso no existe o no está disponible.')
+#     except Comment.DoesNotExist:
+#         messages.error(request, 'No tienes permisos para eliminar este comentario o el comentario no existe.')
+    
+#     # Redirigir de vuelta a la plataforma del curso
+#     return redirect('plataforma_aprendizaje', curso_id=curso_id)
 
 
 def cursos_list(request):

@@ -609,6 +609,11 @@ function cambiarSeccion(seccion) {
       // Actualizar URL sin recargar
       const url = new URL(window.location);
       url.searchParams.set('seccion', seccion);
+      // Limpiar parámetros específicos del foro si no estamos en la sección foro
+      if (seccion !== 'foro') {
+        url.searchParams.delete('action');
+        url.searchParams.delete('post_id');
+      }
       window.history.pushState({}, '', url);
     }, 300);
   }

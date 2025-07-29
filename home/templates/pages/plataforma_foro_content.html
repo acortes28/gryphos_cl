@@ -64,6 +64,13 @@
                       <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=foro&action=ver_post&post_id={{ post.id }}" class="btn btn-sm btn-outline-primary">
                         Ver
                       </a>
+                      {% if user == post.author %}
+                        <a href="{% url 'plataforma_foro_delete_post' curso.id post.id %}" 
+                           class="btn btn-sm btn-outline-danger ms-1"
+                           onclick="return confirm('¿Estás seguro de que quieres eliminar este post?')">
+                          <i class="fas fa-trash me-1"></i>Eliminar
+                        </a>
+                      {% endif %}
                     </div>
                 </div>
               </div>
