@@ -1,11 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 import time
-from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm
+from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -22,6 +22,8 @@ import logging
 import traceback
 from datetime import datetime, timedelta
 import jwt
+from django.db.models import Avg, Min, Max, Count
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -1859,3 +1861,264 @@ def plataforma_foro_ajax(request, curso_id):
         
     except Curso.DoesNotExist:
         return JsonResponse({'error': 'El curso no existe'}, status=404)
+
+# ============================================================================
+# VISTAS DEL SISTEMA DE CALIFICACIONES
+# ============================================================================
+
+@login_required
+def plataforma_calificaciones(request, curso_id):
+    """
+    Vista principal de calificaciones para la plataforma de aprendizaje
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar que el usuario esté inscrito en el curso
+    if not request.user.cursos.filter(id=curso_id).exists():
+        messages.error(request, 'No tienes acceso a este curso.')
+        return redirect('user_space')
+    
+    context = {
+        'curso': curso,
+        'user': request.user,
+    }
+    
+    if request.user.is_staff:
+        # Vista para Staff/Admin
+        evaluaciones = Evaluacion.objects.filter(curso=curso).order_by('-fecha_creacion')
+        context['evaluaciones'] = evaluaciones
+        
+        # Estadísticas generales del curso
+        calificaciones_curso = Calificacion.objects.filter(evaluacion__curso=curso, nota__isnull=False)
+        if calificaciones_curso.exists():
+            estadisticas = {
+                'promedio_general': calificaciones_curso.aggregate(Avg('nota'))['nota__avg'],
+                'nota_minima': calificaciones_curso.aggregate(Min('nota'))['nota__min'],
+                'nota_maxima': calificaciones_curso.aggregate(Max('nota'))['nota__max'],
+                'total_estudiantes': curso.usuarios.filter(is_staff=False, is_superuser=False).count(),
+            }
+            context['estadisticas'] = estadisticas
+        
+    else:
+        # Vista para Estudiantes
+        calificaciones_usuario = Calificacion.objects.filter(
+            evaluacion__curso=curso,
+            estudiante=request.user
+        ).order_by('-fecha_calificacion')
+        context['calificaciones_usuario'] = calificaciones_usuario
+        
+        # Estadísticas personales del estudiante
+        calificaciones_con_nota = calificaciones_usuario.filter(nota__isnull=False)
+        if calificaciones_con_nota.exists():
+            estadisticas_estudiante = {
+                'promedio_personal': calificaciones_con_nota.aggregate(Avg('nota'))['nota__avg'],
+                'nota_minima': calificaciones_con_nota.aggregate(Min('nota'))['nota__min'],
+                'nota_maxima': calificaciones_con_nota.aggregate(Max('nota'))['nota__max'],
+                'evaluaciones_calificadas': calificaciones_con_nota.count(),
+                'total_evaluaciones': Evaluacion.objects.filter(curso=curso).count(),
+            }
+            context['estadisticas_estudiante'] = estadisticas_estudiante
+        
+        # Promedios por tipo de evaluación
+        promedios_por_tipo = {}
+        for calificacion in calificaciones_con_nota:
+            tipo = calificacion.evaluacion.get_tipo_display()
+            if tipo not in promedios_por_tipo:
+                promedios_por_tipo[tipo] = {
+                    'notas': [],
+                    'ponderaciones': []
+                }
+            promedios_por_tipo[tipo]['notas'].append(calificacion.nota)
+            promedios_por_tipo[tipo]['ponderaciones'].append(calificacion.evaluacion.ponderacion)
+        
+        # Calcular promedios
+        for tipo, datos in promedios_por_tipo.items():
+            if datos['notas']:
+                datos['promedio'] = sum(datos['notas']) / len(datos['notas'])
+                datos['ponderacion_promedio'] = sum(datos['ponderaciones']) / len(datos['ponderaciones'])
+        
+        context['promedios_por_tipo'] = promedios_por_tipo
+    
+    return render(request, 'pages/plataforma_calificaciones.html', context)
+
+@login_required
+def crear_evaluacion(request, curso_id):
+    """
+    Vista para crear una nueva evaluación (solo staff/admin)
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar permisos
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para crear evaluaciones.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    if request.method == 'POST':
+        form = EvaluacionForm(request.POST)
+        if form.is_valid():
+            evaluacion = form.save(commit=False)
+            evaluacion.curso = curso
+            evaluacion.creado_por = request.user
+            evaluacion.save()
+            messages.success(request, f'Evaluación "{evaluacion.nombre}" creada exitosamente.')
+            return redirect('plataforma_calificaciones', curso_id=curso_id)
+    else:
+        form = EvaluacionForm()
+    
+    context = {
+        'curso': curso,
+        'form': form,
+        'user': request.user,
+    }
+    return render(request, 'pages/crear_evaluacion.html', context)
+
+@login_required
+def calificar_estudiante(request, curso_id, evaluacion_id):
+    """
+    Vista para calificar estudiantes en una evaluación específica (solo staff/admin)
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+    
+    # Verificar permisos
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para calificar estudiantes.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    # Obtener estudiantes del curso (no staff/admin)
+    estudiantes = User.objects.filter(
+        cursos=curso,
+        is_staff=False,
+        is_superuser=False
+    ).order_by('first_name', 'last_name', 'username')
+    
+    if request.method == 'POST':
+        form = CalificacionForm(request.POST, curso=curso)
+        if form.is_valid():
+            calificacion = form.save(commit=False)
+            calificacion.evaluacion = evaluacion
+            calificacion.calificado_por = request.user
+            
+            # Verificar que no exista ya una calificación para este estudiante en esta evaluación
+            calificacion_existente = Calificacion.objects.filter(
+                evaluacion=evaluacion,
+                estudiante=calificacion.estudiante
+            ).first()
+            
+            if calificacion_existente:
+                # Actualizar calificación existente
+                calificacion_existente.nota = calificacion.nota
+                calificacion_existente.retroalimentacion = calificacion.retroalimentacion
+                calificacion_existente.calificado_por = request.user
+                calificacion_existente.save()
+                messages.success(request, f'Calificación actualizada para {calificacion.estudiante.get_full_name()}.')
+            else:
+                # Crear nueva calificación
+                calificacion.save()
+                messages.success(request, f'Calificación registrada para {calificacion.estudiante.get_full_name()}.')
+            
+            return redirect('plataforma_calificaciones', curso_id=curso_id)
+    else:
+        form = CalificacionForm(curso=curso)
+    
+    context = {
+        'curso': curso,
+        'evaluacion': evaluacion,
+        'form': form,
+        'estudiantes': estudiantes,
+        'user': request.user,
+    }
+    return render(request, 'pages/calificar_estudiante.html', context)
+
+@login_required
+def ver_calificacion_detalle(request, curso_id, calificacion_id):
+    """
+    Vista para ver el detalle de una calificación específica
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    calificacion = get_object_or_404(Calificacion, id=calificacion_id)
+    
+    # Verificar que el usuario tenga acceso a esta calificación
+    if not request.user.is_staff and calificacion.estudiante != request.user:
+        messages.error(request, 'No tienes acceso a esta calificación.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    # Verificar que la calificación pertenezca al curso
+    if calificacion.evaluacion.curso != curso:
+        messages.error(request, 'La calificación no pertenece a este curso.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    context = {
+        'curso': curso,
+        'calificacion': calificacion,
+        'user': request.user,
+    }
+    return render(request, 'pages/calificacion_detalle.html', context)
+
+@login_required
+def estadisticas_curso(request, curso_id):
+    """
+    Vista para ver estadísticas detalladas del curso (solo staff/admin)
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar permisos
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para ver estadísticas del curso.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    # Obtener todas las calificaciones del curso
+    calificaciones = Calificacion.objects.filter(evaluacion__curso=curso, nota__isnull=False)
+    
+    # Estadísticas generales
+    estadisticas = {
+        'total_estudiantes': curso.usuarios.filter(is_staff=False, is_superuser=False).count(),
+        'total_evaluaciones': Evaluacion.objects.filter(curso=curso).count(),
+        'total_calificaciones': calificaciones.count(),
+    }
+    
+    if calificaciones.exists():
+        estadisticas.update({
+            'promedio_general': calificaciones.aggregate(Avg('nota'))['nota__avg'],
+            'nota_minima': calificaciones.aggregate(Min('nota'))['nota__min'],
+            'nota_maxima': calificaciones.aggregate(Max('nota'))['nota__max'],
+        })
+    
+    # Estadísticas por evaluación
+    evaluaciones = Evaluacion.objects.filter(curso=curso).order_by('fecha_evaluacion')
+    estadisticas_evaluaciones = []
+    
+    for evaluacion in evaluaciones:
+        calificaciones_eval = calificaciones.filter(evaluacion=evaluacion)
+        stats = {
+            'evaluacion': evaluacion,
+            'total_calificaciones': calificaciones_eval.count(),
+            'promedio': calificaciones_eval.aggregate(Avg('nota'))['nota__avg'] if calificaciones_eval.exists() else None,
+            'nota_minima': calificaciones_eval.aggregate(Min('nota'))['nota__min'] if calificaciones_eval.exists() else None,
+            'nota_maxima': calificaciones_eval.aggregate(Max('nota'))['nota__max'] if calificaciones_eval.exists() else None,
+        }
+        estadisticas_evaluaciones.append(stats)
+    
+    # Estadísticas por estudiante
+    estudiantes = curso.usuarios.filter(is_staff=False, is_superuser=False).order_by('first_name', 'last_name')
+    estadisticas_estudiantes = []
+    
+    for estudiante in estudiantes:
+        calificaciones_est = calificaciones.filter(estudiante=estudiante)
+        stats = {
+            'estudiante': estudiante,
+            'total_calificaciones': calificaciones_est.count(),
+            'promedio': calificaciones_est.aggregate(Avg('nota'))['nota__avg'] if calificaciones_est.exists() else None,
+            'nota_minima': calificaciones_est.aggregate(Min('nota'))['nota__min'] if calificaciones_est.exists() else None,
+            'nota_maxima': calificaciones_est.aggregate(Max('nota'))['nota__max'] if calificaciones_est.exists() else None,
+        }
+        estadisticas_estudiantes.append(stats)
+    
+    context = {
+        'curso': curso,
+        'estadisticas': estadisticas,
+        'estadisticas_evaluaciones': estadisticas_evaluaciones,
+        'estadisticas_estudiantes': estadisticas_estudiantes,
+        'user': request.user,
+    }
+    return render(request, 'pages/estadisticas_curso.html', context)

@@ -597,6 +597,9 @@ function cambiarSeccion(seccion) {
   // Si es la sección del foro, cargar contenido dinámicamente
   if (seccion === 'foro') {
     cargarForoContenido();
+  } else if (seccion === 'calificaciones') {
+    // Redirigir a la página de calificaciones
+    window.location.href = `{% url 'plataforma_calificaciones' curso.id %}`;
   } else {
     // Simular carga para otras secciones
     setTimeout(() => {

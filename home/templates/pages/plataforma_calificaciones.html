@@ -1,0 +1,671 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Calificaciones - {{ curso.nombre }} - Plataforma de Aprendizaje{% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+
+{% block header %}
+<!-- Ocultar la navegación en la plataforma de aprendizaje -->
+{% endblock header %}
+
+{% block content %}
+
+<style>
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  }
+  
+  .sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+  }
+  
+  .sidebar-nav {
+    padding: 20px 0;
+  }
+  
+  .sidebar-nav .nav-link {
+    color: rgba(255,255,255,0.8);
+    padding: 15px 25px;
+    border: none;
+    background: transparent;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  
+  .sidebar-nav .nav-link:hover,
+  .sidebar-nav .nav-link.active {
+    color: white;
+    background: rgba(255,255,255,0.1);
+    border-left: 4px solid #fff;
+  }
+  
+  .sidebar-nav .nav-link i {
+    margin-right: 12px;
+    width: 20px;
+    text-align: center;
+  }
+  
+  .main-content {
+    margin-left: 280px;
+    min-height: 100vh;
+    background: #f8f9fa;
+  }
+  
+  .content-header {
+    background: white;
+    padding: 20px 30px;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .content-body {
+    padding: 30px;
+  }
+  
+  .section-content {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  
+  .breadcrumb-custom {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .breadcrumb-custom .breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    color: #6c757d;
+  }
+  
+  .stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .stats-card h3 {
+    color: white;
+    margin-bottom: 10px;
+  }
+  
+  .stats-card .stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .stats-card .stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+  
+  .evaluacion-card {
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+  }
+  
+  .evaluacion-card:hover {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+  }
+  
+  .calificacion-item {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #007bff;
+  }
+  
+  .nota-badge {
+    font-size: 1.1rem;
+    font-weight: bold;
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+  
+  .nota-excelente { background-color: #28a745; color: white; }
+  .nota-buena { background-color: #17a2b8; color: white; }
+  .nota-regular { background-color: #ffc107; color: black; }
+  .nota-insuficiente { background-color: #dc3545; color: white; }
+  
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .btn-portal-nav {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-portal-nav:hover {
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+  
+  .btn-logout-nav {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-logout-nav:hover {
+    color: white;
+    background: #c82333;
+    transform: translateY(-1px);
+  }
+  
+  .user-card {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-left: 15px;
+  }
+  
+  .user-info {
+    margin-right: 10px;
+  }
+  
+  .user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+  }
+  
+  .user-email {
+    font-size: 0.8rem;
+    color: #666;
+  }
+  
+  .avatar {
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.9rem;
+  }
+  
+  .avatar-sm {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .mobile-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    display: none;
+  }
+  
+  .loading {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.9);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+  
+  .loading.show {
+    display: flex;
+  }
+  
+  .spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+      transform: translateX(0);
+    }
+    
+    .main-content {
+      margin-left: 0;
+    }
+    
+    .mobile-toggle {
+      display: block;
+    }
+  }
+</style>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h5 class="mb-0">
+      <i class="fas fa-graduation-cap me-2"></i>
+      {{ curso.nombre }}
+    </h5>
+    <small class="text-white-50">Plataforma de Aprendizaje</small>
+  </div>
+  
+  <nav class="sidebar-nav">
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}" class="nav-link">
+      <i class="fas fa-home"></i>
+      Inicio
+    </a>
+    
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=foro" class="nav-link">
+      <i class="fas fa-comments"></i>
+      Foro
+    </a>
+    
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=recursos" class="nav-link">
+      <i class="fas fa-book"></i>
+      Recursos
+    </a>
+    
+    <a href="{% url 'plataforma_calificaciones' curso.id %}" class="nav-link active">
+      <i class="fas fa-chart-line"></i>
+      Calificaciones
+    </a>
+    
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=soporte" class="nav-link">
+      <i class="fas fa-headset"></i>
+      Soporte al Estudiante
+    </a>
+  </nav>
+</div>
+
+<!-- Mobile Toggle Button -->
+<button class="mobile-toggle d-md-none" onclick="toggleSidebar()">
+  <i class="fas fa-bars"></i>
+</button>
+
+<!-- Main Content -->
+<div class="main-content">
+  <!-- Content Header -->
+  <div class="content-header">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb breadcrumb-custom">
+        <li class="breadcrumb-item">
+          <a href="{% url 'user_space' %}" class="text-decoration-none">
+            <i class="fas fa-arrow-left me-1"></i>Portal de Miembros
+          </a>
+        </li>
+        <li class="breadcrumb-item">
+          <a href="{% url 'plataforma_aprendizaje' curso.id %}" class="text-decoration-none">
+            {{ curso.nombre }}
+          </a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+          Calificaciones
+        </li>
+      </ol>
+    </nav>
+    
+    <div class="d-flex justify-content-between align-items-start mt-3">
+      <div>
+        <h2 class="mb-1">
+          <i class="fas fa-chart-line me-2"></i>Calificaciones
+        </h2>
+        <p class="text-muted mb-0">Sistema de evaluación y seguimiento académico</p>
+      </div>
+      
+      <div class="d-flex align-items-center">
+        <!-- Botones de acción -->
+        <div class="me-3 action-buttons">
+          {% if user.is_staff %}
+            <a href="{% url 'crear_evaluacion' curso.id %}" class="btn btn-primary me-2">
+              <i class="fas fa-plus me-1"></i>Crear Evaluación
+            </a>
+            <a href="{% url 'estadisticas_curso' curso.id %}" class="btn btn-info me-2">
+              <i class="fas fa-chart-bar me-1"></i>Ver Estadísticas
+            </a>
+          {% endif %}
+          <a href="{% url 'user_space' %}" class="btn btn-portal-nav me-2">
+            <i class="fas fa-home me-1"></i>Ir a mi Portal
+          </a>
+          <a href="{% url 'logout' %}" class="btn btn-logout-nav">
+            <i class="fas fa-sign-out-alt me-1"></i>Cerrar Sesión
+          </a>
+        </div>
+        
+        <div class="user-card">
+          <div class="user-info">
+            <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+            <div class="user-email">{{ user.email }}</div>
+          </div>
+          <div class="user-avatar">
+            {% if user.profile_photo %}
+              <img src="{{ user.profile_photo.url }}" alt="Foto de perfil" class="avatar avatar-sm rounded-circle">
+            {% else %}
+              <div class="avatar avatar-sm bg-gradient-primary rounded-circle">
+                <i class="fas fa-user text-white"></i>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Content Body -->
+  <div class="content-body">
+    {% if user.is_staff %}
+      <!-- Vista para Staff/Admin -->
+      <div class="row">
+        <!-- Estadísticas Generales -->
+        {% if estadisticas %}
+          <div class="col-12 mb-4">
+            <h4 class="mb-3">
+              <i class="fas fa-chart-bar me-2"></i>Estadísticas Generales del Curso
+            </h4>
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                  <div class="stat-value">{{ estadisticas.promedio_general|floatformat:1 }}</div>
+                  <div class="stat-label">Promedio General</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                  <div class="stat-value">{{ estadisticas.nota_minima|floatformat:1 }}</div>
+                  <div class="stat-label">Nota Mínima</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                  <div class="stat-value">{{ estadisticas.nota_maxima|floatformat:1 }}</div>
+                  <div class="stat-label">Nota Máxima</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                  <div class="stat-value">{{ estadisticas.total_estudiantes }}</div>
+                  <div class="stat-label">Total Estudiantes</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        
+        <!-- Lista de Evaluaciones -->
+        <div class="col-12">
+          <div class="section-content">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h4 class="mb-0">
+                <i class="fas fa-list me-2"></i>Evaluaciones del Curso
+              </h4>
+              <a href="{% url 'crear_evaluacion' curso.id %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nueva Evaluación
+              </a>
+            </div>
+            
+            {% if evaluaciones %}
+              <div class="row">
+                {% for evaluacion in evaluaciones %}
+                  <div class="col-md-6 mb-3">
+                    <div class="evaluacion-card">
+                      <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="mb-1">{{ evaluacion.nombre }}</h6>
+                        <span class="badge bg-primary">{{ evaluacion.get_tipo_display }}</span>
+                      </div>
+                      <p class="text-muted small mb-2">
+                        <i class="fas fa-calendar me-1"></i>{{ evaluacion.fecha_evaluacion|date:"d/m/Y" }}
+                      </p>
+                      <div class="row text-center mb-3">
+                        <div class="col-4">
+                          <small class="text-muted">Nota Máxima</small>
+                          <div class="fw-bold">{{ evaluacion.nota_maxima }}</div>
+                        </div>
+                        <div class="col-4">
+                          <small class="text-muted">Ponderación</small>
+                          <div class="fw-bold">{{ evaluacion.ponderacion }}%</div>
+                        </div>
+                        <div class="col-4">
+                          <small class="text-muted">Calificaciones</small>
+                          <div class="fw-bold">{{ evaluacion.get_calificaciones_count }}</div>
+                        </div>
+                      </div>
+                      {% if evaluacion.descripcion %}
+                        <p class="text-muted small mb-3">{{ evaluacion.descripcion|truncatewords:20 }}</p>
+                      {% endif %}
+                      <div class="d-flex gap-2">
+                        <a href="{% url 'calificar_estudiante' curso.id evaluacion.id %}" class="btn btn-sm btn-outline-primary">
+                          <i class="fas fa-edit me-1"></i>Calificar
+                        </a>
+                        <a href="{% url 'estadisticas_curso' curso.id %}" class="btn btn-sm btn-outline-info">
+                          <i class="fas fa-chart-line me-1"></i>Ver Stats
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center py-5">
+                <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No hay evaluaciones creadas</h5>
+                <p class="text-muted">Crea la primera evaluación para comenzar a calificar a los estudiantes.</p>
+                <a href="{% url 'crear_evaluacion' curso.id %}" class="btn btn-primary">
+                  <i class="fas fa-plus me-2"></i>Crear Primera Evaluación
+                </a>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <!-- Vista para Estudiantes -->
+      <div class="row">
+        <!-- Estadísticas Personales -->
+        {% if estadisticas_estudiante %}
+          <div class="col-12 mb-4">
+            <h4 class="mb-3">
+              <i class="fas fa-user-chart me-2"></i>Mis Estadísticas
+            </h4>
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                  <div class="stat-value">{{ estadisticas_estudiante.promedio_personal|floatformat:1 }}</div>
+                  <div class="stat-label">Mi Promedio</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                  <div class="stat-value">{{ estadisticas_estudiante.nota_minima|floatformat:1 }}</div>
+                  <div class="stat-label">Mi Nota Mínima</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                  <div class="stat-value">{{ estadisticas_estudiante.nota_maxima|floatformat:1 }}</div>
+                  <div class="stat-label">Mi Nota Máxima</div>
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <div class="stats-card">
+                  <div class="stat-value">{{ estadisticas_estudiante.evaluaciones_calificadas }}/{{ estadisticas_estudiante.total_evaluaciones }}</div>
+                  <div class="stat-label">Evaluaciones Calificadas</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        
+        <!-- Promedios por Tipo de Evaluación -->
+        {% if promedios_por_tipo %}
+          <div class="col-12 mb-4">
+            <div class="section-content">
+              <h4 class="mb-3">
+                <i class="fas fa-chart-pie me-2"></i>Promedios por Tipo de Evaluación
+              </h4>
+              <div class="row">
+                {% for tipo, datos in promedios_por_tipo.items %}
+                  <div class="col-md-4 mb-3">
+                    <div class="card border-0 shadow-sm">
+                      <div class="card-body text-center">
+                        <h6 class="card-title text-primary">{{ tipo }}</h6>
+                        <div class="display-6 fw-bold text-success">{{ datos.promedio|floatformat:1 }}</div>
+                        <p class="text-muted small mb-0">Promedio</p>
+                        <small class="text-muted">Ponderación: {{ datos.ponderacion_promedio|floatformat:1 }}%</small>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        
+        <!-- Mis Calificaciones -->
+        <div class="col-12">
+          <div class="section-content">
+            <h4 class="mb-3">
+              <i class="fas fa-list-check me-2"></i>Mis Calificaciones
+            </h4>
+            
+            {% if calificaciones_usuario %}
+              <div class="row">
+                {% for calificacion in calificaciones_usuario %}
+                  <div class="col-md-6 mb-3">
+                    <div class="calificacion-item">
+                      <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="mb-1">{{ calificacion.evaluacion.nombre }}</h6>
+                        {% if calificacion.nota %}
+                          {% if calificacion.nota >= 7.0 %}
+                            <span class="nota-badge nota-excelente">{{ calificacion.nota }}</span>
+                          {% elif calificacion.nota >= 5.5 %}
+                            <span class="nota-badge nota-buena">{{ calificacion.nota }}</span>
+                          {% elif calificacion.nota >= 4.0 %}
+                            <span class="nota-badge nota-regular">{{ calificacion.nota }}</span>
+                          {% else %}
+                            <span class="nota-badge nota-insuficiente">{{ calificacion.nota }}</span>
+                          {% endif %}
+                        {% else %}
+                          <span class="badge bg-secondary">Sin calificar</span>
+                        {% endif %}
+                      </div>
+                      <div class="row text-muted small mb-2">
+                        <div class="col-6">
+                          <i class="fas fa-tag me-1"></i>{{ calificacion.evaluacion.get_tipo_display }}
+                        </div>
+                        <div class="col-6">
+                          <i class="fas fa-calendar me-1"></i>{{ calificacion.evaluacion.fecha_evaluacion|date:"d/m/Y" }}
+                        </div>
+                      </div>
+                      <div class="row text-muted small mb-2">
+                        <div class="col-6">
+                          <i class="fas fa-star me-1"></i>Máx: {{ calificacion.evaluacion.nota_maxima }}
+                        </div>
+                        <div class="col-6">
+                          <i class="fas fa-percentage me-1"></i>{{ calificacion.evaluacion.ponderacion }}%
+                        </div>
+                      </div>
+                      {% if calificacion.retroalimentacion %}
+                        <div class="mt-2 p-2 bg-light rounded">
+                          <small class="text-muted">
+                            <i class="fas fa-comment me-1"></i><strong>Retroalimentación:</strong><br>
+                            {{ calificacion.retroalimentacion|truncatewords:15 }}
+                          </small>
+                        </div>
+                      {% endif %}
+                      <div class="mt-2">
+                        <a href="{% url 'ver_calificacion_detalle' curso.id calificacion.id %}" class="btn btn-sm btn-outline-primary">
+                          <i class="fas fa-eye me-1"></i>Ver Detalle
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center py-5">
+                <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No tienes calificaciones aún</h5>
+                <p class="text-muted">Tus calificaciones aparecerán aquí una vez que los profesores las publiquen.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.classList.toggle('show');
+}
+
+// Función para cambiar sección (mantenida para compatibilidad)
+function cambiarSeccion(seccion) {
+  // Esta función se mantiene para compatibilidad con la navegación
+  console.log('Cambiando a sección:', seccion);
+}
+</script>
+
+{% endblock content %} 

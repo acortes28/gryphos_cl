@@ -383,3 +383,76 @@ class InscripcionCurso(models.Model):
             return user, password_temp
         
         return None, None
+
+class Evaluacion(models.Model):
+    TIPO_CHOICES = [
+        ('tarea', 'Tarea'),
+        ('examen', 'Examen'),
+        ('proyecto', 'Proyecto'),
+        ('participacion', 'Participación'),
+        ('trabajo_practico', 'Trabajo Práctico'),
+        ('presentacion', 'Presentación'),
+        ('otro', 'Otro'),
+    ]
+    
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='evaluaciones')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, help_text="Tipo de evaluación")
+    nombre = models.CharField(max_length=200, help_text="Nombre de la evaluación")
+    fecha_evaluacion = models.DateField(help_text="Fecha de evaluación")
+    nota_maxima = models.DecimalField(max_digits=5, decimal_places=2, help_text="Nota máxima posible")
+    ponderacion = models.DecimalField(max_digits=5, decimal_places=2, help_text="Ponderación en porcentaje")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la evaluación")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    activa = models.BooleanField(default=True, help_text="Indica si la evaluación está activa")
+    creado_por = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='evaluaciones_creadas')
+    
+    class Meta:
+        ordering = ['-fecha_evaluacion', '-fecha_creacion']
+        verbose_name = 'Evaluación'
+        verbose_name_plural = 'Evaluaciones'
+        unique_together = ['curso', 'nombre']
+    
+    def __str__(self):
+        return f"{self.nombre} - {self.curso.nombre}"
+    
+    def get_calificaciones_count(self):
+        """Retorna el número de calificaciones registradas para esta evaluación"""
+        return self.calificaciones.count()
+    
+    def get_promedio(self):
+        """Retorna el promedio de las calificaciones de esta evaluación"""
+        calificaciones = self.calificaciones.filter(nota__isnull=False)
+        if calificaciones.exists():
+            return calificaciones.aggregate(models.Avg('nota'))['nota__avg']
+        return None
+
+class Calificacion(models.Model):
+    evaluacion = models.ForeignKey(Evaluacion, on_delete=models.CASCADE, related_name='calificaciones')
+    estudiante = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='calificaciones')
+    nota = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, help_text="Nota obtenida")
+    retroalimentacion = models.TextField(blank=True, null=True, help_text="Retroalimentación para el estudiante")
+    calificado_por = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='calificaciones_asignadas')
+    fecha_calificacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-fecha_calificacion']
+        verbose_name = 'Calificación'
+        verbose_name_plural = 'Calificaciones'
+        unique_together = ['evaluacion', 'estudiante']
+    
+    def __str__(self):
+        return f"{self.estudiante.get_full_name()} - {self.evaluacion.nombre}: {self.nota}"
+    
+    def get_porcentaje_obtenido(self):
+        """Retorna el porcentaje obtenido respecto a la nota máxima"""
+        if self.nota and self.evaluacion.nota_maxima:
+            return (self.nota / self.evaluacion.nota_maxima) * 100
+        return None
+    
+    def get_nota_ponderada(self):
+        """Retorna la nota ponderada según la ponderación de la evaluación"""
+        if self.nota and self.evaluacion.ponderacion:
+            return (self.nota / self.evaluacion.nota_maxima) * self.evaluacion.ponderacion
+        return None

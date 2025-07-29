@@ -6,6 +6,8 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from .models import Post, Comment
 from .models import BlogPost, Curso
+from .models import Evaluacion, Calificacion
+from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -259,3 +261,100 @@ class BlogPostForm(forms.ModelForm):
             'featured_image': 'Imagen destacada',
             'excerpt': 'Resumen'
         }
+
+class EvaluacionForm(forms.ModelForm):
+    class Meta:
+        model = Evaluacion
+        fields = ['tipo', 'nombre', 'fecha_evaluacion', 'nota_maxima', 'ponderacion', 'descripcion']
+        widgets = {
+            'tipo': forms.Select(attrs={
+                'class': 'form-control',
+                'placeholder': 'Selecciona el tipo de evaluación'
+            }),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre de la evaluación'
+            }),
+            'fecha_evaluacion': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'nota_maxima': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: 7.0',
+                'step': '0.1',
+                'min': '0'
+            }),
+            'ponderacion': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: 30',
+                'step': '0.1',
+                'min': '0',
+                'max': '100'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Descripción opcional de la evaluación...'
+            })
+        }
+        labels = {
+            'tipo': 'Tipo de Evaluación',
+            'nombre': 'Nombre de la Evaluación',
+            'fecha_evaluacion': 'Fecha de Evaluación',
+            'nota_maxima': 'Nota Máxima',
+            'ponderacion': 'Ponderación (%)',
+            'descripcion': 'Descripción (Opcional)'
+        }
+        help_texts = {
+            'tipo': 'Selecciona el tipo de evaluación',
+            'nombre': 'Nombre descriptivo de la evaluación',
+            'fecha_evaluacion': 'Fecha en que se realizará la evaluación',
+            'nota_maxima': 'Nota máxima que se puede obtener',
+            'ponderacion': 'Porcentaje que representa esta evaluación en el curso',
+            'descripcion': 'Descripción detallada de la evaluación (opcional)'
+        }
+
+class CalificacionForm(forms.ModelForm):
+    class Meta:
+        model = Calificacion
+        fields = ['estudiante', 'nota', 'retroalimentacion']
+        widgets = {
+            'estudiante': forms.Select(attrs={
+                'class': 'form-control',
+                'placeholder': 'Selecciona un estudiante'
+            }),
+            'nota': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: 6.5',
+                'step': '0.1',
+                'min': '0'
+            }),
+            'retroalimentacion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Retroalimentación para el estudiante (opcional)...'
+            })
+        }
+        labels = {
+            'estudiante': 'Estudiante',
+            'nota': 'Nota',
+            'retroalimentacion': 'Retroalimentación (Opcional)'
+        }
+        help_texts = {
+            'estudiante': 'Selecciona el estudiante a calificar',
+            'nota': 'Nota obtenida por el estudiante',
+            'retroalimentacion': 'Comentarios y sugerencias para el estudiante'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        curso = kwargs.pop('curso', None)
+        super().__init__(*args, **kwargs)
+        
+        if curso:
+            # Filtrar solo estudiantes (no staff/admin) que están inscritos en el curso
+            self.fields['estudiante'].queryset = User.objects.filter(
+                cursos=curso,
+                is_staff=False,
+                is_superuser=False
+            ).order_by('first_name', 'last_name', 'username')

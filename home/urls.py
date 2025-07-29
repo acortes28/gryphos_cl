@@ -46,6 +46,14 @@ urlpatterns = [
     path('curso/<int:curso_id>/plataforma/foro/post/<int:post_id>/delete/', views.plataforma_foro_delete_post, name='plataforma_foro_delete_post'),
     #path('curso/<int:curso_id>/plataforma/foro/comment/<int:comment_id>/delete/', views.plataforma_foro_delete_comment, name='plataforma_foro_delete_comment'),
     path('curso/<int:curso_id>/plataforma/foro/crear/', views.plataforma_foro_create_post, name='plataforma_foro_create_post'),
+    
+    # Calificaciones URLs
+    path('curso/<int:curso_id>/calificaciones/', views.plataforma_calificaciones, name='plataforma_calificaciones'),
+    path('curso/<int:curso_id>/calificaciones/crear-evaluacion/', views.crear_evaluacion, name='crear_evaluacion'),
+    path('curso/<int:curso_id>/calificaciones/calificar/<int:evaluacion_id>/', views.calificar_estudiante, name='calificar_estudiante'),
+    path('curso/<int:curso_id>/calificaciones/detalle/<int:calificacion_id>/', views.ver_calificacion_detalle, name='ver_calificacion_detalle'),
+    path('curso/<int:curso_id>/calificaciones/estadisticas/', views.estadisticas_curso, name='estadisticas_curso'),
+    
     path('cursos/', views.cursos_list, name='cursos_list'),
     path('cursos/<int:curso_id>/', views.curso_detail_public, name='curso_detail_public'),
     
