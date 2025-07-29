@@ -157,62 +157,176 @@
     flex-wrap: wrap;
   }
   
+  /* Estilo específico para el botón "Ir a mi Portal" - igual que navegación */
   .btn-portal-nav {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
+    position: relative;
+    padding: 10px 18px !important;
+    border-radius: 10px !important;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    color: #344767 !important;
+    font-weight: 500 !important;
+    font-size: 0.875rem !important;
+    margin: 0 4px !important;
+    background: transparent !important;
+    overflow: hidden !important;
+    border: none !important;
+  }
+  
+  .btn-portal-nav::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #4b5766 0%, #5a6474 100%);
+    border-radius: 10px;
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(0.8);
+    z-index: -1;
   }
   
   .btn-portal-nav:hover {
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    color: white !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 
+        0 8px 25px rgba(75, 87, 102, 0.3),
+        0 4px 10px rgba(75, 87, 102, 0.2) !important;
   }
   
-  .btn-logout-nav {
-    background: #dc3545;
+  .btn-portal-nav:hover::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  /* Efecto para el ícono del botón portal */
+  .btn-portal-nav i {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+  }
+  
+  .btn-portal-nav:hover i {
+    transform: scale(1.15) rotate(5deg);
     color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
+  }
+  
+  /* Efecto de pulso sutil en hover */
+  @keyframes subtlePulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+  }
+  
+  .btn-portal-nav:hover {
+      animation: subtlePulse 2s ease-in-out infinite;
+  }
+  
+  /* Estilo específico para el botón "Cerrar Sesión" - igual que navegación pero rojo */
+  .btn-logout-nav {
+    position: relative;
+    padding: 10px 18px !important;
+    border-radius: 10px !important;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    color: #dc3545 !important;
+    font-weight: 500 !important;
+    font-size: 0.875rem !important;
+    margin: 0 4px !important;
+    background: transparent !important;
+    overflow: hidden !important;
+    border: 2px solid #dc3545 !important;
+  }
+  
+  .btn-logout-nav::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border-radius: 10px;
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(0.8);
+    z-index: -1;
   }
   
   .btn-logout-nav:hover {
-    color: white;
-    background: #c82333;
-    transform: translateY(-1px);
+    color: white !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 
+        0 8px 25px rgba(220, 53, 69, 0.3),
+        0 4px 10px rgba(220, 53, 69, 0.2) !important;
+    border-color: #dc3545 !important;
   }
   
+  .btn-logout-nav:hover::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  /* Efecto para el ícono del botón logout */
+  .btn-logout-nav i {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+  }
+  
+  .btn-logout-nav:hover i {
+    transform: scale(1.15) rotate(5deg);
+    color: white;
+  }
+  
+  /* Efecto de pulso sutil en hover para logout */
+  .btn-logout-nav:hover {
+      animation: subtlePulse 2s ease-in-out infinite;
+  }
+  
+  /* Estilos para la card del usuario */
   .user-card {
     display: flex;
     align-items: center;
-    background: #f8f9fa;
-    padding: 10px 15px;
-    border-radius: 8px;
-    margin-left: 15px;
+    background: white;
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e9ecef;
+    min-width: 200px;
   }
   
   .user-info {
-    margin-right: 10px;
+    flex: 1;
+    margin-right: 12px;
   }
   
   .user-name {
     font-weight: 600;
+    color: #344767;
     font-size: 0.9rem;
-    color: #333;
+    line-height: 1.2;
+    margin-bottom: 2px;
   }
   
   .user-email {
+    color: #6c757d;
     font-size: 0.8rem;
-    color: #666;
+    line-height: 1.2;
+  }
+  
+  .user-avatar {
+    flex-shrink: 0;
+  }
+  
+  .user-avatar .avatar {
+    margin: 0;
+  }
+  
+  /* Estilos para la imagen de perfil */
+  .user-avatar img.avatar {
+    object-fit: cover;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #e9ecef;
   }
   
   .avatar {
@@ -377,12 +491,6 @@
         <!-- Botones de acción -->
         <div class="me-3 action-buttons">
           {% if user.is_staff %}
-            <a href="{% url 'crear_evaluacion' curso.id %}" class="btn btn-primary me-2">
-              <i class="fas fa-plus me-1"></i>Crear Evaluación
-            </a>
-            <a href="{% url 'estadisticas_curso' curso.id %}" class="btn btn-info me-2">
-              <i class="fas fa-chart-bar me-1"></i>Ver Estadísticas
-            </a>
           {% endif %}
           <a href="{% url 'user_space' %}" class="btn btn-portal-nav me-2">
             <i class="fas fa-home me-1"></i>Ir a mi Portal
@@ -458,9 +566,14 @@
               <h4 class="mb-0">
                 <i class="fas fa-list me-2"></i>Evaluaciones del Curso
               </h4>
-              <a href="{% url 'crear_evaluacion' curso.id %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Nueva Evaluación
-              </a>
+              <div class="d-flex gap-2">
+                <a href="{% url 'estadisticas_curso' curso.id %}" class="btn btn-info">
+                  <i class="fas fa-chart-bar me-1"></i>Ver Estadísticas
+                </a>
+                <a href="{% url 'crear_evaluacion' curso.id %}" class="btn btn-primary">
+                  <i class="fas fa-plus me-2"></i>Nueva Evaluación
+                </a>
+              </div>
             </div>
             
             {% if evaluaciones %}
@@ -533,31 +646,29 @@
               <i class="fas fa-user-chart me-2"></i>Mis Estadísticas
             </h4>
             <div class="row">
-              <div class="col-md-3 mb-3">
-                <div class="stats-card">
-                  <div class="stat-value">{{ estadisticas_estudiante.promedio_personal|floatformat:1 }}</div>
-                  <div class="stat-label">Mi Promedio</div>
+              {% if estadisticas_estudiante.promedio_ponderado %}
+                <div class="col-md-6 mb-3">
+                  <div class="stats-card">
+                    <div class="stat-value">{{ estadisticas_estudiante.promedio_ponderado|floatformat:1 }}</div>
+                    <div class="stat-label">Mi Promedio Ponderado</div>
+                    <small class="text-white-50">Todas las evaluaciones calificadas</small>
+                  </div>
                 </div>
-              </div>
-              <div class="col-md-3 mb-3">
-                <div class="stats-card">
-                  <div class="stat-value">{{ estadisticas_estudiante.nota_minima|floatformat:1 }}</div>
-                  <div class="stat-label">Mi Nota Mínima</div>
-                </div>
-              </div>
-              <div class="col-md-3 mb-3">
-                <div class="stats-card">
-                  <div class="stat-value">{{ estadisticas_estudiante.nota_maxima|floatformat:1 }}</div>
-                  <div class="stat-label">Mi Nota Máxima</div>
-                </div>
-              </div>
-              <div class="col-md-3 mb-3">
+              {% endif %}
+              <div class="col-md-{% if estadisticas_estudiante.promedio_ponderado %}6{% else %}12{% endif %} mb-3">
                 <div class="stats-card">
                   <div class="stat-value">{{ estadisticas_estudiante.evaluaciones_calificadas }}/{{ estadisticas_estudiante.total_evaluaciones }}</div>
                   <div class="stat-label">Evaluaciones Calificadas</div>
+                  <small class="text-white-50">Ponderación total: {{ estadisticas_estudiante.suma_ponderaciones }}%</small>
                 </div>
               </div>
             </div>
+            {% if not estadisticas_estudiante.promedio_ponderado and estadisticas_estudiante.evaluaciones_calificadas > 0 %}
+              <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Nota:</strong> Tu promedio ponderado se mostrará cuando todas las evaluaciones estén calificadas y la suma de ponderaciones sea 100%.
+              </div>
+            {% endif %}
           </div>
         {% endif %}
         

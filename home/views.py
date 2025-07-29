@@ -1909,13 +1909,31 @@ def plataforma_calificaciones(request, curso_id):
         
         # Estadísticas personales del estudiante
         calificaciones_con_nota = calificaciones_usuario.filter(nota__isnull=False)
+        total_evaluaciones = Evaluacion.objects.filter(curso=curso).count()
+        
         if calificaciones_con_nota.exists():
+            # Calcular promedio ponderado
+            suma_ponderada = 0
+            suma_ponderaciones = 0
+            evaluaciones_calificadas = 0
+            
+            for calificacion in calificaciones_con_nota:
+                # Calcular nota ponderada: nota * ponderacion
+                nota_ponderada = calificacion.nota * calificacion.evaluacion.ponderacion
+                suma_ponderada += nota_ponderada
+                suma_ponderaciones += calificacion.evaluacion.ponderacion
+                evaluaciones_calificadas += 1
+            
+            # Calcular promedio ponderado solo si todas las evaluaciones están calificadas y la suma de ponderaciones es 100%
+            promedio_ponderado = None
+            if evaluaciones_calificadas == total_evaluaciones and suma_ponderaciones == 100:
+                promedio_ponderado = suma_ponderada / 100
+            
             estadisticas_estudiante = {
-                'promedio_personal': calificaciones_con_nota.aggregate(Avg('nota'))['nota__avg'],
-                'nota_minima': calificaciones_con_nota.aggregate(Min('nota'))['nota__min'],
-                'nota_maxima': calificaciones_con_nota.aggregate(Max('nota'))['nota__max'],
-                'evaluaciones_calificadas': calificaciones_con_nota.count(),
-                'total_evaluaciones': Evaluacion.objects.filter(curso=curso).count(),
+                'promedio_ponderado': promedio_ponderado,
+                'evaluaciones_calificadas': evaluaciones_calificadas,
+                'total_evaluaciones': total_evaluaciones,
+                'suma_ponderaciones': suma_ponderaciones,
             }
             context['estadisticas_estudiante'] = estadisticas_estudiante
         
@@ -1954,7 +1972,7 @@ def crear_evaluacion(request, curso_id):
         return redirect('plataforma_calificaciones', curso_id=curso_id)
     
     if request.method == 'POST':
-        form = EvaluacionForm(request.POST)
+        form = EvaluacionForm(request.POST, curso=curso)
         if form.is_valid():
             evaluacion = form.save(commit=False)
             evaluacion.curso = curso
@@ -1963,7 +1981,7 @@ def crear_evaluacion(request, curso_id):
             messages.success(request, f'Evaluación "{evaluacion.nombre}" creada exitosamente.')
             return redirect('plataforma_calificaciones', curso_id=curso_id)
     else:
-        form = EvaluacionForm()
+        form = EvaluacionForm(curso=curso)
     
     context = {
         'curso': curso,
@@ -2188,16 +2206,16 @@ def editar_evaluacion(request, curso_id, evaluacion_id):
         return redirect('plataforma_calificaciones', curso_id=curso_id)
     
     if request.method == 'POST':
-        form = EvaluacionForm(request.POST, instance=evaluacion)
+        form = EvaluacionForm(request.POST, instance=evaluacion, curso=curso)
         if form.is_valid():
+            # Para editar, guardar con commit=False para asignar el curso
             evaluacion = form.save(commit=False)
             evaluacion.curso = curso
-            evaluacion.creado_por = request.user
             evaluacion.save()
             messages.success(request, f'Evaluación "{evaluacion.nombre}" actualizada exitosamente.')
             return redirect('plataforma_calificaciones', curso_id=curso_id)
     else:
-        form = EvaluacionForm(instance=evaluacion)
+        form = EvaluacionForm(instance=evaluacion, curso=curso)
     
     context = {
         'curso': curso,

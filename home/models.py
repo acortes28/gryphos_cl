@@ -11,6 +11,17 @@ class CustomUser(AbstractUser):
     company_address = models.CharField(max_length=255, blank=True, null=True)
     admin_name = models.CharField(max_length=100, blank=True, null=True)
     profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True, help_text="Foto de perfil del usuario")
+    
+    def __str__(self):
+        """Retorna el nombre completo del usuario o el username si no tiene nombre"""
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        elif self.first_name:
+            return self.first_name
+        elif self.last_name:
+            return self.last_name
+        else:
+            return self.username
 
 class Service(models.Model):
     name = models.CharField(max_length=100)

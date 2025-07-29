@@ -4,6 +4,7 @@ import re
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from django.db import models
 from .models import Post, Comment
 from .models import BlogPost, Curso
 from .models import Evaluacion, Calificacion
@@ -314,6 +315,64 @@ class EvaluacionForm(forms.ModelForm):
             'ponderacion': 'Porcentaje que representa esta evaluación en el curso',
             'descripcion': 'Descripción detallada de la evaluación (opcional)'
         }
+    
+    def __init__(self, *args, **kwargs):
+        self.curso = kwargs.pop('curso', None)
+        super().__init__(*args, **kwargs)
+    
+    def clean_ponderacion(self):
+        ponderacion = self.cleaned_data.get('ponderacion')
+        curso = self.curso
+        
+        if not curso:
+            return ponderacion
+        
+        if ponderacion is None:
+            raise ValidationError('La ponderación es obligatoria.')
+        
+        # Obtener todas las evaluaciones del curso (excluyendo la actual si estamos editando)
+        evaluaciones_existentes = Evaluacion.objects.filter(curso=curso)
+        
+        if self.instance and self.instance.pk:
+            # Si estamos editando, excluir la evaluación actual
+            evaluaciones_existentes = evaluaciones_existentes.exclude(id=self.instance.id)
+        
+        # Calcular la suma de ponderaciones existentes
+        suma_ponderaciones_existentes = evaluaciones_existentes.aggregate(
+            total=models.Sum('ponderacion')
+        )['total'] or 0
+        
+        # Calcular la ponderación total si se agrega esta nueva
+        ponderacion_total = suma_ponderaciones_existentes + ponderacion
+        
+        if ponderacion_total > 100:
+            ponderacion_disponible = 100 - suma_ponderaciones_existentes
+            raise ValidationError(
+                f'La ponderación total no puede exceder el 100%. '
+                f'Con las evaluaciones existentes ({suma_ponderaciones_existentes}%), '
+                f'solo puedes asignar hasta {ponderacion_disponible}% de ponderación.'
+            )
+        
+        return ponderacion
+    
+    def clean_nombre(self):
+        nombre = self.cleaned_data.get('nombre')
+        curso = self.curso
+        
+        if not curso or not nombre:
+            return nombre
+        
+        # Verificar si ya existe una evaluación con el mismo nombre en el curso
+        evaluaciones_existentes = Evaluacion.objects.filter(curso=curso, nombre=nombre)
+        
+        if self.instance and self.instance.pk:
+            # Si estamos editando, excluir la evaluación actual
+            evaluaciones_existentes = evaluaciones_existentes.exclude(id=self.instance.id)
+        
+        if evaluaciones_existentes.exists():
+            raise ValidationError(f'Ya existe una evaluación con el nombre "{nombre}" en este curso.')
+        
+        return nombre
 
 class CalificacionForm(forms.ModelForm):
     class Meta:
