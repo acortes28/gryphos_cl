@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 import time
 from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm
 from django.contrib.auth import logout
@@ -6,7 +6,7 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
 from django.conf import settings
@@ -943,13 +943,62 @@ def plataforma_aprendizaje(request, curso_id):
             messages.error(request, 'No tienes acceso a este curso. Debes estar inscrito para ver su contenido.')
             return redirect('user_space')
         
-        # Obtener la sección activa desde la URL
+        # Obtener la sección activa y acciones desde la URL
         seccion_activa = request.GET.get('seccion', 'inicio')
+        action = request.GET.get('action')
+        post_id = request.GET.get('post_id')
         
+        # Definir el contexto base
         context = {
             'curso': curso,
             'seccion_activa': seccion_activa,
         }
+        
+        # Si hay una acción específica, manejar según el tipo
+        if action == 'crear_post':
+            # Cargar el formulario de crear post en el contexto
+            from .forms import PostForm
+            form = PostForm()
+            # Ocultar el campo curso ya que se asigna automáticamente
+            form.fields.pop('curso', None)
+            context['form'] = form
+            context['action'] = 'crear_post'
+        elif action == 'ver_post' and post_id:
+            # Cargar el post específico en el contexto
+            try:
+                post = Post.objects.get(id=post_id, curso=curso, is_active=True)
+                
+                # Manejar envío de comentarios
+                if request.method == 'POST':
+                    comment_form = CommentForm(request.POST)
+                    if comment_form.is_valid():
+                        comment = comment_form.save(commit=False)
+                        comment.post = post
+                        comment.author = request.user
+                        comment.save()
+                        messages.success(request, 'Comentario publicado exitosamente.')
+                        # Redirigir de vuelta al mismo post para evitar reenvío del formulario
+                        from django.urls import reverse
+                        redirect_url = f"{reverse('plataforma_aprendizaje', kwargs={'curso_id': curso_id})}?seccion=foro&action=ver_post&post_id={post_id}"
+                        return HttpResponseRedirect(redirect_url)
+                else:
+                    comment_form = CommentForm()
+                
+                # Incrementar contador de vistas solo en GET
+                # if request.method == 'GET':
+                #     post.views += 1
+                #     post.save()
+                
+                comments = post.comments.filter(is_active=True)
+                
+                context['post'] = post
+                context['comments'] = comments
+                context['comment_form'] = comment_form
+                context['action'] = 'ver_post'
+            except Post.DoesNotExist:
+                messages.error(request, 'El post no existe o no está disponible.')
+                return redirect('plataforma_aprendizaje', curso_id=curso_id)
+        
         return render(request, 'pages/plataforma_aprendizaje.html', context)
         
     except Curso.DoesNotExist:
@@ -1078,7 +1127,7 @@ def plataforma_foro_create_post(request, curso_id):
                 post.content = content
                 post.save()
                 messages.success(request, 'Post creado exitosamente.')
-                return redirect('plataforma_foro_post_detail', curso_id=curso.id, post_id=post.id)
+                return redirect('plataforma_aprendizaje', curso_id=curso.id)
         else:
             form = PostForm()
             # Ocultar el campo curso ya que se asigna automáticamente
@@ -1672,6 +1721,51 @@ def plataforma_foro_ajax(request, curso_id):
         # Verificar que el usuario esté inscrito en el curso
         if curso not in request.user.cursos.all():
             return JsonResponse({'error': 'No tienes acceso a este curso'}, status=403)
+        
+        # Verificar si es una acción específica
+        action = request.GET.get('action')
+        
+        if action == 'crear_post':
+            # Cargar formulario de crear post
+            from .forms import PostForm
+            form = PostForm()
+            # Ocultar el campo curso ya que se asigna automáticamente
+            form.fields.pop('curso', None)
+            
+            context = {
+                'curso': curso,
+                'form': form,
+            }
+            
+            html = render_to_string('pages/plataforma_foro_create_form.html', context, request=request)
+            return JsonResponse({'html': html})
+        
+        elif action == 'ver_post':
+            # Cargar post específico
+            post_id = request.GET.get('post_id')
+            if post_id:
+                try:
+                    post = Post.objects.get(id=post_id, curso=curso, is_active=True)
+                    # Incrementar contador de vistas
+                    post.views += 1
+                    post.save()
+                    
+                    comments = post.comments.filter(is_active=True)
+                    comment_form = CommentForm()
+                    
+                    context = {
+                        'curso': curso,
+                        'post': post,
+                        'comments': comments,
+                        'comment_form': comment_form,
+                    }
+                    
+                    html = render_to_string('pages/plataforma_foro_post_detail_content.html', context, request=request)
+                    return JsonResponse({'html': html})
+                except Post.DoesNotExist:
+                    return JsonResponse({'error': 'El post no existe'}, status=404)
+            else:
+                return JsonResponse({'error': 'ID de post no proporcionado'}, status=400)
         
         # Obtener posts del curso
         posts = Post.objects.filter(curso=curso, is_active=True).order_by('-created_at')

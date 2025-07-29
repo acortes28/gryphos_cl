@@ -533,6 +533,11 @@
       </div>
     </div>
     
+    <!-- Sección para crear post (se mostrará dinámicamente) -->
+    <div id="seccion-crear-post" class="section-content" style="display: none;">
+      <!-- El contenido se cargará dinámicamente -->
+    </div>
+    
     <div id="seccion-recursos" class="section-content">
       <h4>Recursos de Aprendizaje</h4>
       <p>Accede a todos los materiales y recursos de tu curso.</p>
@@ -613,8 +618,72 @@ function cambiarSeccion(seccion) {
 function cargarForoContenido() {
   const seccionForo = document.getElementById('seccion-foro');
   
-  // Cargar contenido del foro vía AJAX
-  fetch(`{% url 'plataforma_foro_ajax' curso.id %}`, {
+  // Verificar si hay una acción específica en la URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const action = urlParams.get('action');
+  
+  if (action === 'crear_post') {
+    // Cargar formulario de crear post
+    cargarFormularioCrearPost();
+  } else if (action === 'ver_post') {
+    // Cargar post específico
+    const postId = urlParams.get('post_id');
+    if (postId) {
+      cargarPostDetalle(postId);
+    } else {
+      cargarForoFiltrado('{{ current_category|default:"" }}');
+    }
+  } else {
+    // Cargar contenido del foro vía AJAX
+    fetch(`{% url 'plataforma_foro_ajax' curso.id %}`, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.html) {
+          seccionForo.innerHTML = data.html;
+        } else {
+          seccionForo.innerHTML = `
+            <div class="alert alert-info">
+              <h4>Foro de Discusión</h4>
+              <p>Aquí podrás participar en discusiones con tus compañeros y profesores.</p>
+            </div>
+          `;
+        }
+        
+        // Mostrar sección del foro
+        seccionForo.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'foro');
+        window.history.pushState({}, '', url);
+      })
+      .catch(error => {
+        console.error('Error cargando el foro:', error);
+        seccionForo.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el foro</h4>
+            <p>Hubo un problema al cargar el contenido del foro. Por favor, intenta nuevamente.</p>
+          </div>
+        `;
+        seccionForo.classList.add('active');
+        document.getElementById('loading').classList.remove('show');
+      });
+  }
+}
+
+// Función para cargar el formulario de crear post
+function cargarFormularioCrearPost() {
+  const seccionForo = document.getElementById('seccion-foro');
+  
+  // Cargar formulario vía AJAX
+  fetch(`{% url 'plataforma_foro_ajax' curso.id %}?action=crear_post`, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     }
@@ -625,9 +694,9 @@ function cargarForoContenido() {
         seccionForo.innerHTML = data.html;
       } else {
         seccionForo.innerHTML = `
-          <div class="alert alert-info">
-            <h4>Foro de Discusión</h4>
-            <p>Aquí podrás participar en discusiones con tus compañeros y profesores.</p>
+          <div class="alert alert-danger">
+            <h4>Error al cargar el formulario</h4>
+            <p>Hubo un problema al cargar el formulario de crear post.</p>
           </div>
         `;
       }
@@ -641,14 +710,64 @@ function cargarForoContenido() {
       // Actualizar URL sin recargar
       const url = new URL(window.location);
       url.searchParams.set('seccion', 'foro');
+      url.searchParams.set('action', 'crear_post');
       window.history.pushState({}, '', url);
     })
     .catch(error => {
-      console.error('Error cargando el foro:', error);
+      console.error('Error cargando el formulario:', error);
       seccionForo.innerHTML = `
         <div class="alert alert-danger">
-          <h4>Error al cargar el foro</h4>
-          <p>Hubo un problema al cargar el contenido del foro. Por favor, intenta nuevamente.</p>
+          <h4>Error al cargar el formulario</h4>
+          <p>Hubo un problema al cargar el formulario de crear post.</p>
+        </div>
+      `;
+      seccionForo.classList.add('active');
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para cargar el detalle de un post
+function cargarPostDetalle(postId) {
+  const seccionForo = document.getElementById('seccion-foro');
+  
+  // Cargar post vía AJAX
+  fetch(`{% url 'plataforma_foro_ajax' curso.id %}?action=ver_post&post_id=${postId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        seccionForo.innerHTML = data.html;
+      } else {
+        seccionForo.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el post</h4>
+            <p>Hubo un problema al cargar el contenido del post.</p>
+          </div>
+        `;
+      }
+      
+      // Mostrar sección del foro
+      seccionForo.classList.add('active');
+      
+      // Ocultar loading
+      document.getElementById('loading').classList.remove('show');
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('seccion', 'foro');
+      url.searchParams.set('action', 'ver_post');
+      url.searchParams.set('post_id', postId);
+      window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+      console.error('Error cargando el post:', error);
+      seccionForo.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar el post</h4>
+          <p>Hubo un problema al cargar el contenido del post.</p>
         </div>
       `;
       seccionForo.classList.add('active');

@@ -44,8 +44,8 @@
 // Sobrescribir la función cambiarSeccion para manejar el foro
 function cambiarSeccion(seccion) {
   if (seccion === 'foro') {
-    // Redirigir al foro principal
-    window.location.href = "{% url 'plataforma_foro' curso.id %}";
+    // Redirigir a la plataforma principal con sección foro
+    window.location.href = "{% url 'plataforma_aprendizaje' curso.id %}?seccion=foro";
   } else {
     // Llamar a la función original para otras secciones
     cambiarSeccionOriginal(seccion);
