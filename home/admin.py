@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django import forms
@@ -124,7 +124,7 @@ class InscripcionCursoAdmin(admin.ModelAdmin):
     
     def marcar_como_pagado(self, request, queryset):
         """Acción para marcar inscripciones como pagadas"""
-        from django.contrib import messages
+        
         
         for inscripcion in queryset.filter(estado='pendiente'):
             user, password_temp = inscripcion.marcar_como_pagado()
@@ -169,3 +169,99 @@ admin.site.register(Curso, CursoAdmin)
 admin.site.register(BlogPost, BlogPostAdmin)
 admin.site.register(Videollamada, VideollamadaAdmin)
 admin.site.register(InscripcionCurso, InscripcionCursoAdmin)
+
+# ============================================================================
+# ADMIN PARA EL SISTEMA DE TICKETS DE SOPORTE
+# ============================================================================
+
+from .models import TicketSoporte, ComentarioTicket, ClasificacionTicket, SubclasificacionTicket
+
+class ComentarioTicketInline(admin.TabularInline):
+    model = ComentarioTicket
+    extra = 0
+    readonly_fields = ('autor', 'fecha_creacion', 'fecha_actualizacion')
+    fields = ('autor', 'contenido', 'es_interno', 'fecha_creacion')
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Mostrar solo comentarios no internos o comentarios internos si el usuario es staff
+        if request.user.is_staff or request.user.is_superuser:
+            return qs
+        return qs.filter(es_interno=False)
+
+class TicketSoporteAdmin(admin.ModelAdmin):
+    list_display = ('id', 'titulo', 'usuario', 'curso', 'clasificacion', 'estado', 'prioridad', 'asignado_a', 'fecha_creacion')
+    list_filter = ('estado', 'prioridad', 'clasificacion', 'curso', 'fecha_creacion', 'asignado_a')
+    search_fields = ('titulo', 'descripcion', 'usuario__username', 'usuario__first_name', 'usuario__last_name')
+    readonly_fields = ('fecha_creacion', 'fecha_actualizacion', 'fecha_resolucion')
+    ordering = ('-fecha_creacion',)
+    inlines = [ComentarioTicketInline]
+    
+    fieldsets = (
+        ('Información del Ticket', {
+            'fields': ('titulo', 'descripcion', 'clasificacion', 'subclasificacion')
+        }),
+        ('Estado y Prioridad', {
+            'fields': ('estado', 'prioridad', 'asignado_a')
+        }),
+        ('Información del Usuario', {
+            'fields': ('usuario', 'curso')
+        }),
+        ('Fechas', {
+            'fields': ('fecha_creacion', 'fecha_actualizacion', 'fecha_resolucion'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Los usuarios normales solo ven sus propios tickets
+        if not (request.user.is_staff or request.user.is_superuser):
+            return qs.filter(usuario=request.user)
+        return qs
+    
+    def save_model(self, request, obj, form, change):
+        if not change:  # Si es un nuevo ticket
+            obj.usuario = request.user
+        super().save_model(request, obj, form, change)
+
+class ComentarioTicketAdmin(admin.ModelAdmin):
+    list_display = ('ticket', 'autor', 'es_interno', 'fecha_creacion')
+    list_filter = ('es_interno', 'fecha_creacion', 'ticket__estado')
+    search_fields = ('contenido', 'autor__username', 'ticket__titulo')
+    readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
+    ordering = ('-fecha_creacion',)
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Los usuarios normales solo ven comentarios no internos de sus tickets
+        if not (request.user.is_staff or request.user.is_superuser):
+            return qs.filter(ticket__usuario=request.user, es_interno=False)
+        return qs
+
+class SubclasificacionTicketInline(admin.TabularInline):
+    model = SubclasificacionTicket
+    extra = 1
+    fields = ('nombre', 'descripcion', 'activa')
+
+class ClasificacionTicketAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'descripcion', 'activa', 'get_subclasificaciones_count')
+    list_filter = ('activa',)
+    search_fields = ('nombre', 'descripcion')
+    inlines = [SubclasificacionTicketInline]
+    
+    def get_subclasificaciones_count(self, obj):
+        return obj.subclasificaciones.count()
+    get_subclasificaciones_count.short_description = 'Subclasificaciones'
+
+class SubclasificacionTicketAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'clasificacion', 'activa')
+    list_filter = ('activa', 'clasificacion')
+    search_fields = ('nombre', 'clasificacion__nombre')
+    ordering = ('clasificacion', 'nombre')
+
+# Registrar los modelos de tickets
+admin.site.register(TicketSoporte, TicketSoporteAdmin)
+admin.site.register(ComentarioTicket, ComentarioTicketAdmin)
+admin.site.register(ClasificacionTicket, ClasificacionTicketAdmin)
+admin.site.register(SubclasificacionTicket, SubclasificacionTicketAdmin)

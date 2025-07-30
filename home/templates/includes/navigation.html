@@ -120,6 +120,16 @@
               </li>
             {% endif %}
             
+            <!-- Staff Links (for staff and superusers) -->
+            {% if request.user.is_staff %}
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'admin:home_ticketsoporte_changelist' %}">
+                  <i class="fas fa-ticket-alt me-1"></i>
+                  Tickets de Soporte
+                </a>
+              </li>
+            {% endif %}
+            
             <!-- Public Navigation (only for non-authenticated users) -->
             {% if not request.user.is_authenticated %}
               <li class="nav-item mx-2">

@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.utils import timezone
 import time
 import re
-from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm, EntregaForm
+from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm, EntregaForm, TicketSoporteForm, ComentarioTicketForm, TicketSoporteAdminForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -2899,3 +2900,400 @@ def enviar_correo_bienvenida_usuario_existente(request, user, curso_nombre):
     except Exception as e:
         logger.error(f"Error enviando correo de bienvenida a usuario existente: {e}")
         return False
+
+# ============================================================================
+# VISTAS DEL SISTEMA DE TICKETS DE SOPORTE
+# ============================================================================
+
+@login_required
+def plataforma_soporte_ajax(request, curso_id):
+    """
+    Vista AJAX para cargar el contenido del sistema de soporte dinámicamente
+    """
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            return JsonResponse({'error': 'No tienes acceso a este curso'}, status=403)
+        
+        # Verificar si es una acción específica
+        action = request.GET.get('action')
+        
+        print(f"=== DEBUG PLATAFORMA SOPORTE AJAX ===")
+        print(f"Action recibida: '{action}'")
+        print(f"URL completa: {request.get_full_path()}")
+        print(f"Parámetros GET: {dict(request.GET)}")
+        
+        if action == 'crear_ticket':
+            # Verificar si el usuario es admin/staff
+            if request.user.is_staff or request.user.is_superuser:
+                # Para usuarios admin/staff, mostrar el panel de administración
+                tickets = TicketSoporte.objects.filter(curso=curso).order_by('-fecha_creacion')
+                
+                context = {
+                    'curso': curso,
+                    'tickets': tickets,
+                    'estados': TicketSoporte.ESTADO_CHOICES,
+                    'current_estado': None,
+                    'is_admin': True,
+                }
+                
+                html = render_to_string('pages/plataforma_soporte_admin.html', context, request=request)
+                return JsonResponse({'html': html})
+            else:
+                # Para usuarios normales, mostrar el formulario de crear ticket
+                from .forms import TicketSoporteForm
+                
+                print("=== DEBUG FORMULARIO TICKET ===")
+                print(f"Usuario: {request.user.username}")
+                print(f"Curso: {curso.nombre} (ID: {curso.id})")
+                
+                # Verificar clasificaciones en la base de datos
+                from .models import ClasificacionTicket, SubclasificacionTicket
+                clasificaciones_db = ClasificacionTicket.objects.filter(activa=True)
+                print(f"Clasificaciones activas en DB: {clasificaciones_db.count()}")
+                for clas in clasificaciones_db:
+                    print(f"  - {clas.nombre} (ID: {clas.id})")
+                    subclas = clas.subclasificaciones.filter(activa=True)
+                    print(f"    Subclasificaciones: {subclas.count()}")
+                    for sub in subclas:
+                        print(f"      - {sub.nombre}")
+                
+                # Instanciar formulario
+                form = TicketSoporteForm()
+                
+                # Verificar opciones del formulario
+                print(f"Opciones de clasificación en form: {len(form.fields['clasificacion'].choices)}")
+                for choice in form.fields['clasificacion'].choices:
+                    print(f"  - {choice[1]} (valor: {choice[0]})")
+                
+                print(f"Opciones de subclasificación en form: {len(form.fields['subclasificacion'].choices)}")
+                for choice in form.fields['subclasificacion'].choices:
+                    print(f"  - {choice[1]} (valor: {choice[0]})")
+                
+                context = {
+                    'curso': curso,
+                    'form': form,
+                }
+                
+                # Renderizar template
+                html = render_to_string('pages/plataforma_soporte_create_ticket.html', context, request=request)
+                
+                # Verificar si el HTML contiene las opciones
+                if 'clasificacion-select' in html:
+                    print("✓ Campo clasificacion-select encontrado en HTML")
+                else:
+                    print("✗ Campo clasificacion-select NO encontrado en HTML")
+                
+                if 'subclasificacion-select' in html:
+                    print("✓ Campo subclasificacion-select encontrado en HTML")
+                else:
+                    print("✗ Campo subclasificacion-select NO encontrado en HTML")
+                
+                # Buscar opciones en el HTML
+                import re
+                option_pattern = r'<option[^>]*value="([^"]*)"[^>]*>([^<]*)</option>'
+                options_in_html = re.findall(option_pattern, html)
+                print(f"Opciones encontradas en HTML: {len(options_in_html)}")
+                for value, text in options_in_html[:10]:  # Mostrar las primeras 10
+                    print(f"  - {text} (valor: {value})")
+                
+                # Verificar específicamente las opciones de clasificación
+                clasificacion_options = re.findall(r'<option[^>]*value="([^"]*)"[^>]*>([^<]*)</option>', html)
+                clasificacion_options = [opt for opt in clasificacion_options if opt[0] != '' and 'Selecciona' not in opt[1]]
+                print(f"Opciones de clasificación válidas en HTML: {len(clasificacion_options)}")
+                for value, text in clasificacion_options:
+                    print(f"  - {text} (valor: {value})")
+                
+                print("=== FIN DEBUG FORMULARIO TICKET ===")
+                
+                return JsonResponse({'html': html})
+        
+        elif action == 'ver_ticket':
+            # Cargar ticket específico
+            ticket_id = request.GET.get('ticket_id')
+            if ticket_id:
+                try:
+                    ticket = TicketSoporte.objects.get(id=ticket_id, curso=curso)
+                    
+                    # Verificar permisos
+                    if not (request.user == ticket.usuario or request.user.is_staff or request.user.is_superuser):
+                        return JsonResponse({'error': 'No tienes permisos para ver este ticket'}, status=403)
+                    
+                    comentarios = ticket.comentarios.all()
+                    comentario_form = ComentarioTicketForm()
+                    admin_form = TicketSoporteAdminForm(instance=ticket) if request.user.is_staff else None
+                    
+                    context = {
+                        'curso': curso,
+                        'ticket': ticket,
+                        'comentarios': comentarios,
+                        'comentario_form': comentario_form,
+                        'admin_form': admin_form,
+                    }
+                    
+                    html = render_to_string('pages/plataforma_soporte_ticket_detail.html', context, request=request)
+                    return JsonResponse({'html': html})
+                except TicketSoporte.DoesNotExist:
+                    return JsonResponse({'error': 'El ticket no existe'}, status=404)
+            else:
+                return JsonResponse({'error': 'ID de ticket no proporcionado'}, status=400)
+        
+        # Verificar si el usuario es admin/staff
+        if request.user.is_staff or request.user.is_superuser:
+            # Para usuarios admin/staff, mostrar el panel de administración
+            tickets = TicketSoporte.objects.filter(curso=curso).order_by('-fecha_creacion')
+            
+            # Filtros
+            estado_filter = request.GET.get('estado')
+            if estado_filter:
+                tickets = tickets.filter(estado=estado_filter)
+            
+            # Calcular estadísticas
+            total_tickets = tickets.count()
+            tickets_abiertos = tickets.filter(estado='abierto').count()
+            tickets_en_proceso = tickets.filter(estado='en_proceso').count()
+            tickets_resueltos = tickets.filter(estado='resuelto').count()
+            tickets_cerrados = tickets.filter(estado='cerrado').count()
+            
+            context = {
+                'curso': curso,
+                'tickets': tickets,
+                'estados': TicketSoporte.ESTADO_CHOICES,
+                'current_estado': estado_filter,
+                'is_admin': True,
+                'stats': {
+                    'total': total_tickets,
+                    'abiertos': tickets_abiertos,
+                    'en_proceso': tickets_en_proceso,
+                    'resueltos': tickets_resueltos,
+                    'cerrados': tickets_cerrados,
+                }
+            }
+            
+            html = render_to_string('pages/plataforma_soporte_admin.html', context, request=request)
+            return JsonResponse({'html': html})
+        else:
+            # Para usuarios normales, mostrar la lista de sus tickets
+            tickets = TicketSoporte.objects.filter(curso=curso, usuario=request.user).order_by('-fecha_creacion')
+            
+            # Filtros
+            estado_filter = request.GET.get('estado')
+            if estado_filter:
+                tickets = tickets.filter(estado=estado_filter)
+            
+            context = {
+                'curso': curso,
+                'tickets': tickets,
+                'estados': TicketSoporte.ESTADO_CHOICES,
+                'current_estado': estado_filter,
+            }
+            
+            # Renderizar solo el contenido del soporte
+            html = render_to_string('pages/plataforma_soporte_content.html', context, request=request)
+            return JsonResponse({'html': html})
+        
+    except Curso.DoesNotExist:
+        return JsonResponse({'error': 'El curso no existe'}, status=404)
+
+
+@login_required
+def crear_ticket_soporte(request, curso_id):
+    """
+    Vista para crear un nuevo ticket de soporte
+    """
+    if request.method == 'POST':
+        form = TicketSoporteForm(request.POST)
+        if form.is_valid():
+            ticket = form.save(commit=False)
+            ticket.usuario = request.user
+            ticket.curso_id = curso_id
+            ticket.save()
+            
+            messages.success(request, 'Ticket creado exitosamente. Recibirás una respuesta pronto.')
+            return JsonResponse({'success': True, 'message': 'Ticket creado exitosamente'})
+        else:
+            return JsonResponse({'success': False, 'errors': form.errors})
+    
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+@login_required
+def agregar_comentario_ticket(request, ticket_id):
+    """
+    Vista para agregar comentarios a un ticket
+    """
+    try:
+        ticket = TicketSoporte.objects.get(id=ticket_id)
+        
+        # Verificar permisos
+        if not ticket.puede_comentar(request.user):
+            return JsonResponse({'error': 'No tienes permisos para comentar en este ticket'}, status=403)
+        
+        if request.method == 'POST':
+            form = ComentarioTicketForm(request.POST)
+            if form.is_valid():
+                comentario = form.save(commit=False)
+                comentario.ticket = ticket
+                comentario.autor = request.user
+                comentario.save()
+                
+                # Actualizar fecha de actualización del ticket
+                ticket.fecha_actualizacion = timezone.now()
+                ticket.save()
+                
+                return JsonResponse({'success': True, 'message': 'Comentario agregado exitosamente'})
+            else:
+                return JsonResponse({'success': False, 'errors': form.errors})
+    
+    except TicketSoporte.DoesNotExist:
+        return JsonResponse({'error': 'El ticket no existe'}, status=404)
+    
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+@login_required
+def actualizar_ticket_admin(request, ticket_id):
+    """
+    Vista para que los administradores actualicen el estado de un ticket
+    """
+    try:
+        ticket = TicketSoporte.objects.get(id=ticket_id)
+        
+        # Verificar que sea admin/staff
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para actualizar tickets'}, status=403)
+        
+        if request.method == 'POST':
+            form = TicketSoporteAdminForm(request.POST, instance=ticket)
+            if form.is_valid():
+                form.save()
+                
+                # Si el estado cambió a resuelto, actualizar fecha de resolución
+                if ticket.estado == 'resuelto' and not ticket.fecha_resolucion:
+                    ticket.fecha_resolucion = timezone.now()
+                    ticket.save()
+                
+                return JsonResponse({'success': True, 'message': 'Ticket actualizado exitosamente'})
+            else:
+                return JsonResponse({'success': False, 'errors': form.errors})
+    
+    except TicketSoporte.DoesNotExist:
+        return JsonResponse({'error': 'El ticket no existe'}, status=404)
+    
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+@login_required
+def obtener_subclasificaciones(request):
+    """
+    Vista AJAX para obtener subclasificaciones basadas en la clasificación seleccionada
+    """
+    clasificacion = request.GET.get('clasificacion')
+    
+    print(f"=== DEBUG OBTENER SUBCLASIFICACIONES ===")
+    print(f"Clasificación solicitada: {clasificacion}")
+    
+    if clasificacion:
+        try:
+            clasificacion_obj = ClasificacionTicket.objects.get(nombre=clasificacion, activa=True)
+            print(f"Clasificación encontrada: {clasificacion_obj.nombre} (ID: {clasificacion_obj.id})")
+            
+            subclasificaciones = clasificacion_obj.subclasificaciones.filter(activa=True)
+            print(f"Subclasificaciones encontradas: {subclasificaciones.count()}")
+            for sub in subclasificaciones:
+                print(f"  - {sub.nombre} (ID: {sub.id})")
+            
+            choices = [('', 'Selecciona una subclasificación')] + [
+                (sub.nombre, sub.nombre) for sub in subclasificaciones
+            ]
+            
+            print(f"Choices finales: {len(choices)}")
+            for choice in choices:
+                print(f"  - {choice[1]} (valor: {choice[0]})")
+            
+            print("=== FIN DEBUG OBTENER SUBCLASIFICACIONES ===")
+            return JsonResponse({'choices': choices})
+        except ClasificacionTicket.DoesNotExist:
+            print(f"✗ Clasificación '{clasificacion}' no encontrada")
+            print("=== FIN DEBUG OBTENER SUBCLASIFICACIONES ===")
+            return JsonResponse({'choices': [('', 'No hay subclasificaciones disponibles')]})
+    
+    print("✗ No se proporcionó clasificación")
+    print("=== FIN DEBUG OBTENER SUBCLASIFICACIONES ===")
+    return JsonResponse({'choices': [('', 'Primero selecciona una clasificación')]})
+
+
+def crear_clasificaciones_iniciales():
+    """
+    Función para crear clasificaciones iniciales de tickets
+    """
+    clasificaciones_data = [
+        {
+            'nombre': 'Problemas Técnicos',
+            'descripcion': 'Problemas relacionados con la plataforma, acceso, navegación, etc.',
+            'subclasificaciones': [
+                'Acceso a la plataforma',
+                'Problemas de navegación',
+                'Errores del sistema',
+                'Problemas con archivos',
+                'Problemas de video/audio',
+                'Otros problemas técnicos'
+            ]
+        },
+        {
+            'nombre': 'Contenido del Curso',
+            'descripcion': 'Consultas sobre el contenido, materiales, evaluaciones, etc.',
+            'subclasificaciones': [
+                'Dudas sobre el contenido',
+                'Materiales de estudio',
+                'Evaluaciones y tareas',
+                'Calificaciones',
+                'Recursos adicionales',
+                'Otros temas del curso'
+            ]
+        },
+        {
+            'nombre': 'Administrativo',
+            'descripcion': 'Consultas sobre inscripciones, pagos, certificados, etc.',
+            'subclasificaciones': [
+                'Inscripción al curso',
+                'Pagos y facturación',
+                'Certificados',
+                'Cambios de horario',
+                'Cancelaciones',
+                'Otros temas administrativos'
+            ]
+        },
+        {
+            'nombre': 'Soporte General',
+            'descripcion': 'Otras consultas y solicitudes de soporte',
+            'subclasificaciones': [
+                'Información general',
+                'Sugerencias',
+                'Reportes de bugs',
+                'Solicitudes especiales',
+                'Otros'
+            ]
+        }
+    ]
+    
+    for clasificacion_data in clasificaciones_data:
+        clasificacion, created = ClasificacionTicket.objects.get_or_create(
+            nombre=clasificacion_data['nombre'],
+            defaults={
+                'descripcion': clasificacion_data['descripcion'],
+                'activa': True
+            }
+        )
+        
+        if created:
+            for subclasificacion_nombre in clasificacion_data['subclasificaciones']:
+                SubclasificacionTicket.objects.get_or_create(
+                    clasificacion=clasificacion,
+                    nombre=subclasificacion_nombre,
+                    defaults={
+                        'activa': True
+                    }
+                )

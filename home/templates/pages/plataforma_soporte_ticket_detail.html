@@ -1,0 +1,243 @@
+{% load static %}
+
+<div class="container-fluid" data-ticket-id="{{ ticket.id }}">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 class="mb-1">
+            <i class="fas fa-ticket-alt me-2"></i>Ticket #{{ ticket.id }}
+          </h4>
+          <p class="text-muted mb-0">{{ ticket.titulo }}</p>
+        </div>
+        
+        <button class="btn btn-outline-secondary" onclick="volverASoporte()">
+          <i class="fas fa-arrow-left me-2"></i>Volver
+        </button>
+      </div>
+      
+      <div class="row">
+        <!-- Información del ticket -->
+        <div class="col-lg-8">
+          <div class="card mb-4">
+            <div class="card-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Información del Ticket</h6>
+                <div>
+                  <span class="badge bg-{{ ticket.estado|yesno:'success,warning,info,secondary' }} me-2">{{ ticket.get_estado_display }}</span>
+                  {% if ticket.prioridad == 'urgente' %}
+                    <span class="badge bg-danger">Urgente</span>
+                  {% elif ticket.prioridad == 'alta' %}
+                    <span class="badge bg-warning">Alta</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <strong>Clasificación:</strong>
+                  <p class="text-muted mb-0">{{ ticket.clasificacion }} - {{ ticket.subclasificacion }}</p>
+                </div>
+                <div class="col-md-6">
+                  <strong>Prioridad:</strong>
+                  <p class="text-muted mb-0">{{ ticket.get_prioridad_display }}</p>
+                </div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <strong>Creado por:</strong>
+                  <p class="text-muted mb-0">{{ ticket.usuario.get_full_name|default:ticket.usuario.username }}</p>
+                </div>
+                <div class="col-md-6">
+                  <strong>Fecha de creación:</strong>
+                  <p class="text-muted mb-0">{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                </div>
+              </div>
+              
+              {% if ticket.asignado_a %}
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <strong>Asignado a:</strong>
+                    <p class="text-muted mb-0">{{ ticket.asignado_a.get_full_name|default:ticket.asignado_a.username }}</p>
+                  </div>
+                </div>
+              {% endif %}
+              
+              <div class="row">
+                <div class="col-12">
+                  <strong>Descripción:</strong>
+                  <div class="mt-2 p-3 bg-light rounded">
+                    {{ ticket.descripcion|linebreaks }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Comentarios -->
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0">
+                <i class="fas fa-comments me-2"></i>Comentarios ({{ comentarios.count }})
+              </h6>
+            </div>
+            <div class="card-body">
+              {% if comentarios %}
+                <div class="comentarios-container">
+                  {% for comentario in comentarios %}
+                    <div class="comentario mb-3 p-3 border rounded {% if comentario.es_interno %}bg-warning bg-opacity-10{% endif %}">
+                      <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                          <strong>{{ comentario.autor.get_full_name|default:comentario.autor.username }}</strong>
+                          {% if comentario.es_interno %}
+                            <span class="badge bg-warning ms-2">Interno</span>
+                          {% endif %}
+                        </div>
+                        <small class="text-muted">{{ comentario.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                      </div>
+                      <div class="comentario-contenido">
+                        {{ comentario.contenido|linebreaks }}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="text-muted text-center py-3">No hay comentarios aún.</p>
+              {% endif %}
+              
+              <!-- Formulario para nuevo comentario -->
+              {% if ticket.puede_comentar %}
+                <div class="mt-4">
+                  <h6>Agregar Comentario</h6>
+                  <form id="form-comentario" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                      {{ comentario_form.contenido }}
+                      {% if comentario_form.contenido.errors %}
+                        <div class="text-danger mt-1">
+                          {% for error in comentario_form.contenido.errors %}
+                            <small>{{ error }}</small>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+                    
+                    {% if user.is_staff or user.is_superuser %}
+                      <div class="mb-3">
+                        <div class="form-check">
+                          {{ comentario_form.es_interno }}
+                          <label class="form-check-label" for="{{ comentario_form.es_interno.id_for_label }}">
+                            {{ comentario_form.es_interno.label }}
+                          </label>
+                        </div>
+                      </div>
+                    {% endif %}
+                    
+                    <div id="mensaje-comentario" class="mb-3"></div>
+                    
+                    <button type="submit" class="btn btn-primary" id="btn-agregar-comentario">
+                      <i class="fas fa-paper-plane me-2"></i>Agregar Comentario
+                    </button>
+                  </form>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        
+        <!-- Panel lateral para administradores -->
+        {% if user.is_staff or user.is_superuser %}
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-cog me-2"></i>Gestión del Ticket
+                </h6>
+              </div>
+              <div class="card-body">
+                <form id="form-admin-ticket" method="post">
+                  {% csrf_token %}
+                  
+                  <div class="mb-3">
+                    <label for="{{ admin_form.estado.id_for_label }}" class="form-label">
+                      {{ admin_form.estado.label }}
+                    </label>
+                    {{ admin_form.estado }}
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="{{ admin_form.prioridad.id_for_label }}" class="form-label">
+                      {{ admin_form.prioridad.label }}
+                    </label>
+                    {{ admin_form.prioridad }}
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="{{ admin_form.asignado_a.id_for_label }}" class="form-label">
+                      {{ admin_form.asignado_a.label }}
+                    </label>
+                    {{ admin_form.asignado_a }}
+                  </div>
+                  
+                  <div id="mensaje-admin" class="mb-3"></div>
+                  
+                  <button type="submit" class="btn btn-success w-100" id="btn-actualizar-admin">
+                    <i class="fas fa-save me-2"></i>Actualizar Ticket
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.comentario {
+  transition: all 0.3s ease;
+}
+
+.comentario:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.comentario-contenido {
+  line-height: 1.6;
+}
+
+.badge {
+  font-size: 0.75rem;
+}
+
+.form-control:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.btn-primary {
+  background-color: #667eea;
+  border-color: #667eea;
+}
+
+.btn-primary:hover {
+  background-color: #5a6fd8;
+  border-color: #5a6fd8;
+}
+
+.btn-success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.btn-success:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+</style>
+
+<!-- Las funciones JavaScript están definidas en el archivo principal plataforma_aprendizaje.html --> 

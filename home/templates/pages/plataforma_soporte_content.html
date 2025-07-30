@@ -1,0 +1,154 @@
+{% load static %}
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header con botón de crear ticket -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 class="mb-1">
+            <i class="fas fa-headset me-2"></i>Soporte al Estudiante
+          </h4>
+          <p class="text-muted mb-0">Aquí puedes crear tickets de soporte y ver el estado de tus consultas</p>
+        </div>
+        
+        <button class="btn btn-primary" data-action="crear-ticket">
+          <i class="fas fa-plus me-2"></i>Crear Ticket
+        </button>
+      </div>
+      
+      <!-- Filtros -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <h6 class="card-title mb-3">Filtrar por Estado</h6>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-outline-primary active" data-action="filtrar-soporte" data-estado="">
+              Todos
+            </button>
+            {% for estado_codigo, estado_nombre in estados %}
+              <button type="button" class="btn btn-outline-primary" data-action="filtrar-soporte" data-estado="{{ estado_codigo }}">
+                {{ estado_nombre }}
+              </button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Lista de tickets -->
+      <div class="row">
+        {% if tickets %}
+          {% for ticket in tickets %}
+            <div class="col-12 mb-3">
+              <div class="card ticket-card" onclick="verTicket({{ ticket.id }})">
+                <div class="card-body">
+                  <div class="row align-items-center">
+                    <div class="col-md-8">
+                      <div class="d-flex align-items-center mb-2">
+                        <h6 class="card-title mb-0 me-3">{{ ticket.titulo }}</h6>
+                        <span class="badge bg-{{ ticket.estado|yesno:'success,warning,info,secondary' }}">{{ ticket.get_estado_display }}</span>
+                        {% if ticket.prioridad == 'urgente' %}
+                          <span class="badge bg-danger ms-2">Urgente</span>
+                        {% elif ticket.prioridad == 'alta' %}
+                          <span class="badge bg-warning ms-2">Alta</span>
+                        {% endif %}
+                      </div>
+                      
+                      <p class="text-muted mb-2">
+                        <small>
+                          <i class="fas fa-tag me-1"></i>{{ ticket.clasificacion }} - {{ ticket.subclasificacion }}
+                        </small>
+                      </p>
+                      
+                      <p class="card-text text-muted mb-2">
+                        {{ ticket.descripcion|truncatewords:30 }}
+                      </p>
+                      
+                      <div class="d-flex align-items-center">
+                        <small class="text-muted me-3">
+                          <i class="fas fa-calendar me-1"></i>
+                          Creado: {{ ticket.fecha_creacion|date:"d/m/Y H:i" }}
+                        </small>
+                        
+                        {% if ticket.fecha_actualizacion != ticket.fecha_creacion %}
+                          <small class="text-muted me-3">
+                            <i class="fas fa-clock me-1"></i>
+                            Actualizado: {{ ticket.fecha_actualizacion|date:"d/m/Y H:i" }}
+                          </small>
+                        {% endif %}
+                        
+                        <small class="text-muted">
+                          <i class="fas fa-comments me-1"></i>
+                          {{ ticket.get_comentarios_count }} comentarios
+                        </small>
+                      </div>
+                    </div>
+                    
+                    <div class="col-md-4 text-end">
+                      <div class="d-flex flex-column align-items-end">
+                        <small class="text-muted mb-1">
+                          {% if ticket.asignado_a %}
+                            <i class="fas fa-user-tie me-1"></i>
+                            Asignado a: {{ ticket.asignado_a.get_full_name|default:ticket.asignado_a.username }}
+                          {% else %}
+                            <i class="fas fa-clock me-1"></i>
+                            Sin asignar
+                          {% endif %}
+                        </small>
+                        
+                        <button class="btn btn-sm btn-outline-primary" data-action="ver-ticket" data-ticket-id="{{ ticket.id }}">
+                          <i class="fas fa-eye me-1"></i>Ver Detalles
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="col-12">
+            <div class="text-center py-5">
+              <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
+              <h5 class="text-muted">No tienes tickets de soporte</h5>
+              <p class="text-muted">Cuando necesites ayuda, crea un ticket de soporte y nuestro equipo te responderá pronto.</p>
+              <button class="btn btn-primary" data-action="crear-ticket">
+                <i class="fas fa-plus me-2"></i>Crear mi primer ticket
+              </button>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.ticket-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid #e9ecef;
+}
+
+.ticket-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-color: #667eea;
+}
+
+.btn-group .btn {
+  border-radius: 0.375rem;
+  margin-right: 0.25rem;
+}
+
+.btn-group .btn.active {
+  background-color: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+.badge {
+  font-size: 0.75rem;
+}
+</style>
+
+<!-- Las funciones JavaScript están definidas en el archivo principal plataforma_aprendizaje.html --> 

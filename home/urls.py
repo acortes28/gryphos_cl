@@ -95,4 +95,11 @@ urlpatterns = [
     # Entregas URLs
     path('plataforma/curso/<int:curso_id>/entregas/ajax/', views.plataforma_entregas_ajax, name='plataforma_entregas_ajax'),
     path('reemplazar-archivo-entrega/', views.reemplazar_archivo_entrega, name='reemplazar_archivo_entrega'),
+    
+    # Soporte URLs
+    path('curso/<int:curso_id>/plataforma/soporte/ajax/', views.plataforma_soporte_ajax, name='plataforma_soporte_ajax'),
+    path('curso/<int:curso_id>/plataforma/soporte/crear-ticket/', views.crear_ticket_soporte, name='crear_ticket_soporte'),
+    path('ticket/<int:ticket_id>/agregar-comentario/', views.agregar_comentario_ticket, name='agregar_comentario_ticket'),
+    path('ticket/<int:ticket_id>/actualizar-admin/', views.actualizar_ticket_admin, name='actualizar_ticket_admin'),
+    path('obtener-subclasificaciones/', views.obtener_subclasificaciones, name='obtener_subclasificaciones'),
 ]

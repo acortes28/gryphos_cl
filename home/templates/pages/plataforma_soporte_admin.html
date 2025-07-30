@@ -1,0 +1,324 @@
+{% load static %}
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h4 class="mb-1">
+            <i class="fas fa-headset me-2"></i>Panel de Administración de Tickets
+          </h4>
+          <p class="text-muted mb-0">Gestiona todos los tickets de soporte del curso {{ curso.nombre }}</p>
+        </div>
+        
+        <div class="d-flex align-items-center">
+          <button class="btn btn-outline-secondary me-2" onclick="volverASoporte()">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+          </button>
+          <button class="btn btn-primary" onclick="cargarFormularioCrearTicket()">
+            <i class="fas fa-plus me-2"></i>Crear Ticket
+          </button>
+        </div>
+      </div>
+      
+      <!-- Filtros -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <h6 class="card-title mb-3">
+            <i class="fas fa-filter me-2"></i>Filtros
+          </h6>
+          
+          <div class="row">
+            <div class="col-md-4">
+              <label class="form-label">Estado</label>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-outline-primary active" onclick="cargarSoporteFiltrado('')">
+                  Todos
+                </button>
+                {% for estado_choice in estados %}
+                  <button type="button" class="btn btn-outline-primary" onclick="cargarSoporteFiltrado('{{ estado_choice.0 }}')">
+                    {{ estado_choice.1 }}
+                  </button>
+                {% endfor %}
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <label class="form-label">Ordenar por</label>
+              <select class="form-select" id="orden-tickets" onchange="cambiarOrdenTickets()">
+                <option value="fecha_desc">Más recientes primero</option>
+                <option value="fecha_asc">Más antiguos primero</option>
+                <option value="prioridad_desc">Prioridad alta primero</option>
+                <option value="estado">Por estado</option>
+              </select>
+            </div>
+            
+            <div class="col-md-4">
+              <label class="form-label">Buscar</label>
+              <input type="text" class="form-control" id="buscar-tickets" placeholder="Buscar por título, usuario..." onkeyup="buscarTickets()">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Estadísticas -->
+      <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+          <div class="stats-card">
+            <div class="d-flex justify-content-between">
+              <div>
+                <div class="stat-value">{{ stats.total }}</div>
+                <div class="stat-label">Total Tickets</div>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-ticket-alt fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+          <div class="stats-card">
+            <div class="d-flex justify-content-between">
+              <div>
+                <div class="stat-value">{{ stats.abiertos }}</div>
+                <div class="stat-label">Abiertos</div>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-clock fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+          <div class="stats-card">
+            <div class="d-flex justify-content-between">
+              <div>
+                <div class="stat-value">{{ stats.en_proceso }}</div>
+                <div class="stat-label">En Proceso</div>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-cogs fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+          <div class="stats-card">
+            <div class="d-flex justify-content-between">
+              <div>
+                <div class="stat-value">{{ stats.resueltos }}</div>
+                <div class="stat-label">Resueltos</div>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-check-circle fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Lista de Tickets -->
+      <div class="card">
+        <div class="card-body">
+          <h6 class="card-title mb-3">
+            <i class="fas fa-list me-2"></i>Lista de Tickets
+          </h6>
+          
+          {% if tickets %}
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Título</th>
+                    <th>Usuario</th>
+                    <th>Clasificación</th>
+                    <th>Estado</th>
+                    <th>Prioridad</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ticket in tickets %}
+                    <tr>
+                      <td>
+                        <span class="badge bg-secondary">#{{ ticket.id }}</span>
+                      </td>
+                      <td>
+                        <strong>{{ ticket.titulo }}</strong>
+                        {% if ticket.get_comentarios_count > 0 %}
+                          <span class="badge bg-info ms-1">{{ ticket.get_comentarios_count }} comentarios</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <div class="d-flex align-items-center">
+                          {% if ticket.usuario.profile_photo %}
+                            <img src="{{ ticket.usuario.profile_photo.url }}" alt="Avatar" class="rounded-circle me-2" width="32" height="32">
+                          {% else %}
+                            <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                              <i class="fas fa-user text-white"></i>
+                            </div>
+                          {% endif %}
+                          <div>
+                            <div class="fw-bold">{{ ticket.usuario.get_full_name|default:ticket.usuario.username }}</div>
+                            <small class="text-muted">{{ ticket.usuario.email }}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge bg-light text-dark">{{ ticket.clasificacion }}</span>
+                        {% if ticket.subclasificacion %}
+                          <br><small class="text-muted">{{ ticket.subclasificacion }}</small>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if ticket.estado == 'abierto' %}
+                          <span class="badge bg-warning">Abierto</span>
+                        {% elif ticket.estado == 'en_proceso' %}
+                          <span class="badge bg-info">En Proceso</span>
+                        {% elif ticket.estado == 'resuelto' %}
+                          <span class="badge bg-success">Resuelto</span>
+                        {% elif ticket.estado == 'cerrado' %}
+                          <span class="badge bg-secondary">Cerrado</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if ticket.prioridad == 'urgente' %}
+                          <span class="badge bg-danger">Urgente</span>
+                        {% elif ticket.prioridad == 'alta' %}
+                          <span class="badge bg-warning">Alta</span>
+                        {% elif ticket.prioridad == 'media' %}
+                          <span class="badge bg-info">Media</span>
+                        {% elif ticket.prioridad == 'baja' %}
+                          <span class="badge bg-success">Baja</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <div>
+                          <div class="fw-bold">{{ ticket.fecha_creacion|date:"d/m/Y" }}</div>
+                          <small class="text-muted">{{ ticket.fecha_creacion|date:"H:i" }}</small>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="btn-group" role="group">
+                          <button class="btn btn-sm btn-outline-primary" onclick="verTicket({{ ticket.id }})" title="Ver detalles">
+                            <i class="fas fa-eye"></i>
+                          </button>
+                          <button class="btn btn-sm btn-outline-warning" onclick="editarTicket({{ ticket.id }})" title="Editar">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button class="btn btn-sm btn-outline-success" onclick="responderTicket({{ ticket.id }})" title="Responder">
+                            <i class="fas fa-reply"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+              <h5>No hay tickets</h5>
+              <p class="text-muted">No se han creado tickets de soporte para este curso.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.card {
+  border: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.table th {
+  border-top: none;
+  font-weight: 600;
+  color: #495057;
+}
+
+.btn-group .btn {
+  border-radius: 0.375rem;
+}
+
+.badge {
+  font-size: 0.75rem;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Estilos para las stats-card (igual que en calificaciones) */
+.stats-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.stats-card h3 {
+  color: white;
+  margin-bottom: 10px;
+}
+
+.stats-card .stat-value {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.stats-card .stat-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Estilos para el overlay de loading */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border-radius: 0.375rem;
+}
+
+/* Estilos para los botones de filtro */
+
+
+/* Estilos para mensajes de estado vacío */
+.text-center.py-5 {
+  padding: 3rem 1rem !important;
+}
+
+.text-center.py-5 i {
+  opacity: 0.5;
+}
+
+/* Estilos para la tabla */
+.table-responsive {
+  position: relative;
+  min-height: 200px;
+}
+</style>
+
+<script>
+// Las funciones JavaScript están ahora en plataforma_aprendizaje.html
+// Este archivo solo contiene el HTML del panel de administración
+</script> 

@@ -569,3 +569,139 @@ class Entrega(models.Model):
             return False
         
         return True
+
+class TicketSoporte(models.Model):
+    """
+    Modelo para tickets de soporte al estudiante
+    """
+    ESTADO_CHOICES = [
+        ('abierto', 'Abierto'),
+        ('en_proceso', 'En Proceso'),
+        ('resuelto', 'Resuelto'),
+        ('cerrado', 'Cerrado'),
+    ]
+    
+    PRIORIDAD_CHOICES = [
+        ('baja', 'Baja'),
+        ('media', 'Media'),
+        ('alta', 'Alta'),
+        ('urgente', 'Urgente'),
+    ]
+    
+    # Campos principales
+    titulo = models.CharField(max_length=200, help_text="Título del ticket")
+    descripcion = models.TextField(help_text="Descripción detallada del problema")
+    
+    # Clasificación
+    clasificacion = models.CharField(max_length=100, help_text="Clasificación principal del ticket")
+    subclasificacion = models.CharField(max_length=100, help_text="Subclasificación del ticket")
+    
+    # Estado y prioridad
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='abierto')
+    prioridad = models.CharField(max_length=20, choices=PRIORIDAD_CHOICES, default='media')
+    
+    # Usuario y curso
+    usuario = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='tickets_soporte')
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='tickets_soporte')
+    
+    # Fechas
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    fecha_resolucion = models.DateTimeField(blank=True, null=True)
+    
+    # Asignación
+    asignado_a = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.SET_NULL, 
+        blank=True, 
+        null=True, 
+        related_name='tickets_asignados',
+        help_text="Usuario admin/staff asignado al ticket"
+    )
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Ticket de Soporte'
+        verbose_name_plural = 'Tickets de Soporte'
+    
+    def __str__(self):
+        return f"Ticket #{self.id} - {self.titulo}"
+    
+    def get_ultimo_comentario(self):
+        """Retorna el último comentario del ticket"""
+        return self.comentarios.order_by('-fecha_creacion').first()
+    
+    def get_comentarios_count(self):
+        """Retorna el número de comentarios del ticket"""
+        return self.comentarios.count()
+    
+    def puede_comentar(self, usuario):
+        """Verifica si un usuario puede comentar en el ticket"""
+        return usuario == self.usuario or usuario.is_staff or usuario.is_superuser
+
+
+class ComentarioTicket(models.Model):
+    """
+    Modelo para comentarios en tickets de soporte
+    """
+    ticket = models.ForeignKey(TicketSoporte, on_delete=models.CASCADE, related_name='comentarios')
+    autor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='comentarios_tickets')
+    contenido = models.TextField(help_text="Contenido del comentario")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    
+    # Para comentarios internos del staff
+    es_interno = models.BooleanField(
+        default=False, 
+        help_text="Si es True, solo lo ven usuarios admin/staff"
+    )
+    
+    class Meta:
+        ordering = ['fecha_creacion']
+        verbose_name = 'Comentario de Ticket'
+        verbose_name_plural = 'Comentarios de Tickets'
+    
+    def __str__(self):
+        return f"Comentario de {self.autor.username} en Ticket #{self.ticket.id}"
+    
+    def puede_ver(self, usuario):
+        """Verifica si un usuario puede ver este comentario"""
+        if not self.es_interno:
+            return True
+        return usuario.is_staff or usuario.is_superuser
+
+
+class ClasificacionTicket(models.Model):
+    """
+    Modelo para configurar las clasificaciones de tickets
+    """
+    nombre = models.CharField(max_length=100, unique=True, help_text="Nombre de la clasificación")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la clasificación")
+    activa = models.BooleanField(default=True, help_text="Si la clasificación está activa")
+    
+    class Meta:
+        ordering = ['nombre']
+        verbose_name = 'Clasificación de Ticket'
+        verbose_name_plural = 'Clasificaciones de Tickets'
+    
+    def __str__(self):
+        return self.nombre
+
+
+class SubclasificacionTicket(models.Model):
+    """
+    Modelo para configurar las subclasificaciones de tickets
+    """
+    clasificacion = models.ForeignKey(ClasificacionTicket, on_delete=models.CASCADE, related_name='subclasificaciones')
+    nombre = models.CharField(max_length=100, help_text="Nombre de la subclasificación")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la subclasificación")
+    activa = models.BooleanField(default=True, help_text="Si la subclasificación está activa")
+    
+    class Meta:
+        ordering = ['clasificacion', 'nombre']
+        verbose_name = 'Subclasificación de Ticket'
+        verbose_name_plural = 'Subclasificaciones de Tickets'
+        unique_together = ['clasificacion', 'nombre']
+    
+    def __str__(self):
+        return f"{self.clasificacion.nombre} - {self.nombre}"

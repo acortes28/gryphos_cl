@@ -9,6 +9,7 @@ from .models import Post, Comment
 from .models import BlogPost, Curso
 from .models import Evaluacion, Calificacion, Entrega
 from django.contrib.auth import get_user_model
+from .models import TicketSoporte, ClasificacionTicket, ComentarioTicket
 
 User = get_user_model()
 
@@ -549,3 +550,161 @@ class CalificacionForm(forms.ModelForm):
                 raise ValidationError(f'El estudiante {estudiante.get_full_name()} no tiene entregas para la evaluación "{evaluacion.nombre}". Solo se pueden calificar estudiantes que hayan entregado su trabajo.')
         
         return estudiante
+
+class TicketSoporteForm(forms.ModelForm):
+    """
+    Formulario para crear tickets de soporte
+    """
+    # Definir campos de clasificación como ChoiceField para control total
+    clasificacion = forms.ChoiceField(
+        choices=[],
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'clasificacion-select'
+        }),
+        label='Clasificación',
+        help_text='Selecciona la categoría principal de tu consulta'
+    )
+    
+    subclasificacion = forms.ChoiceField(
+        choices=[],
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'id': 'subclasificacion-select'
+        }),
+        label='Subclasificación',
+        help_text='Selecciona la subcategoría específica'
+    )
+    
+    class Meta:
+        model = TicketSoporte
+        fields = ['titulo', 'clasificacion', 'subclasificacion', 'descripcion']
+        widgets = {
+            'titulo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Título del ticket de soporte'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 6,
+                'placeholder': 'Describe detalladamente tu problema o consulta...'
+            })
+        }
+        labels = {
+            'titulo': 'Título',
+            'descripcion': 'Descripción'
+        }
+        help_texts = {
+            'titulo': 'Título breve que describa tu problema',
+            'descripcion': 'Describe detalladamente tu problema o consulta'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        print("=== DEBUG TICKETSOPORTEFORM __INIT__ ===")
+        
+        # Obtener clasificaciones activas
+        from .models import ClasificacionTicket
+        clasificaciones = ClasificacionTicket.objects.filter(activa=True)
+        print(f"Clasificaciones encontradas en __init__: {clasificaciones.count()}")
+        for c in clasificaciones:
+            print(f"  - {c.nombre} (ID: {c.id})")
+        
+        # Configurar opciones de clasificación
+        self.fields['clasificacion'].choices = [('', 'Selecciona una clasificación')] + [
+            (c.nombre, c.nombre) for c in clasificaciones
+        ]
+        
+        print(f"Opciones finales de clasificación: {len(self.fields['clasificacion'].choices)}")
+        for choice in self.fields['clasificacion'].choices:
+            print(f"  - {choice[1]} (valor: {choice[0]})")
+        
+        # Inicialmente no hay subclasificaciones
+        self.fields['subclasificacion'].choices = [('', 'Primero selecciona una clasificación')]
+        
+        print(f"Opciones finales de subclasificación: {len(self.fields['subclasificacion'].choices)}")
+        for choice in self.fields['subclasificacion'].choices:
+            print(f"  - {choice[1]} (valor: {choice[0]})")
+        
+        print("=== FIN DEBUG TICKETSOPORTEFORM __INIT__ ===")
+    
+    def clean_titulo(self):
+        titulo = self.cleaned_data.get('titulo')
+        if len(titulo) < 10:
+            raise forms.ValidationError('El título debe tener al menos 10 caracteres.')
+        return titulo
+    
+    def clean_descripcion(self):
+        descripcion = self.cleaned_data.get('descripcion')
+        if len(descripcion) < 20:
+            raise forms.ValidationError('La descripción debe tener al menos 20 caracteres.')
+        return descripcion
+
+
+class ComentarioTicketForm(forms.ModelForm):
+    """
+    Formulario para comentarios en tickets
+    """
+    class Meta:
+        model = ComentarioTicket
+        fields = ['contenido', 'es_interno']
+        widgets = {
+            'contenido': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Escribe tu comentario aquí...'
+            }),
+            'es_interno': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+        labels = {
+            'contenido': 'Comentario',
+            'es_interno': 'Comentario interno (solo visible para staff)'
+        }
+        help_texts = {
+            'contenido': 'Escribe tu comentario o respuesta',
+            'es_interno': 'Marcar si este comentario es solo para el equipo de soporte'
+        }
+    
+    def clean_contenido(self):
+        contenido = self.cleaned_data.get('contenido')
+        if len(contenido.strip()) < 5:
+            raise forms.ValidationError('El comentario debe tener al menos 5 caracteres.')
+        return contenido
+
+
+class TicketSoporteAdminForm(forms.ModelForm):
+    """
+    Formulario para administradores para gestionar tickets
+    """
+    class Meta:
+        model = TicketSoporte
+        fields = ['estado', 'prioridad', 'asignado_a']
+        widgets = {
+            'estado': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'prioridad': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'asignado_a': forms.Select(attrs={
+                'class': 'form-control'
+            })
+        }
+        labels = {
+            'estado': 'Estado del Ticket',
+            'prioridad': 'Prioridad',
+            'asignado_a': 'Asignar a'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Filtrar solo usuarios admin/staff para asignación
+        staff_users = User.objects.filter(is_staff=True).order_by('first_name', 'last_name')
+        self.fields['asignado_a'].queryset = staff_users
+        self.fields['asignado_a'].choices = [('', 'Sin asignar')] + [
+            (user.id, user.get_full_name() or user.username) for user in staff_users
+        ]
