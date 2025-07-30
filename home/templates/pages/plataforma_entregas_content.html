@@ -1,6 +1,60 @@
 {% load static %}
 {% load custom_filters %}
 
+<style>
+  /* Estilos para asegurar que los campos del formulario muestren bordes */
+  .form-control {
+    border: 1px solid #d1d3e2 !important;
+    border-radius: 0.35rem !important;
+    padding: 0.375rem 0.75rem !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    color: #6e707e !important;
+    background-color: #fff !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  }
+  
+  .form-control:focus {
+    border-color: #bac8f3 !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25) !important;
+  }
+  
+  .form-control:disabled,
+  .form-control[readonly] {
+    background-color: #eaecf4 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Estilos específicos para el campo de archivo */
+  input[type="file"].form-control {
+    padding: 0.375rem 0.75rem !important;
+    line-height: 1.5 !important;
+  }
+  
+  /* Estilos para textarea */
+  textarea.form-control {
+    min-height: 100px !important;
+    resize: vertical !important;
+  }
+  
+  /* Estilos para el input-group */
+  .input-group {
+    position: relative !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+  
+  .input-group > .form-control {
+    position: relative !important;
+    flex: 1 1 auto !important;
+    width: 1% !important;
+    min-width: 0 !important;
+  }
+</style>
+
 <!-- Tabla de entregas del usuario -->
 {% if entregas.exists %}
   <div class="table-responsive">
@@ -53,7 +107,45 @@
         <!-- Campo archivo -->
         <div class="mb-3">
           <label for="{{ form.archivo.id_for_label }}" class="form-label">{{ form.archivo.label }}</label>
-          {{ form.archivo }}
+          
+          <!-- Información de formatos -->
+          <div class="alert alert-info mb-3">
+            <h6 class="alert-heading">
+              <i class="fas fa-info-circle me-2"></i>
+              Información de Formatos
+            </h6>
+            <ul class="mb-0">
+              <li><strong>Formatos permitidos:</strong> PDF, DOC, DOCX, TXT, ZIP, RAR, JPG, JPEG, PNG, XLSX, XLS, PPT, PPTX, CSV</li>
+              <li><strong>Tamaño máximo:</strong> 50 MB</li>
+              <li><strong>Recomendado:</strong> Archivos PDF para mejor compatibilidad</li>
+            </ul>
+          </div>
+          
+          <!-- Input de archivo oculto -->
+          <input type="file" class="d-none" id="archivo_entrega" name="archivo" accept=".pdf,.doc,.docx,.txt,.zip,.rar,.jpg,.jpeg,.png,.xlsx,.xls,.ppt,.pptx,.csv">
+          
+          <!-- Botones de acción -->
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-primary" id="uploadArchivoBtn">
+              <i class="fas fa-upload me-2"></i>
+              Seleccionar Archivo
+            </button>
+          </div>
+          
+          <!-- Vista previa del archivo seleccionado -->
+          <div id="archivoPreview" class="mb-3" style="display: none;">
+            <div class="alert alert-success">
+              <i class="fas fa-file me-2"></i>
+              <strong id="nombreArchivo"></strong>
+              <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="removeArchivoBtn">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje de estado -->
+          <div id="archivoStatus" class="mt-2"></div>
+          
           {% if form.archivo.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.archivo.errors %}
@@ -69,7 +161,9 @@
         <!-- Campo comentario -->
         <div class="mb-3">
           <label for="{{ form.comentario.id_for_label }}" class="form-label">{{ form.comentario.label }}</label>
-          {{ form.comentario }}
+          <div class="input-group">
+            {{ form.comentario }}
+          </div>
           {% if form.comentario.errors %}
             <div class="text-danger small mt-1">
               {% for error in form.comentario.errors %}
@@ -126,4 +220,94 @@
       </div>
     </div>
   </div>
-</div> 
+</div>
+
+<script>
+// Función para validar archivo
+function validateArchivo(file) {
+    const archivoStatus = document.getElementById('archivoStatus');
+    
+    // Verificar tamaño (50MB)
+    if (file.size > 50 * 1024 * 1024) {
+        archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm">❌ El archivo es demasiado grande. Máximo 50MB.</div>';
+        return false;
+    }
+    
+    // Verificar tipo de archivo
+    const allowedExtensions = ['.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', '.jpg', '.jpeg', '.png', '.xlsx', '.xls', '.ppt', '.pptx', '.csv'];
+    const fileName = file.name.toLowerCase();
+    const isValidType = allowedExtensions.some(ext => fileName.endsWith(ext));
+    
+    if (!isValidType) {
+        archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm">❌ Solo se permiten archivos PDF, DOC, DOCX, TXT, ZIP, RAR, JPG, JPEG, PNG, XLSX, XLS, PPT, PPTX, CSV.</div>';
+        return false;
+    }
+    
+    return true;
+}
+
+// Función para mostrar vista previa del archivo
+function showArchivoPreview(file) {
+    const archivoPreview = document.getElementById('archivoPreview');
+    const nombreArchivo = document.getElementById('nombreArchivo');
+    const archivoStatus = document.getElementById('archivoStatus');
+    
+    // Mostrar nombre del archivo
+    nombreArchivo.textContent = file.name;
+    
+    // Mostrar vista previa
+    archivoPreview.style.display = 'block';
+    
+    // Mostrar mensaje de éxito
+    archivoStatus.innerHTML = '<div class="alert alert-success alert-sm">✓ Archivo seleccionado correctamente</div>';
+}
+
+// Función para eliminar archivo
+function removeArchivo() {
+    const archivoInput = document.getElementById('archivo_entrega');
+    const archivoPreview = document.getElementById('archivoPreview');
+    const archivoStatus = document.getElementById('archivoStatus');
+    
+    // Limpiar input de archivo
+    archivoInput.value = '';
+    
+    // Ocultar vista previa
+    archivoPreview.style.display = 'none';
+    
+    // Limpiar mensaje de estado
+    archivoStatus.innerHTML = '';
+}
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    const archivoInput = document.getElementById('archivo_entrega');
+    const uploadArchivoBtn = document.getElementById('uploadArchivoBtn');
+    const removeArchivoBtn = document.getElementById('removeArchivoBtn');
+    
+    // Configurar botón de seleccionar archivo
+    if (uploadArchivoBtn) {
+        uploadArchivoBtn.addEventListener('click', function() {
+            archivoInput.click();
+        });
+    }
+    
+    // Configurar input de archivo
+    if (archivoInput) {
+        archivoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (validateArchivo(file)) {
+                    showArchivoPreview(file);
+                } else {
+                    this.value = '';
+                }
+            }
+        });
+    }
+    
+    // Configurar botón de eliminar archivo
+    if (removeArchivoBtn) {
+        removeArchivoBtn.addEventListener('click', removeArchivo);
+    }
+});
+</script> 

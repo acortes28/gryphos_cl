@@ -407,11 +407,9 @@ class EntregaForm(forms.ModelForm):
             })
         }
         labels = {
-            'archivo': 'Archivo de Entrega',
             'comentario': 'Comentario (Opcional)'
         }
         help_texts = {
-            'archivo': 'Selecciona el archivo que deseas entregar (PDF, Word, Excel, PowerPoint, texto, comprimidos o imágenes). Tamaño máximo: 50MB',
             'comentario': 'Puedes agregar un comentario explicativo sobre tu entrega'
         }
     

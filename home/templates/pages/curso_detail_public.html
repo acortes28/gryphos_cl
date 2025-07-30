@@ -206,6 +206,11 @@
                 <i class="fas fa-ticket-alt me-2"></i>
                 Inscrito
               </span>
+            {% elif tiene_inscripcion_pendiente %}
+              <span class="btn btn-warning me-3 disabled">
+                <i class="fas fa-clock me-2"></i>
+                Pendiente de Pago
+              </span>
             {% else %}
               <button type="button" class="btn btn-success me-3" 
                       data-bs-toggle="modal" 
@@ -239,7 +244,7 @@
 {% endblock content %}
 
 <!-- Modal de Confirmación para Usuario Logueado -->
-{% if request.user.is_authenticated and not usuario_inscrito %}
+{% if request.user.is_authenticated and not usuario_inscrito and not tiene_inscripcion_pendiente %}
 <div class="modal fade" id="confirmacionModal{{ curso.id }}" tabindex="-1" aria-labelledby="confirmacionModalLabel{{ curso.id }}" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">

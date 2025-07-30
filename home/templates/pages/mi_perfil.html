@@ -4,6 +4,67 @@
 {% block body %} class="about-us bg-gray-200" {% endblock body %}
 {% block content %}
 
+<style>
+  /* Estilos para asegurar que los campos del formulario muestren bordes */
+  .form-control {
+    border: 1px solid #d1d3e2 !important;
+    border-radius: 0.35rem !important;
+    padding: 0.375rem 0.75rem !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    color: #6e707e !important;
+    background-color: #fff !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  }
+  
+  .form-control:focus {
+    border-color: #bac8f3 !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25) !important;
+  }
+  
+  .form-control:disabled,
+  .form-control[readonly] {
+    background-color: #eaecf4 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Estilos específicos para el campo de archivo */
+  input[type="file"].form-control {
+    padding: 0.375rem 0.75rem !important;
+    line-height: 1.5 !important;
+  }
+  
+  /* Estilos para textarea */
+  textarea.form-control {
+    min-height: 100px !important;
+    resize: vertical !important;
+  }
+  
+  /* Estilos para el input-group */
+  .input-group {
+    position: relative !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+  
+  .input-group > .form-control {
+    position: relative !important;
+    flex: 1 1 auto !important;
+    width: 1% !important;
+    min-width: 0 !important;
+  }
+  
+  /* Estilos específicos para campos deshabilitados */
+  .form-control:disabled {
+    background-color: #eaecf4 !important;
+    color: #858796 !important;
+    cursor: not-allowed !important;
+  }
+</style>
+
 </div></div>
 
 <header class="bg-gradient-dark">

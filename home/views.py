@@ -27,6 +27,10 @@ from django.db.models import Avg, Min, Max, Count
 from decimal import Decimal
 from django.db.models import Prefetch
 import os
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from django.http import HttpResponse
+import io
 
 logger = logging.getLogger(__name__)
 
@@ -485,13 +489,17 @@ def inscripcion_curso(request):
                 curso = Curso.objects.get(id=curso_id, activo=True)
                 
                 # Verificar si ya está inscrito en este curso
+                # Verificar si tiene acceso al curso (ya pagó)
+                tiene_acceso = request.user.cursos.filter(id=curso_id).exists()
+                
+                # Verificar si tiene inscripción pendiente
                 inscripcion_existente = InscripcionCurso.objects.filter(
                     usuario_creado=request.user,
                     curso=curso,
                     estado__in=['pendiente', 'confirmada', 'en_proceso']
                 ).first()
                 
-                if inscripcion_existente:
+                if tiene_acceso or inscripcion_existente:
                     messages.warning(request, f'Ya estás inscrito en el curso "{curso.nombre}".')
                     return redirect('cursos_list')
                 
@@ -1227,15 +1235,24 @@ def cursos_list(request):
     
     # Si el usuario está logueado, obtener sus inscripciones
     inscripciones_usuario = []
+    inscripciones_pendientes = []
     if request.user.is_authenticated:
-        inscripciones_usuario = InscripcionCurso.objects.filter(
+        # Obtener cursos donde el usuario está inscrito (ya pagó y tiene acceso)
+        cursos_inscritos = request.user.cursos.all().values_list('id', flat=True)
+        
+        # Obtener inscripciones pendientes
+        inscripciones_pendientes = InscripcionCurso.objects.filter(
             usuario_creado=request.user,
             estado__in=['pendiente', 'confirmada', 'en_proceso']
         ).values_list('curso_id', flat=True)
+        
+        # Solo incluir cursos donde realmente está inscrito (ya pagó)
+        inscripciones_usuario = list(cursos_inscritos)
     
     context = {
         'cursos': cursos_activos,
         'inscripciones_usuario': inscripciones_usuario,
+        'inscripciones_pendientes': inscripciones_pendientes,
     }
     return render(request, 'pages/cursos_list.html', context)
 
@@ -1298,16 +1315,25 @@ def curso_detail_public(request, curso_id):
         
         # Verificar si el usuario está inscrito en este curso
         usuario_inscrito = False
+        tiene_inscripcion_pendiente = False
         if request.user.is_authenticated:
-            usuario_inscrito = InscripcionCurso.objects.filter(
+            # Verificar si el usuario tiene acceso al curso (ya pagó)
+            tiene_acceso = request.user.cursos.filter(id=curso_id).exists()
+            
+            # Verificar si tiene inscripción pendiente
+            tiene_inscripcion_pendiente = InscripcionCurso.objects.filter(
                 usuario_creado=request.user,
                 curso=curso,
                 estado__in=['pendiente', 'confirmada', 'en_proceso']
             ).exists()
+            
+            # Solo considerar como inscrito si realmente tiene acceso al curso
+            usuario_inscrito = tiene_acceso
         
         context = {
             'curso': curso,
             'usuario_inscrito': usuario_inscrito,
+            'tiene_inscripcion_pendiente': tiene_inscripcion_pendiente,
         }
         return render(request, 'pages/curso_detail_public.html', context)
         
@@ -2166,6 +2192,140 @@ def estadisticas_curso(request, curso_id):
         'user': request.user,
     }
     return render(request, 'pages/estadisticas_curso.html', context)
+
+@login_required
+def exportar_calificaciones_excel(request, curso_id):
+    """
+    Vista para exportar todas las calificaciones del curso a un archivo Excel
+    """
+    
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar permisos
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para exportar calificaciones.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    # Obtener todas las calificaciones del curso con información relacionada
+    calificaciones = Calificacion.objects.filter(
+        evaluacion__curso=curso
+    ).select_related(
+        'estudiante', 
+        'evaluacion', 
+        'calificado_por'
+    ).order_by('estudiante__first_name', 'estudiante__last_name', 'evaluacion__fecha_inicio')
+    
+    # Crear un nuevo libro de trabajo
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Calificaciones"
+    
+    # Definir estilos
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Definir encabezados
+    headers = [
+        'ID Estudiante',
+        'Nombre Completo',
+        'Email',
+        'ID Evaluación',
+        'Nombre Evaluación',
+        'Tipo Evaluación',
+        'Fecha Inicio',
+        'Fecha Fin',
+        'Nota Máxima',
+        'Ponderación (%)',
+        'Nota Obtenida',
+        'Porcentaje Obtenido',
+        'Nota Ponderada',
+        'Retroalimentación',
+        'Calificado Por',
+        'Fecha Calificación',
+        'Fecha Modificación'
+    ]
+    
+    # Escribir encabezados
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+    
+    # Escribir datos
+    row = 2
+    for calificacion in calificaciones:
+        # Información del estudiante
+        ws.cell(row=row, column=1, value=calificacion.estudiante.id)
+        ws.cell(row=row, column=2, value=calificacion.estudiante.get_full_name() or calificacion.estudiante.username)
+        ws.cell(row=row, column=3, value=calificacion.estudiante.email)
+        
+        # Información de la evaluación
+        ws.cell(row=row, column=4, value=calificacion.evaluacion.id)
+        ws.cell(row=row, column=5, value=calificacion.evaluacion.nombre)
+        ws.cell(row=row, column=6, value=calificacion.evaluacion.get_tipo_display())
+        ws.cell(row=row, column=7, value=calificacion.evaluacion.fecha_inicio.strftime('%d/%m/%Y') if calificacion.evaluacion.fecha_inicio else '')
+        ws.cell(row=row, column=8, value=calificacion.evaluacion.fecha_fin.strftime('%d/%m/%Y') if calificacion.evaluacion.fecha_fin else '')
+        ws.cell(row=row, column=9, value=float(calificacion.evaluacion.nota_maxima))
+        ws.cell(row=row, column=10, value=float(calificacion.evaluacion.ponderacion))
+        
+        # Información de la calificación
+        ws.cell(row=row, column=11, value=float(calificacion.nota) if calificacion.nota else '')
+        
+        # Calcular porcentaje obtenido
+        if calificacion.nota and calificacion.evaluacion.nota_maxima:
+            porcentaje = (calificacion.nota / calificacion.evaluacion.nota_maxima) * 100
+            ws.cell(row=row, column=12, value=round(porcentaje, 2))
+        else:
+            ws.cell(row=row, column=12, value='')
+        
+        # Calcular nota ponderada
+        if calificacion.nota and calificacion.evaluacion.ponderacion:
+            nota_ponderada = (calificacion.nota / calificacion.evaluacion.nota_maxima) * calificacion.evaluacion.ponderacion
+            ws.cell(row=row, column=13, value=round(nota_ponderada, 2))
+        else:
+            ws.cell(row=row, column=13, value='')
+        
+        # Información adicional
+        ws.cell(row=row, column=14, value=calificacion.retroalimentacion or '')
+        ws.cell(row=row, column=15, value=calificacion.calificado_por.get_full_name() or calificacion.calificado_por.username)
+        ws.cell(row=row, column=16, value=calificacion.fecha_calificacion.strftime('%d/%m/%Y %H:%M'))
+        ws.cell(row=row, column=17, value=calificacion.fecha_modificacion.strftime('%d/%m/%Y %H:%M'))
+        
+        row += 1
+    
+    # Ajustar ancho de columnas
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column_letter].width = adjusted_width
+    
+    # Crear respuesta HTTP con encoding correcto
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    
+    # Crear nombre de archivo seguro
+    nombre_archivo = f"calificaciones_{curso.nombre.replace(' ', '_').replace('/', '_').replace('\\', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
+    
+    # Guardar el archivo en memoria
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    # Escribir el contenido en la respuesta
+    response.write(output.getvalue())
+    
+    return response
 
 @login_required
 def eliminar_evaluacion(request, curso_id, evaluacion_id):
