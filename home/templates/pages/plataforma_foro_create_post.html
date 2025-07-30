@@ -1,0 +1,205 @@
+{% extends 'pages/plataforma_aprendizaje.html' %}
+{% load static %}
+
+{% block title %}Crear Post - Foro - {{ curso.nombre }}{% endblock title %}
+
+{% block content %}
+{{ block.super }}
+
+<style>
+  .forum-form .form-control, .forum-form textarea.form-control, .forum-form select.form-control {
+    border: 1px solid #d2d6da !important;
+    background-color: #fff !important;
+    color: #495057;
+    box-shadow: none;
+  }
+  .forum-form .form-control:focus {
+    border: 1.5px solid #596CFF !important;
+    background-color: #fff !important;
+    box-shadow: 0 0 0 0.1rem rgba(89,108,255,.15);
+  }
+  
+  .form-label {
+    font-weight: 600;
+    color: #344767;
+    margin-bottom: 0.5rem;
+  }
+  
+  .help-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+  }
+</style>
+
+<script>
+// Sobrescribir la función cambiarSeccion para manejar el foro
+function cambiarSeccion(seccion) {
+  if (seccion === 'foro') {
+    // Redirigir a la plataforma principal con sección foro
+    window.location.href = "{% url 'plataforma_aprendizaje' curso.id %}?seccion=foro";
+  } else {
+    // Llamar a la función original para otras secciones
+    cambiarSeccionOriginal(seccion);
+  }
+}
+
+// Función original de cambiarSeccion (guardada como referencia)
+function cambiarSeccionOriginal(seccion) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Ocultar todas las secciones
+  document.querySelectorAll('.section-content').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  // Actualizar navegación
+  document.querySelectorAll('.nav-link').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  // Activar enlace correspondiente
+  document.querySelector(`[data-seccion="${seccion}"]`).classList.add('active');
+  
+  // Actualizar título
+  const config = PLATAFORMA_CONFIG.secciones[seccion];
+  const titleElement = document.getElementById('section-title');
+  titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
+  
+  // Simular carga (en producción esto sería una petición AJAX)
+  setTimeout(() => {
+    // Mostrar sección correspondiente
+    document.getElementById(`seccion-${seccion}`).classList.add('active');
+    
+    // Ocultar loading
+    document.getElementById('loading').classList.remove('show');
+    
+    // Actualizar URL sin recargar
+    const url = new URL(window.location);
+    url.searchParams.set('seccion', seccion);
+    window.history.pushState({}, '', url);
+  }, 300);
+}
+
+// Event listeners para navegación
+document.addEventListener('DOMContentLoaded', function() {
+  // Navegación del sidebar
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const seccion = this.getAttribute('data-seccion');
+      cambiarSeccion(seccion);
+    });
+  });
+  
+  // Marcar el foro como activo
+  document.querySelector('[data-seccion="foro"]').classList.add('active');
+  
+  // Actualizar título
+  const titleElement = document.getElementById('section-title');
+  titleElement.innerHTML = '<i class="fas fa-comments me-2"></i>Foro';
+  
+  // Mostrar contenido del formulario
+  const seccionForo = document.getElementById('seccion-foro');
+  seccionForo.classList.add('active');
+  seccionForo.innerHTML = document.getElementById('create-post-content').innerHTML;
+});
+
+// Manejar navegación del navegador (botones atrás/adelante)
+window.addEventListener('popstate', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const seccionActiva = urlParams.get('seccion') || 'inicio';
+  cambiarSeccion(seccionActiva);
+});
+</script>
+
+<!-- Contenido del formulario que se cargará dinámicamente -->
+<div id="create-post-content" style="display: none;">
+  <div class="row">
+    <div class="col-12">
+
+
+      <!-- Formulario -->
+      <div class="card">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-edit me-2"></i>
+            Crear nuevo post
+          </h4>
+        </div>
+        <div class="card-body">
+          <!-- Información del autor -->
+          <div class="d-flex align-items-center mb-4 p-3 bg-light rounded">
+            <div class="me-3">
+              {% if user.profile_photo %}
+                <img src="{{ user.profile_photo.url }}" alt="Tu foto de perfil" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+              {% else %}
+                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                  <i class="fas fa-user text-white"></i>
+                </div>
+              {% endif %}
+            </div>
+            <div>
+              <h6 class="mb-1">Publicando como:</h6>
+              <p class="mb-0 text-muted">{{ user.get_full_name|default:user.username }}</p>
+            </div>
+          </div>
+
+          <form method="post">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+              <label for="{{ form.title.id_for_label }}" class="form-label">{{ form.title.label }}</label>
+              {{ form.title }}
+              {% if form.title.errors %}
+                <div class="text-danger small">
+                  {% for error in form.title.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.category.id_for_label }}" class="form-label">{{ form.category.label }}</label>
+              {{ form.category }}
+              {% if form.category.errors %}
+                <div class="text-danger small">
+                  {% for error in form.category.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.content.id_for_label }}" class="form-label">{{ form.content.label }}</label>
+              {{ form.content }}
+              <div class="help-text">
+                Puedes usar HTML básico como &lt;strong&gt;negrita&lt;/strong&gt;, &lt;em&gt;cursiva&lt;/em&gt;, &lt;u&gt;subrayado&lt;/u&gt;, &lt;br&gt; para saltos de línea, etc.
+              </div>
+              {% if form.content.errors %}
+                <div class="text-danger small">
+                  {% for error in form.content.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a href="{% url 'plataforma_foro' curso.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-paper-plane me-2"></i>Publicar Post
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %} 

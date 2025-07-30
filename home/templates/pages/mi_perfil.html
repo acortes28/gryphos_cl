@@ -1,0 +1,475 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+{% block title %} Mi Perfil - Gryphos Consulting {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+{% block content %}
+
+<style>
+  /* Estilos para asegurar que los campos del formulario muestren bordes */
+  .form-control {
+    border: 1px solid #d1d3e2 !important;
+    border-radius: 0.35rem !important;
+    padding: 0.375rem 0.75rem !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    color: #6e707e !important;
+    background-color: #fff !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  }
+  
+  .form-control:focus {
+    border-color: #bac8f3 !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25) !important;
+  }
+  
+  .form-control:disabled,
+  .form-control[readonly] {
+    background-color: #eaecf4 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Estilos específicos para el campo de archivo */
+  input[type="file"].form-control {
+    padding: 0.375rem 0.75rem !important;
+    line-height: 1.5 !important;
+  }
+  
+  /* Estilos para textarea */
+  textarea.form-control {
+    min-height: 100px !important;
+    resize: vertical !important;
+  }
+  
+  /* Estilos para el input-group */
+  .input-group {
+    position: relative !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+  
+  .input-group > .form-control {
+    position: relative !important;
+    flex: 1 1 auto !important;
+    width: 1% !important;
+    min-width: 0 !important;
+  }
+  
+  /* Estilos específicos para campos deshabilitados */
+  .form-control:disabled {
+    background-color: #eaecf4 !important;
+    color: #858796 !important;
+    cursor: not-allowed !important;
+  }
+</style>
+
+</div></div>
+
+<header class="bg-gradient-dark">
+  <div class="page-header min-vh-50" style="background-image: url('{% static 'img/bggryphos-small.jpg' %}');">
+     <span class="mask bg-gradient-dark opacity-6"></span>
+     <div class="container">
+       <div class="row justify-content-center">
+         <div class="col-lg-8 text-center mx-auto my-auto">
+           <h1 class="text-white">Mi Perfil</h1>
+           <p class="text-white mb-0">
+             <i class="fas fa-user-circle me-2"></i>
+             Gestiona tu información personal
+           </p>
+         </div>
+       </div>
+     </div>
+   </div>
+ </header>
+
+<div class="card card-body blur shadow-blur mx-4 mt-n6">
+<section>
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        
+        <form method="POST" enctype="multipart/form-data" id="profileForm">
+          {% csrf_token %}
+          
+          <!-- Foto de Perfil -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="fas fa-camera me-2"></i>
+                Foto de Perfil
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row align-items-center">
+                <div class="col-md-4 text-center">
+                  <!-- Vista previa de la foto -->
+                  <div class="position-relative">
+                    <div id="photoPreview" class="mx-auto" style="width: 150px; height: 150px;">
+                      {% if user.profile_photo %}
+                        <img src="{{ user.profile_photo.url }}" alt="Foto de perfil" class="img-fluid rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                      {% else %}
+                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 150px; height: 150px;">
+                          <i class="fas fa-user fa-4x text-muted"></i>
+                        </div>
+                      {% endif %}
+                    </div>
+                    
+                    <!-- Indicador de carga -->
+                    <div id="loadingIndicator" class="position-absolute top-50 start-50 translate-middle" style="display: none;">
+                      <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-8">
+                  <!-- Información de formatos -->
+                  <div class="alert alert-info mb-3">
+                    <h6 class="alert-heading">
+                      <i class="fas fa-info-circle me-2"></i>
+                      Información de Formatos
+                    </h6>
+                    <ul class="mb-0">
+                      <li><strong>Formatos permitidos:</strong> JPG, PNG, GIF</li>
+                      <li><strong>Tamaño máximo:</strong> 5 MB</li>
+                      <li><strong>Resolución recomendada:</strong> 300x300 píxeles o superior</li>
+                    </ul>
+                  </div>
+                  
+                  <!-- Input de archivo oculto -->
+                  <input type="file" class="d-none" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/gif">
+                  <input type="hidden" id="delete_photo" name="delete_photo" value="false">
+                  
+                  <!-- Botones de acción -->
+                  <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-primary" id="uploadBtn">
+                      <i class="fas fa-upload me-2"></i>
+                      Subir Foto
+                    </button>
+                    
+                    {% if user.profile_photo %}
+                    <button type="button" class="btn btn-outline-danger" id="deleteBtn">
+                      <i class="fas fa-trash me-2"></i>
+                      Eliminar Foto
+                    </button>
+                    {% endif %}
+                  </div>
+                  
+                  <!-- Mensaje de estado -->
+                  <div id="photoStatus" class="mt-2"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información Personal -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="fas fa-user me-2"></i>
+                Información Personal
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="first_name" class="form-label">Nombre *</label>
+                  <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="last_name" class="form-label">Apellido *</label>
+                  <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+                </div>
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="email" class="form-label">Correo Personal *</label>
+                  <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="gryphos_email" class="form-label">Correo Gryphos</label>
+                  <input type="email" class="form-control" id="gryphos_email" value="{{ user.username }}@gryphos.cl" disabled>
+                  <div class="form-text">Este campo no se puede modificar</div>
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="company_name" class="form-label">Nombre de la Empresa</label>
+                <input type="text" class="form-control" id="company_name" name="company_name" value="{{ user.company_name|default:'' }}">
+              </div>
+            </div>
+          </div>
+
+          <!-- Cursos Completados -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="fas fa-graduation-cap me-2"></i>
+                Cursos Completados
+              </h5>
+            </div>
+            <div class="card-body">
+              {% if cursos_completados %}
+                <div class="row">
+                  {% for curso in cursos_completados %}
+                  <div class="col-md-6 mb-3">
+                    <div class="d-flex align-items-center p-3 border rounded">
+                      <i class="fas fa-check-circle text-success me-3 fa-2x"></i>
+                      <div>
+                        <h6 class="mb-1">{{ curso.nombre }}</h6>
+                        <small class="text-muted">Completado</small>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="text-center py-4">
+                  <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+                  <p class="text-muted">Aún no has completado ningún curso</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Botones de Acción -->
+          <div class="card">
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-4 mb-2">
+                  <button type="submit" class="btn btn-primary w-100" id="saveBtn" disabled>
+                    <i class="fas fa-save me-2"></i>
+                    Guardar Cambios
+                  </button>
+                </div>
+                <div class="col-md-4 mb-2">
+                  <button type="button" class="btn btn-outline-secondary w-100" id="cancelBtn" disabled onclick="location.reload()">
+                    <i class="fas fa-times me-2"></i>
+                    Cancelar
+                  </button>
+                </div>
+                <div class="col-md-4 mb-2">
+                  <a href="{% url 'password_change' %}" class="btn btn-outline-warning w-100">
+                    <i class="fas fa-key me-2"></i>
+                    Cambiar Contraseña
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </form>
+
+        <!-- Botón para volver al portal -->
+        <div class="text-center mt-4">
+          <a href="{% url 'user_space' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>
+            Volver al Portal
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<!--  Plugin for TypedJS, full documentation here: https://github.com/inorganik/CountUp.js -->
+<script src="{% static 'js/plugins/countup.min.js' %}"></script>
+<script src="{% static 'js/plugins/choices.min.js' %}"></script>
+<script src="{% static 'js/plugins/prism.min.js' %}"></script>
+<script src="{% static 'js/plugins/highlight.min.js' %}"></script>
+<!--  Plugin for Parallax, full documentation here: https://github.com/dixonandmoe/rellax -->
+<script src="{% static 'js/plugins/rellax.min.js' %}"></script>
+<!--  Plugin for TiltJS, full documentation here: https://gijsroge.github.io/tilt.js/ -->
+<script src="{% static 'js/plugins/tilt.min.js' %}"></script>
+<!--  Plugin for Selectpicker - ChoicesJS, full documentation here: https://github.com/jshjohnson/Choices -->
+<script src="{% static 'js/plugins/choices.min.js' %}"></script>
+
+<script>
+// Variables globales
+let originalPhotoState = {% if user.profile_photo %}true{% else %}false{% endif %};
+
+// Función para habilitar/deshabilitar botones según cambios
+function checkForChanges() {
+    const form = document.getElementById('profileForm');
+    const inputs = form.querySelectorAll('input[type="text"], input[type="email"], input[type="file"]');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    
+    let hasChanges = false;
+    
+    // Verificar cambios en campos de texto
+    inputs.forEach(input => {
+        if (input.type === 'file') {
+            if (input.files.length > 0) {
+                hasChanges = true;
+            }
+        } else {
+            const originalValue = input.getAttribute('data-original-value') || input.value;
+            if (input.value !== originalValue) {
+                hasChanges = true;
+            }
+        }
+    });
+    
+    // Verificar cambios en foto de perfil
+    const currentPhotoState = document.querySelector('#photoPreview img') !== null;
+    if (currentPhotoState !== originalPhotoState) {
+        hasChanges = true;
+    }
+    
+    // Habilitar/deshabilitar botones
+    saveBtn.disabled = !hasChanges;
+    cancelBtn.disabled = !hasChanges;
+}
+
+// Función para mostrar vista previa de imagen
+function showImagePreview(file) {
+    const reader = new FileReader();
+    const photoPreview = document.getElementById('photoPreview');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const photoStatus = document.getElementById('photoStatus');
+    
+    // Mostrar indicador de carga
+    loadingIndicator.style.display = 'block';
+    
+    reader.onload = function(e) {
+        // Crear nueva imagen
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.alt = 'Vista previa de foto de perfil';
+        img.className = 'img-fluid rounded-circle';
+        img.style = 'width: 150px; height: 150px; object-fit: cover;';
+        
+        // Limpiar y agregar nueva imagen
+        photoPreview.innerHTML = '';
+        photoPreview.appendChild(img);
+        
+        // Ocultar indicador de carga
+        loadingIndicator.style.display = 'none';
+        
+        // Mostrar mensaje de éxito
+        photoStatus.innerHTML = '<div class="alert alert-success alert-sm">✓ Imagen cargada correctamente</div>';
+        
+        // Actualizar estado de botones
+        updatePhotoButtons();
+        checkForChanges();
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+// Función para eliminar foto
+function deletePhoto() {
+    const photoPreview = document.getElementById('photoPreview');
+    const photoStatus = document.getElementById('photoStatus');
+    const fileInput = document.getElementById('profile_photo');
+    const deletePhotoInput = document.getElementById('delete_photo');
+    
+    // Limpiar input de archivo
+    fileInput.value = '';
+    
+    // Marcar para eliminación
+    deletePhotoInput.value = 'true';
+    
+    // Restaurar placeholder
+    photoPreview.innerHTML = `
+        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mx-auto" style="width: 150px; height: 150px;">
+            <i class="fas fa-user fa-4x text-muted"></i>
+        </div>
+    `;
+    
+    // Mostrar mensaje
+    photoStatus.innerHTML = '<div class="alert alert-warning alert-sm">⚠ Foto eliminada</div>';
+    
+    // Actualizar estado de botones
+    updatePhotoButtons();
+    checkForChanges();
+}
+
+// Función para actualizar botones de foto
+function updatePhotoButtons() {
+    const deleteBtn = document.getElementById('deleteBtn');
+    const hasPhoto = document.querySelector('#photoPreview img') !== null;
+    
+    if (deleteBtn) {
+        deleteBtn.style.display = hasPhoto ? 'inline-block' : 'none';
+    }
+}
+
+// Función para validar archivo
+function validateFile(file) {
+    const photoStatus = document.getElementById('photoStatus');
+    
+    // Verificar tamaño (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        photoStatus.innerHTML = '<div class="alert alert-danger alert-sm">❌ El archivo es demasiado grande. Máximo 5MB.</div>';
+        return false;
+    }
+    
+    // Verificar tipo de archivo
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+        photoStatus.innerHTML = '<div class="alert alert-danger alert-sm">❌ Solo se permiten archivos JPG, PNG o GIF.</div>';
+        return false;
+    }
+    
+    return true;
+}
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    const inputs = document.querySelectorAll('input[type="text"], input[type="email"]');
+    const fileInput = document.getElementById('profile_photo');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
+    
+    // Configurar inputs de texto
+    inputs.forEach(input => {
+        input.setAttribute('data-original-value', input.value);
+        input.addEventListener('input', checkForChanges);
+    });
+    
+    // Configurar botón de subir foto
+    uploadBtn.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    // Configurar input de archivo
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (validateFile(file)) {
+                showImagePreview(file);
+                // Resetear campo de eliminación
+                document.getElementById('delete_photo').value = 'false';
+            } else {
+                this.value = '';
+            }
+        }
+    });
+    
+    // Configurar botón de eliminar foto
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', deletePhoto);
+    }
+    
+    // Verificar cambios iniciales
+    checkForChanges();
+});
+
+// Función para limpiar mensajes de estado
+function clearPhotoStatus() {
+    const photoStatus = document.getElementById('photoStatus');
+    photoStatus.innerHTML = '';
+}
+</script>
+{% endblock javascripts %} 

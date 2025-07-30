@@ -1,122 +1,215 @@
 {% load i18n static theme_material_kit %}
 
+<style>
+/* Efecto hover personalizado para los enlaces de navegación */
+.navbar-nav .nav-item .nav-link {
+    position: relative;
+    padding: 10px 18px;
+    border-radius: 10px;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #344767 !important;
+    font-weight: 500;
+    margin: 0 4px;
+    background: transparent;
+    overflow: hidden;
+}
+
+.navbar-nav .nav-item .nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #4b5766 0%, #5a6474 100%);
+    border-radius: 10px;
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(0.8);
+    z-index: -1;
+}
+
+.navbar-nav .nav-item .nav-link:hover {
+    color: white !important;
+    transform: translateY(-3px);
+    box-shadow: 
+        0 8px 25px rgba(75, 87, 102, 0.3),
+        0 4px 10px rgba(75, 87, 102, 0.2);
+}
+
+.navbar-nav .nav-item .nav-link:hover::before {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Efecto para el ícono */
+.navbar-nav .nav-item .nav-link i {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+}
+
+.navbar-nav .nav-item .nav-link:hover i {
+    transform: scale(1.15) rotate(5deg);
+    color: white;
+}
+
+/* Efecto especial para el enlace de generar registro */
+#generateRegistrationLink:hover {
+    background: linear-gradient(135deg, #4b5766 0%, #5a6474 100%) !important;
+    color: white !important;
+}
+
+/* Efecto de pulso sutil en hover */
+@keyframes subtlePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.navbar-nav .nav-item .nav-link:hover {
+    animation: subtlePulse 2s ease-in-out infinite;
+}
+
+/* Ajuste para el navbar en general */
+.navbar {
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar-nav .nav-item .nav-link {
+        padding: 8px 12px;
+        margin: 2px;
+        font-size: 0.9rem;
+    }
+    
+    .navbar-nav .nav-item .nav-link i {
+        font-size: 0.8rem;
+    }
+}
+</style>
+
 <!-- Navbar -->
 <div class="container position-sticky z-index-sticky top-0">
   <div class="row">
     <div class="col-12">
       <nav class="navbar navbar-expand blur border-radius-xl top-0 mt-4 z-index-fixed shadow position-absolute my-3 py-2 start-0 end-0 mx-4">
         <div class="container-fluid px-0">
-          <a class="navbar-brand font-weight-bolder ms-sm-3" href="/" rel="tooltip" title="Compromiso y crecimiento mutuo" data-placement="bottom">
+          <!-- Logo/Brand -->
+          <a class="navbar-brand font-weight-bolder ms-sm-3" href="{% if request.user.is_authenticated %}{% url 'user_space' %}{% else %}/{% endif %}" rel="tooltip" title="Compromiso y crecimiento mutuo" data-placement="bottom">
             Gryphos Consulting
           </a>
+          
+          <!-- Navigation Links -->
           <ul class="navbar-nav navbar-nav-hover ms-auto">
-            <li class="nav-item dropdown dropdown-hover mx-3">
-              <a class="nav-link ps-2 d-flex cursor-pointer align-items-center" id="dropdownMenuPages"
-                data-bs-toggle="dropdown" aria-expanded="false">
-                  [☰] Menú
-              </a>
-              <div class="dropdown-menu dropdown-menu-animation ms-0 ms-n3 p-none border-radius-xl h-auto w-auto" aria-labelledby="dropdownMenuPages">
-                <h6 class="dropdown-header text-dark font-weight-bolder d-flex align-items-center">
-                  Portal
-                </h6>
-                {% if request.user.is_superuser %}
-                  {% admin_get_menu as app_list %}
-                  {% if app_list %}
-                    {% for app in app_list %}
-                      {% if app.has_perms and not app.pinned %}
-                        <a href="{{ app.url }}" class="dropdown-item border-radius-md">
-                          <span>{{ app.label|slice:10 }}{% if app.label|length > 10 %}..{% endif %}</span>
-                        </a>
-                        {% if app.models %}
-                          {% for model in app.models %}
-                            {% if model.url %}
-                              <a class="dropdown-item ms-0" href="{{ model.url }}">
-                                {{ model.label }}
-                              </a>
-                            {% else %}
-                              <span class="dropdown-item ms-0 disabled">{{ model.label }}</span>
-                            {% endif %}
-                          {% endfor %}
-                        {% endif %}
-                      {% endif %}
-                    {% endfor %}
-                  {% endif %}
-                {% endif %}
-                <!-- Additional items for different user states and general navigation -->
-                <a href="{% url 'que-hacemos' %}" class="dropdown-item border-radius-md">
-                  <span>Qué hacemos</span>
+            
+                        <!-- Admin Links (only for superusers) -->
+            {% if request.user.is_superuser %}
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'admin:index' %}" target="_blank">
+                  <i class="fas fa-cog me-1"></i>
+                  Django Admin
                 </a>
-                <a href="{% url 'quienes-somos' %}" class="dropdown-item border-radius-md">
-                  <span>Quiénes somos</span>
+              </li>
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'admin-inscripciones' %}">
+                  <i class="fas fa-list-check me-1"></i>
+                  Ver Inscripciones
                 </a>
-                <a href="{% url 'inscripcion-curso' %}" class="dropdown-item border-radius-md">
-                  <span>Inscripción de curso de capacitación</span>
-                </a>
-                {% if settings.DEBUG %}
-                <a href="{% url 'test_auth' %}" class="dropdown-item border-radius-md">
-                  <span>Test de Autenticación</span>
-                </a>
-                <a href="{% url 'test_registration' %}" class="dropdown-item border-radius-md">
-                  <span>Test de Registro</span>
-                </a>
-                {% endif %}
-                {% if request.user.is_authenticated %}
-                  <h6 class="dropdown-header text-dark font-weight-bolder d-flex align-items-center">
-                    Usuario
-                  </h6>
-                  {% if request.user.is_staff %}
-                    <a href="{% url 'admin:index' %}" class="dropdown-item border-radius-md">
-                      <span>Portal de Administradores</span>
-                    </a>
-                    <a href="{% url 'admin-inscripciones' %}" class="dropdown-item border-radius-md">
-                      <span>Gestión de Inscripciones</span>
-                    </a>
-                    <a href="{% url 'user_space' %}" class="dropdown-item border-radius-md">
-                      <span>Portal de Miembros</span>
-                    </a>
-                    <a href="#" class="dropdown-item border-radius-md" id="generateRegistrationLink">
-                      <span>Generar enlace de registro</span>
-                    </a>
-                    <a href="{% url 'admin:password_change' %}" class="dropdown-item border-radius-md">
-                      <span>Cambiar contraseña</span>
-                    </a>
-                    <a href="{% url 'admin:logout' %}" class="dropdown-item border-radius-md">
-                      <span>Cerrar sesión</span>
-                    </a>
-                  {% else %}
-                    <a href="{% url 'user_space' %}" class="dropdown-item border-radius-md">
-                      <span>Portal de Miembros</span>
-                    </a>
-                    <a href="{% url 'password_change' %}" class="dropdown-item border-radius-md">
-                      <span>Cambiar contraseña</span>
-                    </a>
-                    <a href="{% url 'logout' %}" class="dropdown-item border-radius-md">
-                      <span>Cerrar sesión</span>
-                    </a>
-                  {% endif %}
-                {% else %}
-                  <a href="{% url 'login' %}" class="dropdown-item border-radius-md">
-                    <span>Iniciar sesión</span>
-                  </a>
-                {% endif %}
-              </div>
-            </li>
-            <!-- Login/Logout Button -->
-            {% if request.user.is_authenticated %}
-            <li class="nav-item ms-2">
-              <a class="nav-link" href="{% url 'logout' %}">
-                <i class="fa fa-sign-out me-1"></i>
-                Logout
-              </a>
-            </li>
-            {% else %}
-            <li class="nav-item ms-2">
-              <a class="nav-link" href="{% url 'login' %}">
-                <i class="fa fa-sign-in me-1"></i>
-                Login
-              </a>
-            </li>
+              </li>
             {% endif %}
+            
+            <!-- Staff Links (for staff and superusers) -->
+            {% if request.user.is_staff %}
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'admin:home_ticketsoporte_changelist' %}">
+                  <i class="fas fa-ticket-alt me-1"></i>
+                  Tickets de Soporte
+                </a>
+              </li>
+            {% endif %}
+            
+            <!-- Public Navigation (only for non-authenticated users) -->
+            {% if not request.user.is_authenticated %}
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'que-hacemos' %}">
+                  <i class="fas fa-tasks me-1"></i>
+                  Qué hacemos
+                </a>
+              </li>
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'quienes-somos' %}">
+                  <i class="fas fa-users me-1"></i>
+                  Quiénes somos
+                </a>
+              </li>
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'cursos_list' %}">
+                  <i class="fas fa-graduation-cap me-1"></i>
+                  Cursos
+                </a>
+              </li>
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'inscripcion-curso' %}">
+                  <i class="fas fa-user-plus me-1"></i>
+                  Inscripción
+                </a>
+              </li>
+            {% endif %}
+            
+            <!-- Debug Links (only in debug mode) -->
+            {% if settings.DEBUG %}
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'test_auth' %}">
+                  <i class="fas fa-bug me-1"></i>
+                  Test Auth
+                </a>
+              </li>
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'test_registration' %}">
+                  <i class="fas fa-bug me-1"></i>
+                  Test Reg
+                </a>
+              </li>
+            {% endif %}
+            
+            <!-- Authenticated User Links -->
+            {% if request.user.is_authenticated %}
+            <li class="nav-item mx-2">
+              <a class="nav-link" href="{% url 'user_space' %}">
+                <i class="fas fa-user-circle me-1"></i>
+                Portal
+              </a>
+            </li>
+            <li class="nav-item mx-2">
+              <a class="nav-link" href="{% url 'cursos_list' %}">
+                <i class="fas fa-graduation-cap me-1"></i>
+                Cursos
+              </a>
+              </li>
+            <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'mi_perfil' %}">
+                  <i class="fas fa-user me-1"></i>
+                  Mi Perfil
+                </a>
+              </li>
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'logout' %}">
+                  <i class="fas fa-sign-out-alt me-1"></i>
+                  Salir
+                </a>
+              </li>
+            {% else %}
+              <!-- Login Link for non-authenticated users -->
+              <li class="nav-item mx-2">
+                <a class="nav-link" href="{% url 'login' %}">
+                  <i class="fas fa-sign-in-alt me-1"></i>
+                  Ingresar
+                </a>
+              </li>
+            {% endif %}
+            
           </ul>
         </div>
       </nav>

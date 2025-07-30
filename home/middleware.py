@@ -52,7 +52,7 @@ class SessionTimeoutMiddleware:
                             'Tu sesión ha expirado por inactividad. '
                             'Por favor, inicia sesión nuevamente.'
                         )
-                        return redirect('login')
+                        return redirect('/')
                 
                 # Actualizar el tiempo de última actividad
                 request.session['last_activity'] = current_time

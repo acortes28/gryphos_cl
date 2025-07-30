@@ -1,0 +1,295 @@
+{% load static %}
+{% load custom_filters %}
+
+<style>
+  .evaluacion-card {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .evaluacion-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .evaluacion-header h5 {
+    color: white !important;
+  }
+  
+  .evaluacion-header:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  }
+  
+  .evaluacion-header.collapsed {
+    border-radius: 8px;
+  }
+  
+  .evaluacion-content {
+    padding: 20px;
+    background: white;
+    border-radius: 0 0 8px 8px;
+    display: none;
+  }
+  
+  .evaluacion-content.show {
+    display: block;
+  }
+  
+  .evaluacion-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .stat-item {
+    text-align: center;
+    min-width: 80px;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #667eea;
+  }
+  
+  .stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+  }
+  
+  .entregas-table {
+    margin-top: 15px;
+  }
+  
+  .entregas-table th {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+  }
+  
+  .estado-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .toggle-icon {
+    transition: transform 0.3s ease;
+  }
+  
+  .evaluacion-header.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+  }
+  
+  .badge-calificado {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    border: none;
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    transition: all 0.3s ease;
+  }
+  
+  .badge-calificado:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+  }
+  
+  .badge-calificado i {
+    font-size: 0.9rem;
+  }
+</style>
+
+<div class="admin-entregas-container">
+  <h4 class="mb-4">
+    <i class="fas fa-list-alt me-2"></i>
+    Todas las Entregas del Curso
+  </h4>
+  
+  {% if evaluaciones_con_entregas %}
+    {% for evaluacion in evaluaciones_con_entregas %}
+      <div class="evaluacion-card">
+        <div class="evaluacion-header" data-evaluacion-id="{{ evaluacion.id }}">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="mb-1">{{ evaluacion.nombre }}</h5>
+              <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-primary">{{ evaluacion.get_tipo_display }}</span>
+                <small>
+                  <i class="fas fa-calendar me-1"></i>
+                  {{ evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ evaluacion.fecha_fin|date:"d/m/Y" }}
+                </small>
+                <small>
+                  <i class="fas fa-star me-1"></i>
+                  {{ evaluacion.nota_maxima }} pts ({{ evaluacion.ponderacion }}%)
+                </small>
+              </div>
+            </div>
+            <div class="d-flex align-items-center">
+              <span class="badge bg-info me-2">{{ evaluacion.stats.total_estudiantes }} estudiantes</span>
+              <i class="fas fa-chevron-down toggle-icon"></i>
+            </div>
+          </div>
+        </div>
+        
+        <div class="evaluacion-content" id="evaluacion-{{ evaluacion.id }}">
+          <div class="evaluacion-stats">
+            <div class="stat-item">
+              <div class="stat-value">{{ evaluacion.stats.total_estudiantes }}</div>
+              <div class="stat-label">Total Estudiantes</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ evaluacion.stats.estudiantes_con_entrega }}</div>
+              <div class="stat-label">Con Entrega</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ evaluacion.stats.estudiantes_sin_entregar }}</div>
+              <div class="stat-label">Sin Entregar</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-value">{{ evaluacion.stats.estudiantes_calificados }}</div>
+              <div class="stat-label">Calificados</div>
+            </div>
+          </div>
+          
+          <div class="table-responsive entregas-table">
+            <table class="table table-bordered table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Estudiante</th>
+                  <th>Archivo</th>
+                  <th>Fecha de Entrega</th>
+                  <th>Comentario</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for info_estudiante in evaluacion.estudiantes_con_info %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% if info_estudiante.estudiante.profile_photo %}
+                        <img src="{{ info_estudiante.estudiante.profile_photo.url }}" alt="Foto" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                      {% else %}
+                        <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                          <i class="fas fa-user text-white" style="font-size: 0.8rem;"></i>
+                        </div>
+                      {% endif %}
+                      <div>
+                        <div class="fw-bold">{{ info_estudiante.estudiante.get_full_name|default:info_estudiante.estudiante.username }}</div>
+                        <small class="text-muted">{{ info_estudiante.estudiante.email }}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    {% if info_estudiante.tiene_entrega and info_estudiante.entrega.archivo %}
+                      <a href="{{ info_estudiante.entrega.archivo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-download me-1"></i>{{ info_estudiante.entrega.get_nombre_archivo }}
+                      </a>
+                      <br><small class="text-muted">{{ info_estudiante.entrega.get_tamano_archivo }}</small>
+                    {% elif info_estudiante.tiene_entrega %}
+                      <span class="text-muted">Sin archivo</span>
+                    {% else %}
+                      <span class="badge bg-secondary">Sin entregar</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if info_estudiante.tiene_entrega %}
+                      <div>{{ info_estudiante.entrega.fecha_entrega|date:"d/m/Y" }}</div>
+                      <small class="text-muted">{{ info_estudiante.entrega.fecha_entrega|date:"H:i" }}</small>
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    {% if info_estudiante.tiene_entrega and info_estudiante.entrega.comentario %}
+                      <span title="{{ info_estudiante.entrega.comentario }}">{{ info_estudiante.entrega.comentario|truncatechars:50 }}</span>
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      {% if info_estudiante.tiene_entrega %}
+                        {% if not info_estudiante.tiene_calificacion %}
+                          <button class="btn btn-outline-primary" title="Evaluar" 
+                                  data-entrega-id="{{ info_estudiante.entrega.id }}" 
+                                  data-evaluacion-id="{{ evaluacion.id }}"
+                                  data-estudiante-id="{{ info_estudiante.estudiante.id }}"
+                                  onclick="evaluarEntrega(this)">
+                            <i class="fas fa-star"></i> Evaluar
+                          </button>
+                          <button class="btn btn-outline-warning" title="Reemplazar" 
+                                  data-entrega-id="{{ info_estudiante.entrega.id }}"
+                                  onclick="abrirModalReemplazar(this)">
+                            <i class="fas fa-upload"></i> Reemplazar
+                          </button>
+                        {% else %}
+                          <div class="d-flex align-items-center">
+                            <span class="badge badge-calificado d-flex align-items-center" style="font-size: 0.8rem; padding: 0.5rem 0.75rem;">
+                              <i class="fas fa-check-circle me-1"></i>
+                              Ya calificado
+                            </span>
+                          </div>
+                        {% endif %}
+                      {% else %}
+                        <span class="text-muted small">
+                          <i class="fas fa-info-circle me-1"></i>
+                          Sin entrega
+                        </span>
+                      {% endif %}
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>
+      No hay evaluaciones creadas en este curso.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Modal para reemplazar archivo -->
+<div class="modal fade" id="modalReemplazar" tabindex="-1" aria-labelledby="modalReemplazarLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalReemplazarLabel">Reemplazar Archivo de Entrega</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="formReemplazar" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-body">
+          <input type="hidden" id="entregaId" name="entrega_id">
+          <div class="mb-3">
+            <label for="nuevoArchivo" class="form-label">Nuevo archivo</label>
+            <input type="file" class="form-control" id="nuevoArchivo" name="archivo" required>
+            <div class="form-text">Selecciona el nuevo archivo que reemplazará al actual.</div>
+          </div>
+          <div class="mb-3">
+            <label for="comentarioReemplazo" class="form-label">Comentario (opcional)</label>
+            <textarea class="form-control" id="comentarioReemplazo" name="comentario" rows="3" placeholder="Agrega un comentario sobre el reemplazo..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning">
+            <i class="fas fa-upload me-1"></i>Reemplazar Archivo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+

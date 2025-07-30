@@ -10,6 +10,18 @@ class CustomUser(AbstractUser):
     company_rut = models.CharField(max_length=12, blank=True, null=True)  # Consider adding specific validation
     company_address = models.CharField(max_length=255, blank=True, null=True)
     admin_name = models.CharField(max_length=100, blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True, help_text="Foto de perfil del usuario")
+    
+    def __str__(self):
+        """Retorna el nombre completo del usuario o el username si no tiene nombre"""
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        elif self.first_name:
+            return self.first_name
+        elif self.last_name:
+            return self.last_name
+        else:
+            return self.username
 
 class Service(models.Model):
     name = models.CharField(max_length=100)
@@ -143,8 +155,16 @@ class Curso(models.Model):
         from datetime import datetime, timedelta
         
         ahora = timezone.localtime(timezone.now())
+        fecha_actual = ahora.date()
         dia_actual = ahora.weekday()
         hora_actual = ahora.time()
+        
+        # Verificar que la fecha actual esté dentro del rango del curso
+        if self.fecha_inicio and fecha_actual < self.fecha_inicio:
+            return []  # El curso aún no ha comenzado
+        
+        if self.fecha_fin and fecha_actual > self.fecha_fin:
+            return []  # El curso ya ha terminado
         
         proximas = []
         for videollamada in self.videollamadas.filter(activa=True):
@@ -256,10 +276,20 @@ class Videollamada(models.Model):
             # Usar la zona horaria configurada en Django
             logger.debug("Obteniendo tiempo actual...")
             ahora = timezone.localtime(timezone.now())
+            fecha_actual = ahora.date()
             hora_actual = ahora.time()
             dia_actual = ahora.weekday()
             
             logger.debug(f"Videollamada {self.id}: activa={self.activa}, dia_semana={self.dia_semana}, dia_actual={dia_actual}, hora_inicio={self.hora_inicio}, hora_fin={self.hora_fin}, hora_actual={hora_actual}")
+            
+            # Verificar que la fecha actual esté dentro del rango del curso
+            if self.curso.fecha_inicio and fecha_actual < self.curso.fecha_inicio:
+                logger.debug(f"Videollamada {self.id}: El curso aún no ha comenzado (fecha_actual={fecha_actual}, fecha_inicio_curso={self.curso.fecha_inicio})")
+                return False
+            
+            if self.curso.fecha_fin and fecha_actual > self.curso.fecha_fin:
+                logger.debug(f"Videollamada {self.id}: El curso ya ha terminado (fecha_actual={fecha_actual}, fecha_fin_curso={self.curso.fecha_fin})")
+                return False
             
             # Verificar cada condición por separado
             condicion_activa = self.activa
@@ -322,7 +352,7 @@ class InscripcionCurso(models.Model):
         return f"{self.nombre_interesado} - {self.curso.nombre} ({self.get_estado_display()})"
     
     def marcar_como_pagado(self):
-        """Marca la inscripción como pagada y crea el usuario"""
+        """Marca la inscripción como pagada y crea el usuario o reutiliza uno existente"""
         from django.utils import timezone
         import secrets
         import string
@@ -331,32 +361,62 @@ class InscripcionCurso(models.Model):
             self.estado = 'pagado'
             self.fecha_pago = timezone.now()
             
-            # Generar contraseña temporal
-            alphabet = string.ascii_letters + string.digits
-            password_temp = ''.join(secrets.choice(alphabet) for i in range(12))
-            
-            # Crear usuario
+            # Generar username basado en el nombre
             username = f"{self.nombre_interesado.lower().replace(' ', '_')}"
-            # Asegurar que el username sea único
-            counter = 1
-            original_username = username
-            while CustomUser.objects.filter(username=username).exists():
-                username = f"{original_username}_{counter}"
-                counter += 1
             
-            user = CustomUser.objects.create_user(
-                username=username,
-                email=self.correo_contacto,
-                password=password_temp,
-                first_name=self.nombre_interesado.split()[0] if self.nombre_interesado.split() else '',
-                last_name=' '.join(self.nombre_interesado.split()[1:]) if len(self.nombre_interesado.split()) > 1 else '',
-                phone_number=self.telefono_contacto,
-                company_name=self.nombre_empresa,
-                is_active=True
-            )
+            # Verificar si ya existe un usuario con el mismo username
+            user_existente = CustomUser.objects.filter(username=username).first()
             
-            # Asignar el curso al usuario
-            user.cursos.add(self.curso)
+            if user_existente:
+                # Usar usuario existente
+                user = user_existente
+                password_temp = None
+                
+                # Verificar si el usuario ya tiene acceso al curso
+                if not user.cursos.filter(id=self.curso.id).exists():
+                    # Agregar el curso al usuario existente
+                    user.cursos.add(self.curso)
+                
+                # Actualizar información del usuario si es necesario
+                if not user.first_name and self.nombre_interesado.split():
+                    user.first_name = self.nombre_interesado.split()[0]
+                if not user.last_name and len(self.nombre_interesado.split()) > 1:
+                    user.last_name = ' '.join(self.nombre_interesado.split()[1:])
+                if not user.phone_number and self.telefono_contacto:
+                    user.phone_number = self.telefono_contacto
+                if not user.company_name and self.nombre_empresa:
+                    user.company_name = self.nombre_empresa
+                if not user.email and self.correo_contacto:
+                    user.email = self.correo_contacto
+                
+                user.save()
+                
+            else:
+                # Crear nuevo usuario
+                # Generar contraseña temporal
+                alphabet = string.ascii_letters + string.digits
+                password_temp = ''.join(secrets.choice(alphabet) for i in range(12))
+                
+                # Asegurar que el username sea único
+                counter = 1
+                original_username = username
+                while CustomUser.objects.filter(username=username).exists():
+                    username = f"{original_username}_{counter}"
+                    counter += 1
+                
+                user = CustomUser.objects.create_user(
+                    username=username,
+                    email=self.correo_contacto,
+                    password=password_temp,
+                    first_name=self.nombre_interesado.split()[0] if self.nombre_interesado.split() else '',
+                    last_name=' '.join(self.nombre_interesado.split()[1:]) if len(self.nombre_interesado.split()) > 1 else '',
+                    phone_number=self.telefono_contacto,
+                    company_name=self.nombre_empresa,
+                    is_active=True
+                )
+                
+                # Asignar el curso al usuario
+                user.cursos.add(self.curso)
             
             self.usuario_creado = user
             self.save()
@@ -364,3 +424,284 @@ class InscripcionCurso(models.Model):
             return user, password_temp
         
         return None, None
+
+class Evaluacion(models.Model):
+    TIPO_CHOICES = [
+        ('tarea', 'Tarea'),
+        ('examen', 'Examen'),
+        ('proyecto', 'Proyecto'),
+        ('participacion', 'Participación'),
+        ('trabajo_practico', 'Trabajo Práctico'),
+        ('presentacion', 'Presentación'),
+        ('otro', 'Otro'),
+    ]
+    
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='evaluaciones')
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, help_text="Tipo de evaluación")
+    nombre = models.CharField(max_length=200, help_text="Nombre de la evaluación")
+    fecha_inicio = models.DateField(help_text="Fecha de inicio de la evaluación", blank=True, null=True)
+    fecha_fin = models.DateField(help_text="Fecha de fin de la evaluación", blank=True, null=True)
+    nota_maxima = models.DecimalField(max_digits=5, decimal_places=2, help_text="Nota máxima posible")
+    ponderacion = models.DecimalField(max_digits=5, decimal_places=2, help_text="Ponderación en porcentaje")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la evaluación")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    activa = models.BooleanField(default=True, help_text="Indica si la evaluación está activa")
+    creado_por = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='evaluaciones_creadas', blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-fecha_inicio', '-fecha_creacion']
+        verbose_name = 'Evaluación'
+        verbose_name_plural = 'Evaluaciones'
+        unique_together = ['curso', 'nombre']
+    
+    def __str__(self):
+        return f"{self.nombre} - {self.curso.nombre}"
+    
+    def get_calificaciones_count(self):
+        """Retorna el número de calificaciones registradas para esta evaluación"""
+        return self.calificaciones.count()
+    
+    def get_promedio(self):
+        """Retorna el promedio de las calificaciones de esta evaluación"""
+        calificaciones = self.calificaciones.filter(nota__isnull=False)
+        if calificaciones.exists():
+            return calificaciones.aggregate(models.Avg('nota'))['nota__avg']
+        return None
+
+class Calificacion(models.Model):
+    evaluacion = models.ForeignKey(Evaluacion, on_delete=models.CASCADE, related_name='calificaciones')
+    estudiante = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='calificaciones')
+    nota = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, help_text="Nota obtenida")
+    retroalimentacion = models.TextField(blank=True, null=True, help_text="Retroalimentación para el estudiante")
+    calificado_por = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='calificaciones_asignadas')
+    fecha_calificacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-fecha_calificacion']
+        verbose_name = 'Calificación'
+        verbose_name_plural = 'Calificaciones'
+        unique_together = ['evaluacion', 'estudiante']
+    
+    def __str__(self):
+        return f"{self.estudiante.get_full_name()} - {self.evaluacion.nombre}: {self.nota}"
+    
+    def get_porcentaje_obtenido(self):
+        """Retorna el porcentaje obtenido respecto a la nota máxima"""
+        if self.nota and self.evaluacion.nota_maxima:
+            return (self.nota / self.evaluacion.nota_maxima) * 100
+        return None
+    
+    def get_nota_ponderada(self):
+        """Retorna la nota ponderada según la ponderación de la evaluación"""
+        if self.nota and self.evaluacion.ponderacion:
+            return (self.nota / self.evaluacion.nota_maxima) * self.evaluacion.ponderacion
+        return None
+
+class Entrega(models.Model):
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('entregado', 'Entregado'),
+        ('tardio', 'Tardío'),
+        ('rechazado', 'Rechazado'),
+        ('aprobado', 'Aprobado'),
+    ]
+    
+    evaluacion = models.ForeignKey(Evaluacion, on_delete=models.CASCADE, related_name='entregas')
+    estudiante = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='entregas')
+    archivo = models.FileField(upload_to='entregas/', help_text="Archivo de la entrega")
+    comentario = models.TextField(blank=True, null=True, help_text="Comentario opcional del estudiante")
+    fecha_entrega = models.DateTimeField(auto_now_add=True, help_text="Fecha y hora de entrega")
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente', help_text="Estado de la entrega")
+    calificacion = models.OneToOneField(Calificacion, on_delete=models.CASCADE, related_name='entrega', blank=True, null=True, help_text="Calificación asociada a esta entrega")
+    revisado_por = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, blank=True, null=True, related_name='entregas_revisadas')
+    fecha_revision = models.DateTimeField(blank=True, null=True, help_text="Fecha de revisión")
+    comentario_revisor = models.TextField(blank=True, null=True, help_text="Comentario del revisor")
+    
+    class Meta:
+        ordering = ['-fecha_entrega']
+        verbose_name = 'Entrega'
+        verbose_name_plural = 'Entregas'
+        unique_together = ['evaluacion', 'estudiante']
+    
+    def __str__(self):
+        return f"{self.estudiante.get_full_name()} - {self.evaluacion.nombre}"
+    
+    def get_nombre_archivo(self):
+        """Retorna el nombre del archivo sin la ruta"""
+        if self.archivo:
+            return self.archivo.name.split('/')[-1]
+        return "Sin archivo"
+    
+    def get_tamano_archivo(self):
+        """Retorna el tamaño del archivo en formato legible"""
+        if self.archivo and hasattr(self.archivo, 'size'):
+            size = self.archivo.size
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return f"{size:.1f} {unit}"
+                size /= 1024.0
+            return f"{size:.1f} TB"
+        return "N/A"
+    
+    def es_tardia(self):
+        """Verifica si la entrega es tardía"""
+        from django.utils import timezone
+        if self.evaluacion.fecha_fin:
+            return self.fecha_entrega.date() > self.evaluacion.fecha_fin
+        return False
+    
+    def puede_entregar(self):
+        """Verifica si el estudiante puede entregar"""
+        from django.utils import timezone
+        ahora = timezone.now()
+        
+        # Verificar que la evaluación esté activa
+        if not self.evaluacion.activa:
+            return False
+        
+        # Verificar fechas
+        if self.evaluacion.fecha_inicio and ahora.date() < self.evaluacion.fecha_inicio:
+            return False
+        
+        if self.evaluacion.fecha_fin and ahora.date() > self.evaluacion.fecha_fin:
+            return False
+        
+        return True
+
+class TicketSoporte(models.Model):
+    """
+    Modelo para tickets de soporte al estudiante
+    """
+    ESTADO_CHOICES = [
+        ('abierto', 'Abierto'),
+        ('en_proceso', 'En Proceso'),
+        ('resuelto', 'Resuelto'),
+        ('cerrado', 'Cerrado'),
+    ]
+    
+    PRIORIDAD_CHOICES = [
+        ('baja', 'Baja'),
+        ('media', 'Media'),
+        ('alta', 'Alta'),
+        ('urgente', 'Urgente'),
+    ]
+    
+    # Campos principales
+    titulo = models.CharField(max_length=200, help_text="Título del ticket")
+    descripcion = models.TextField(help_text="Descripción detallada del problema")
+    
+    # Clasificación
+    clasificacion = models.CharField(max_length=100, help_text="Clasificación principal del ticket")
+    subclasificacion = models.CharField(max_length=100, help_text="Subclasificación del ticket")
+    
+    # Estado y prioridad
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='abierto')
+    prioridad = models.CharField(max_length=20, choices=PRIORIDAD_CHOICES, default='media')
+    
+    # Usuario y curso
+    usuario = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='tickets_soporte')
+    curso = models.ForeignKey(Curso, on_delete=models.CASCADE, related_name='tickets_soporte')
+    
+    # Fechas
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    fecha_resolucion = models.DateTimeField(blank=True, null=True)
+    
+    # Asignación
+    asignado_a = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.SET_NULL, 
+        blank=True, 
+        null=True, 
+        related_name='tickets_asignados',
+        help_text="Usuario admin/staff asignado al ticket"
+    )
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Ticket de Soporte'
+        verbose_name_plural = 'Tickets de Soporte'
+    
+    def __str__(self):
+        return f"Ticket #{self.id} - {self.titulo}"
+    
+    def get_ultimo_comentario(self):
+        """Retorna el último comentario del ticket"""
+        return self.comentarios.order_by('-fecha_creacion').first()
+    
+    def get_comentarios_count(self):
+        """Retorna el número de comentarios del ticket"""
+        return self.comentarios.count()
+    
+    def puede_comentar(self, usuario):
+        """Verifica si un usuario puede comentar en el ticket"""
+        return usuario == self.usuario or usuario.is_staff or usuario.is_superuser
+
+
+class ComentarioTicket(models.Model):
+    """
+    Modelo para comentarios en tickets de soporte
+    """
+    ticket = models.ForeignKey(TicketSoporte, on_delete=models.CASCADE, related_name='comentarios')
+    autor = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='comentarios_tickets')
+    contenido = models.TextField(help_text="Contenido del comentario")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    
+    # Para comentarios internos del staff
+    es_interno = models.BooleanField(
+        default=False, 
+        help_text="Si es True, solo lo ven usuarios admin/staff"
+    )
+    
+    class Meta:
+        ordering = ['fecha_creacion']
+        verbose_name = 'Comentario de Ticket'
+        verbose_name_plural = 'Comentarios de Tickets'
+    
+    def __str__(self):
+        return f"Comentario de {self.autor.username} en Ticket #{self.ticket.id}"
+    
+    def puede_ver(self, usuario):
+        """Verifica si un usuario puede ver este comentario"""
+        if not self.es_interno:
+            return True
+        return usuario.is_staff or usuario.is_superuser
+
+
+class ClasificacionTicket(models.Model):
+    """
+    Modelo para configurar las clasificaciones de tickets
+    """
+    nombre = models.CharField(max_length=100, unique=True, help_text="Nombre de la clasificación")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la clasificación")
+    activa = models.BooleanField(default=True, help_text="Si la clasificación está activa")
+    
+    class Meta:
+        ordering = ['nombre']
+        verbose_name = 'Clasificación de Ticket'
+        verbose_name_plural = 'Clasificaciones de Tickets'
+    
+    def __str__(self):
+        return self.nombre
+
+
+class SubclasificacionTicket(models.Model):
+    """
+    Modelo para configurar las subclasificaciones de tickets
+    """
+    clasificacion = models.ForeignKey(ClasificacionTicket, on_delete=models.CASCADE, related_name='subclasificaciones')
+    nombre = models.CharField(max_length=100, help_text="Nombre de la subclasificación")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la subclasificación")
+    activa = models.BooleanField(default=True, help_text="Si la subclasificación está activa")
+    
+    class Meta:
+        ordering = ['clasificacion', 'nombre']
+        verbose_name = 'Subclasificación de Ticket'
+        verbose_name_plural = 'Subclasificaciones de Tickets'
+        unique_together = ['clasificacion', 'nombre']
+    
+    def __str__(self):
+        return f"{self.clasificacion.nombre} - {self.nombre}"

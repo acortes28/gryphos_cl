@@ -1,0 +1,225 @@
+{% load static %}
+{% load custom_filters %}
+
+<style>
+  /* Estilos para asegurar que los campos del formulario muestren bordes */
+  .form-control {
+    border: 1px solid #d1d3e2 !important;
+    border-radius: 0.35rem !important;
+    padding: 0.375rem 0.75rem !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    color: #6e707e !important;
+    background-color: #fff !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  }
+  
+  .form-control:focus {
+    border-color: #bac8f3 !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25) !important;
+  }
+  
+  .form-control:disabled,
+  .form-control[readonly] {
+    background-color: #eaecf4 !important;
+    opacity: 1 !important;
+  }
+  
+  /* Estilos específicos para el campo de archivo */
+  input[type="file"].form-control {
+    padding: 0.375rem 0.75rem !important;
+    line-height: 1.5 !important;
+  }
+  
+  /* Estilos para textarea */
+  textarea.form-control {
+    min-height: 100px !important;
+    resize: vertical !important;
+  }
+  
+  /* Estilos para el input-group */
+  .input-group {
+    position: relative !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+  
+  .input-group > .form-control {
+    position: relative !important;
+    flex: 1 1 auto !important;
+    width: 1% !important;
+    min-width: 0 !important;
+  }
+</style>
+
+<!-- Tabla de entregas del usuario -->
+{% if entregas.exists %}
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>Evaluación</th>
+          <th>Archivo</th>
+          <th>Fecha de Entrega</th>
+          <th>Estado</th>
+          <th>Comentario</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entrega in entregas %}
+        <tr>
+          <td>{{ entrega.evaluacion.nombre }}</td>
+          <td>
+            {% if entrega.archivo %}
+              <a href="{{ entrega.archivo.url }}" target="_blank">{{ entrega.get_nombre_archivo }}</a>
+            {% else %}
+              <span class="text-muted">Sin archivo</span>
+            {% endif %}
+          </td>
+          <td>{{ entrega.fecha_entrega|date:'d/m/Y H:i' }}</td>
+          <td>{{ entrega.get_estado_display }}</td>
+          <td>{{ entrega.comentario|default:'-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert-info">Aún no has realizado entregas en este curso.</div>
+{% endif %}
+
+<!-- Formulario para subir nueva entrega -->
+{% if form and evaluacion_para_entregar %}
+  <div id="formulario-entrega" class="card mt-4">
+    <div class="card-header bg-gradient-primary text-white">
+      Subir entrega para: <strong>{{ evaluacion_para_entregar.nombre }}</strong>
+      <span class="badge bg-info ms-2">{{ evaluacion_para_entregar.get_tipo_display }}</span>
+      <span class="badge bg-secondary ms-2">{{ evaluacion_para_entregar.fecha_inicio|date:'d/m/Y' }} - {{ evaluacion_para_entregar.fecha_fin|date:'d/m/Y' }}</span>
+    </div>
+    <div class="card-body">
+      <form id="form-subir-entrega" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="evaluacion" value="{{ evaluacion_para_entregar.id }}">
+        
+        <!-- Campo archivo -->
+        <div class="mb-3">
+          <label for="{{ form.archivo.id_for_label }}" class="form-label">{{ form.archivo.label }}</label>
+          
+          <!-- Información de formatos -->
+          <div class="alert alert-info mb-3">
+            <h6 class="alert-heading">
+              <i class="fas fa-info-circle me-2"></i>
+              Información de Formatos
+            </h6>
+            <ul class="mb-0">
+              <li><strong>Formatos permitidos:</strong> PDF, DOC, DOCX, TXT, ZIP, RAR, JPG, JPEG, PNG, XLSX, XLS, PPT, PPTX, CSV</li>
+              <li><strong>Tamaño máximo:</strong> 50 MB</li>
+              <li><strong>Recomendado:</strong> Archivos PDF para mejor compatibilidad</li>
+            </ul>
+          </div>
+          
+          <!-- Input de archivo oculto -->
+          <input type="file" class="d-none" id="archivo_entrega" name="archivo" accept=".pdf,.doc,.docx,.txt,.zip,.rar,.jpg,.jpeg,.png,.xlsx,.xls,.ppt,.pptx,.csv">
+          
+          <!-- Botones de acción -->
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-primary" id="uploadArchivoBtn">
+              <i class="fas fa-upload me-2"></i>
+              Seleccionar Archivo
+            </button>
+          </div>
+          
+          <!-- Vista previa del archivo seleccionado -->
+          <div id="archivoPreview" class="mb-3" style="display: none;">
+            <div class="alert alert-success">
+              <i class="fas fa-file me-2"></i>
+              <strong id="nombreArchivo"></strong>
+              <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="removeArchivoBtn">
+                <i class="fas fa-times"></i>Descartar
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje de estado -->
+          <div id="archivoStatus" class="mt-2"></div>
+          
+          {% if form.archivo.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.archivo.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if form.archivo.help_text %}
+            <div class="form-text">{{ form.archivo.help_text }}</div>
+          {% endif %}
+        </div>
+        
+        <!-- Campo comentario -->
+        <div class="mb-3">
+          <label for="{{ form.comentario.id_for_label }}" class="form-label">{{ form.comentario.label }}</label>
+          <div class="input-group">
+            {{ form.comentario }}
+          </div>
+          {% if form.comentario.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.comentario.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if form.comentario.help_text %}
+            <div class="form-text">{{ form.comentario.help_text }}</div>
+          {% endif %}
+        </div>
+        
+        <!-- Errores generales del formulario -->
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+              {{ error }}
+            {% endfor %}
+          </div>
+        {% endif %}
+        
+        <button type="button" class="btn btn-success" onclick="confirmarEntrega()">
+          <i class="fas fa-upload me-1"></i>Subir Entrega
+        </button>
+      </form>
+      <div id="mensaje-entrega" class="mt-2"></div>
+    </div>
+  </div>
+{% elif not evaluacion_para_entregar %}
+  <div class="alert alert-primary mt-4">No hay evaluaciones activas para entregar en este momento.</div>
+{% endif %}
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="modalConfirmacionEntrega" tabindex="-1" aria-labelledby="modalConfirmacionEntregaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalConfirmacionEntregaLabel">
+          <i class="fas fa-exclamation-triangle text-warning me-2"></i>Confirmar Entrega
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>¿Estás seguro de que deseas subir esta entrega?</strong></p>
+        <p class="text-muted mb-0">Esta acción no se puede deshacer. Una vez enviada, no podrás modificar o eliminar la entrega.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-success" id="btnConfirmarEntrega">
+          <i class="fas fa-check me-1"></i>Sí, Subir Entrega
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- El JavaScript se maneja desde plataforma_aprendizaje.html --> 

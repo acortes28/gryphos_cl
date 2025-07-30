@@ -97,6 +97,27 @@ input[name="telefono_contacto"] {
 
 <div class="card card-body blur shadow-blur mx-4 mt-n6">
 
+<!-- Mostrar curso seleccionado si existe -->
+{% if curso_seleccionado %}
+<section class="my-3 py-3">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="alert alert-info">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-info-circle me-3 fa-2x"></i>
+            <div>
+              <h6 class="mb-1">Curso Seleccionado</h6>
+              <p class="mb-0"><strong>{{ curso_seleccionado.nombre }}</strong></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 <section class="my-1 py-1">
   <div class="container">
     <div class="row justify-content-center text-center">
@@ -243,7 +264,7 @@ input[name="telefono_contacto"] {
               <div class="card-body text-center">
                 <i class="fas fa-graduation-cap text-primary fa-2x mb-3"></i>
                 <h5>Experiencia Práctica</h5>
-                <p class="text-muted">Aprende con casos reales y proyectos prácticos</p>
+                <p class="text-muted">Aprende con casos reales y proyectos prácticos.</p>
               </div>
             </div>
           </div>
@@ -252,7 +273,7 @@ input[name="telefono_contacto"] {
               <div class="card-body text-center">
                 <i class="fas fa-users text-primary fa-2x mb-3"></i>
                 <h5>Instructores Expertos</h5>
-                <p class="text-muted">Profesionales con amplia experiencia en la industria</p>
+                <p class="text-muted">Profesionales con amplia experiencia en la industria.</p>
               </div>
             </div>
           </div>
@@ -261,7 +282,7 @@ input[name="telefono_contacto"] {
               <div class="card-body text-center">
                 <i class="fas fa-certificate text-primary fa-2x mb-3"></i>
                 <h5>Certificación</h5>
-                <p class="text-muted">Recibe tu certificado al completar el curso</p>
+                <p class="text-muted">Recibe tu certificado al completar el curso.</p>
               </div>
             </div>
           </div>

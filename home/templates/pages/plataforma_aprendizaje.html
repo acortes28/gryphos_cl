@@ -1,0 +1,2089 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %} {{ curso.nombre }} - Plataforma de Aprendizaje {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+
+{% block header %}
+<!-- Ocultar la navegación en la plataforma de aprendizaje -->
+{% endblock header %}
+
+{% block content %}
+
+<style>
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 280px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+  }
+  
+  .sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    text-align: center;
+  }
+  
+  .sidebar-nav {
+    padding: 20px 0;
+  }
+  
+  .sidebar-nav .nav-link {
+    color: rgba(255,255,255,0.8);
+    padding: 15px 25px;
+    border: none;
+    background: transparent;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  
+  .sidebar-nav .nav-link:hover,
+  .sidebar-nav .nav-link.active {
+    color: white;
+    background: rgba(255,255,255,0.1);
+    border-left: 4px solid #fff;
+  }
+  
+  .sidebar-nav .nav-link i {
+    margin-right: 12px;
+    width: 20px;
+    text-align: center;
+  }
+  
+  .main-content {
+    margin-left: 280px;
+    min-height: 100vh;
+    background: #f8f9fa;
+  }
+  
+  .content-header {
+    position: fixed;
+    top: 0;
+    left: 280px;
+    right: 0;
+    background: white;
+    padding: 20px 30px;
+    border-bottom: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 999;
+  }
+  
+  .content-body {
+    padding: 30px;
+    margin-top: 120px; /* Compensar el header fijo */
+  }
+  
+  .section-content {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  
+
+  
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+      transform: translateX(0);
+    }
+    
+    .main-content {
+      margin-left: 0;
+    }
+    
+    .mobile-toggle {
+      display: block;
+    }
+  }
+  
+  .mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: #667eea;
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+  }
+  
+  /* Estilos para los botones de acción */
+  .action-buttons .btn {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+  }
+  
+  .action-buttons .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  /* Estilo específico para el botón "Ir a mi Portal" - igual que navegación */
+  .btn-portal-nav {
+    position: relative;
+    padding: 10px 18px !important;
+    border-radius: 10px !important;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    color: #344767 !important;
+    font-weight: 500 !important;
+    margin: 0 4px !important;
+    background: transparent !important;
+    overflow: hidden !important;
+    border: none !important;
+  }
+  
+  .btn-portal-nav::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #4b5766 0%, #5a6474 100%);
+    border-radius: 10px;
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(0.8);
+    z-index: -1;
+  }
+  
+  .btn-portal-nav:hover {
+    color: white !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 
+        0 8px 25px rgba(75, 87, 102, 0.3),
+        0 4px 10px rgba(75, 87, 102, 0.2) !important;
+  }
+  
+  .btn-portal-nav:hover::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  /* Efecto para el ícono del botón portal */
+  .btn-portal-nav i {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+  }
+  
+  .btn-portal-nav:hover i {
+    transform: scale(1.15) rotate(5deg);
+    color: white;
+  }
+  
+  /* Efecto de pulso sutil en hover */
+  @keyframes subtlePulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+  }
+  
+  .btn-portal-nav:hover {
+      animation: subtlePulse 2s ease-in-out infinite;
+  }
+  
+  /* Estilo específico para el botón "Cerrar Sesión" - igual que navegación pero rojo */
+  .btn-logout-nav {
+    position: relative;
+    padding: 10px 18px !important;
+    border-radius: 10px !important;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    color: #dc3545 !important;
+    font-weight: 500 !important;
+    margin: 0 4px !important;
+    background: transparent !important;
+    overflow: hidden !important;
+    border: 2px solid #dc3545 !important;
+  }
+  
+  .btn-logout-nav::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    border-radius: 10px;
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: scale(0.8);
+    z-index: -1;
+  }
+  
+  .btn-logout-nav:hover {
+    color: white !important;
+    transform: translateY(-3px) !important;
+    box-shadow: 
+        0 8px 25px rgba(220, 53, 69, 0.3),
+        0 4px 10px rgba(220, 53, 69, 0.2) !important;
+    border-color: #dc3545 !important;
+  }
+  
+  .btn-logout-nav:hover::before {
+    opacity: 1;
+    transform: scale(1);
+  }
+  
+  /* Efecto para el ícono del botón logout */
+  .btn-logout-nav i {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+  }
+  
+  .btn-logout-nav:hover i {
+    transform: scale(1.15) rotate(5deg);
+    color: white;
+  }
+  
+  /* Efecto de pulso sutil en hover para logout */
+  .btn-logout-nav:hover {
+      animation: subtlePulse 2s ease-in-out infinite;
+  }
+  
+  /* Estilos para la card del usuario */
+  .user-card {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #e9ecef;
+    min-width: 200px;
+  }
+  
+  .user-info {
+    flex: 1;
+    margin-right: 12px;
+  }
+  
+  .user-name {
+    font-weight: 600;
+    color: #344767;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  
+  .user-email {
+    color: #6c757d;
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+  
+  .user-avatar {
+    flex-shrink: 0;
+  }
+  
+  .user-avatar .avatar {
+    margin: 0;
+  }
+  
+  /* Estilos para la imagen de perfil */
+  .user-avatar img.avatar {
+    object-fit: cover;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #e9ecef;
+  }
+  
+  /* Estilos para las secciones de contenido */
+  .section-content {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .section-content.active {
+    display: block;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* Loading indicator */
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .loading.show {
+    display: block;
+  }
+  
+  .spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Estilos para el overlay de loading (admin) */
+  .loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    border-radius: 0.375rem;
+  }
+  
+  /* Estilos para los botones de filtro (admin) */
+  .btn-outline-primary.active {
+    background-color: #5f6d7a;
+    border-color: #5f6d7a;
+    color: white;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  }
+  
+  .btn-outline-primary:hover {
+    background-color: #5f6d7a;
+    border-color: #5f6d7a;
+    color: white;
+    box-shadow: 0 3px 3px 0 rgba(18, 32, 47, 0.15), 0 3px 1px -2px rgba(18, 32, 47, 0.2), 0 1px 5px 0 rgba(18, 32, 47, 0.15);
+  }
+  
+  /* Estilos para mensajes de estado vacío (admin) */
+  .text-center.py-5 {
+    padding: 3rem 1rem !important;
+  }
+  
+  .text-center.py-5 i {
+    opacity: 0.5;
+  }
+  
+  /* Estilos para la tabla (admin) */
+  .table-responsive {
+    position: relative;
+    min-height: 200px;
+  }
+  
+  /* Ajuste para el header en móviles */
+  @media (max-width: 768px) {
+    .content-header {
+      left: 0;
+      margin-top: 60px; /* Compensar el botón de toggle */
+    }
+    
+    .content-body {
+      margin-top: 180px; /* Ajustar para móviles */
+    }
+    
+    .content-header .d-flex {
+      flex-direction: column;
+      align-items: flex-start !important;
+    }
+    
+    .content-header .d-flex > div:last-child {
+      align-self: flex-end;
+      margin-top: 15px;
+      flex-direction: column;
+      align-items: flex-end !important;
+    }
+    
+    .action-buttons {
+      margin-bottom: 15px;
+      margin-right: 0 !important;
+    }
+    
+    .action-buttons .btn {
+      font-size: 0.8rem;
+      padding: 0.25rem 0.5rem;
+    }
+    
+    .btn-portal-nav {
+      padding: 8px 12px !important;
+      margin: 2px !important;
+      font-size: 0.9rem !important;
+    }
+    
+    .btn-portal-nav i {
+      font-size: 0.8rem;
+    }
+    
+    .btn-logout-nav {
+      padding: 8px 12px !important;
+      margin: 2px !important;
+      font-size: 0.9rem !important;
+    }
+    
+    .btn-logout-nav i {
+      font-size: 0.8rem;
+    }
+    
+    .user-card {
+      min-width: 180px;
+      padding: 10px 12px;
+    }
+    
+    .user-name {
+      font-size: 0.85rem;
+    }
+    
+    .user-email {
+      font-size: 0.75rem;
+    }
+  }
+</style>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h5 class="mb-0">
+      <i class="fas fa-graduation-cap me-2"></i>
+      {{ curso.nombre }}
+    </h5>
+    <small class="text-white-50">Plataforma de Aprendizaje</small>
+  </div>
+  
+  <nav class="sidebar-nav">
+    <a href="#" data-seccion="inicio" class="nav-link active">
+      <i class="fas fa-home"></i>
+      Inicio
+    </a>
+    
+    <a href="#" data-seccion="foro" class="nav-link">
+      <i class="fas fa-comments"></i>
+      Foro
+    </a>
+    
+    <a href="#" data-seccion="recursos" class="nav-link">
+      <i class="fas fa-book"></i>
+      Recursos
+    </a>
+    
+    <a href="#" data-seccion="entregas" class="nav-link">
+      <i class="fas fa-upload"></i>
+      Entregas
+    </a>
+    
+    <a href="#" data-seccion="calificaciones" class="nav-link">
+      <i class="fas fa-chart-line"></i>
+      Calificaciones
+    </a>
+    
+    <a href="#" data-seccion="soporte" class="nav-link">
+      <i class="fas fa-headset"></i>
+      Soporte al Estudiante
+    </a>
+  </nav>
+</div>
+
+<!-- Mobile Toggle Button -->
+<button class="mobile-toggle d-md-none" onclick="toggleSidebar()">
+  <i class="fas fa-bars"></i>
+</button>
+
+<!-- Main Content -->
+<div class="main-content">
+  <!-- Content Header -->
+  <div class="content-header">
+
+    
+    <div class="d-flex justify-content-between align-items-start mt-3">
+      <div>
+        <h2 class="mb-1" id="section-title">
+          <i class="fas fa-home me-2"></i>Inicio
+        </h2>
+        <p class="text-muted mb-0">Bienvenido a la plataforma de aprendizaje de {{ curso.nombre }}</p>
+      </div>
+      
+      <div class="d-flex align-items-center">
+        <!-- Botones de acción -->
+        <div class="me-3 action-buttons">
+          <a href="{% url 'user_space' %}" class="btn btn-portal-nav me-2">
+            <i class="fas fa-home me-1"></i>Ir a mi Portal
+          </a>
+          <a href="{% url 'logout' %}" class="btn btn-logout-nav">
+            <i class="fas fa-sign-out-alt me-1"></i>Cerrar Sesión
+          </a>
+        </div>
+        
+        <div class="user-card">
+          <div class="user-info">
+            <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+            <div class="user-email">{{ user.email }}</div>
+          </div>
+          <div class="user-avatar">
+            {% if user.profile_photo %}
+              <img src="{{ user.profile_photo.url }}" alt="Foto de perfil" class="avatar avatar-sm rounded-circle">
+            {% else %}
+              <div class="avatar avatar-sm bg-gradient-primary rounded-circle">
+                <i class="fas fa-user text-white"></i>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Content Body -->
+  <div class="content-body">
+    <!-- Loading indicator -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Cargando contenido...</p>
+    </div>
+    
+    <!-- Secciones de contenido -->
+    <div id="seccion-inicio" class="section-content active">
+      <h4>Bienvenido a tu curso</h4>
+      <p>Esta es la sección de inicio de tu plataforma de aprendizaje.</p>
+      <!-- Contenido de la sección Inicio -->
+    </div>
+    
+    <div id="seccion-foro" class="section-content">
+      <div class="text-center py-5">
+        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+        <h4>Foro de Discusión</h4>
+        <p class="text-muted">Aquí podrás participar en discusiones con tus compañeros y profesores.</p>
+        <button class="btn btn-primary" onclick="cambiarSeccion('foro');">
+          <i class="fas fa-comments me-2"></i>Ir al Foro
+        </button>
+      </div>
+    </div>
+    
+    <!-- Sección para crear post (se mostrará dinámicamente) -->
+    <div id="seccion-crear-post" class="section-content" style="display: none;">
+      <!-- El contenido se cargará dinámicamente -->
+    </div>
+    
+    <div id="seccion-recursos" class="section-content">
+      <h4>Recursos de Aprendizaje</h4>
+      <p>Accede a todos los materiales y recursos de tu curso.</p>
+      <!-- Contenido de la sección Recursos -->
+    </div>
+    
+    <div id="seccion-calificaciones" class="section-content">
+      <h4>Calificaciones y Progreso</h4>
+      <p>Revisa tu progreso y calificaciones en el curso.</p>
+      <!-- Contenido de la sección Calificaciones -->
+    </div>
+    
+    <div id="seccion-soporte" class="section-content">
+      <div class="text-center py-5">
+        <i class="fas fa-headset fa-3x text-muted mb-3"></i>
+        <h4>Soporte al Estudiante</h4>
+        <p class="text-muted">Aquí puedes crear tickets de soporte y ver el estado de tus consultas.</p>
+        <button class="btn btn-primary" onclick="cargarSoporteContenido();">
+          <i class="fas fa-headset me-2"></i>Ir al Soporte
+        </button>
+      </div>
+    </div>
+    <div id="seccion-entregas" class="section-content">
+      <h4>Entregas de Evaluaciones</h4>
+      <p>Aquí puedes ver tus entregas y subir archivos para las evaluaciones activas.</p>
+      <!-- Tabla de entregas del usuario -->
+      <div id="tabla-entregas-placeholder">
+        <div class="alert alert-info">Cargando tus entregas...</div>
+      </div>
+      <!-- Botón para subir nueva entrega (se mostrará si hay evaluaciones abiertas) -->
+      <div id="boton-subir-entrega-placeholder" class="mt-3">
+        <!-- Aquí irá el botón dinámico para subir entrega -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Configuración de la plataforma
+const PLATAFORMA_CONFIG = {
+  cursoId: {% if curso.id %}{{ curso.id }}{% else %}null{% endif %},
+  secciones: {
+    inicio: { titulo: 'Inicio', icono: 'fas fa-home' },
+    foro: { titulo: 'Foro', icono: 'fas fa-comments' },
+    recursos: { titulo: 'Recursos', icono: 'fas fa-book' },
+    calificaciones: { titulo: 'Calificaciones', icono: 'fas fa-chart-line' },
+    soporte: { titulo: 'Soporte al Estudiante', icono: 'fas fa-headset' },
+    entregas: { titulo: 'Entregas', icono: 'fas fa-upload' }
+  }
+};
+
+// Función para cambiar sección
+function cambiarSeccion(seccion) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Ocultar todas las secciones
+  document.querySelectorAll('.section-content').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  // Actualizar navegación
+  document.querySelectorAll('.nav-link').forEach(el => {
+    el.classList.remove('active');
+  });
+  
+  // Activar enlace correspondiente
+  document.querySelector(`[data-seccion="${seccion}"]`).classList.add('active');
+  
+  // Actualizar título
+  const config = PLATAFORMA_CONFIG.secciones[seccion];
+  const titleElement = document.getElementById('section-title');
+  titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
+  
+  // Si es la sección del foro, cargar contenido dinámicamente
+  if (seccion === 'foro') {
+    cargarForoContenido();
+  } else if (seccion === 'calificaciones') {
+    // Redirigir a la página de calificaciones
+    window.location.href = `{% url 'plataforma_calificaciones' curso.id %}`;
+  } else if (seccion === 'soporte') {
+    // Cargar contenido de soporte vía AJAX
+    fetch(`{% url 'plataforma_soporte_ajax' curso.id %}`, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('seccion-soporte').innerHTML = data.html;
+        document.getElementById('seccion-soporte').classList.add('active');
+        document.getElementById('loading').classList.remove('show');
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'soporte');
+        window.history.pushState({}, '', url);
+      });
+  } else if (seccion === 'entregas') {
+    // Limpiar mensajes anteriores
+    const mensajeDiv = document.getElementById('mensaje-entrega');
+    if (mensajeDiv) {
+      mensajeDiv.innerHTML = '';
+    }
+    
+    // Cargar entregas vía AJAX
+    fetch(`{% url 'plataforma_entregas_ajax' curso.id %}`, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('tabla-entregas-placeholder').innerHTML = data.html;
+        document.getElementById('seccion-entregas').classList.add('active');
+        document.getElementById('loading').classList.remove('show');
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'entregas');
+        window.history.pushState({}, '', url);
+        // Inicializar el formulario de subida si existe
+        inicializarFormularioEntrega();
+        // Inicializar las funciones de colapso para evaluaciones
+        inicializarEvaluacionesColapsables();
+        // Inicializar el modal de reemplazo
+        inicializarModalReemplazo();
+      });
+  } else {
+    // Simular carga para otras secciones
+    setTimeout(() => {
+      // Mostrar sección correspondiente
+      document.getElementById(`seccion-${seccion}`).classList.add('active');
+      
+      // Ocultar loading
+      document.getElementById('loading').classList.remove('show');
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('seccion', seccion);
+      // Limpiar parámetros específicos del foro si no estamos en la sección foro
+      if (seccion !== 'foro') {
+        url.searchParams.delete('action');
+        url.searchParams.delete('post_id');
+      }
+      window.history.pushState({}, '', url);
+    }, 300);
+  }
+}
+
+// Función para cargar contenido del foro
+function cargarForoContenido() {
+  const seccionForo = document.getElementById('seccion-foro');
+  
+  // Verificar si hay una acción específica en la URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const action = urlParams.get('action');
+  
+  if (action === 'crear_post') {
+    // Cargar formulario de crear post
+    cargarFormularioCrearPost();
+  } else if (action === 'ver_post') {
+    // Cargar post específico
+    const postId = urlParams.get('post_id');
+    if (postId) {
+      cargarPostDetalle(postId);
+    } else {
+      cargarForoFiltrado('{{ current_category|default:"" }}');
+    }
+  } else {
+    // Cargar contenido del foro vía AJAX
+    fetch(`{% url 'plataforma_foro_ajax' curso.id %}`, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.html) {
+          seccionForo.innerHTML = data.html;
+        } else {
+          seccionForo.innerHTML = `
+            <div class="alert alert-info">
+              <h4>Foro de Discusión</h4>
+              <p>Aquí podrás participar en discusiones con tus compañeros y profesores.</p>
+            </div>
+          `;
+        }
+        
+        // Mostrar sección del foro
+        seccionForo.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'foro');
+        window.history.pushState({}, '', url);
+      })
+      .catch(error => {
+        console.error('Error cargando el foro:', error);
+        seccionForo.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el foro</h4>
+            <p>Hubo un problema al cargar el contenido del foro. Por favor, intenta nuevamente.</p>
+          </div>
+        `;
+        seccionForo.classList.add('active');
+        document.getElementById('loading').classList.remove('show');
+      });
+  }
+}
+
+// Función para cargar el formulario de crear post
+function cargarFormularioCrearPost() {
+  const seccionForo = document.getElementById('seccion-foro');
+  
+  // Cargar formulario vía AJAX
+  fetch(`{% url 'plataforma_foro_ajax' curso.id %}?action=crear_post`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        seccionForo.innerHTML = data.html;
+      } else {
+        seccionForo.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el formulario</h4>
+            <p>Hubo un problema al cargar el formulario de crear post.</p>
+          </div>
+        `;
+      }
+      
+      // Mostrar sección del foro
+      seccionForo.classList.add('active');
+      
+      // Ocultar loading
+      document.getElementById('loading').classList.remove('show');
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('seccion', 'foro');
+      url.searchParams.set('action', 'crear_post');
+      window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+      console.error('Error cargando el formulario:', error);
+      seccionForo.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar el formulario</h4>
+          <p>Hubo un problema al cargar el formulario de crear post.</p>
+        </div>
+      `;
+      seccionForo.classList.add('active');
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para cargar el detalle de un post
+function cargarPostDetalle(postId) {
+  const seccionForo = document.getElementById('seccion-foro');
+  
+  // Cargar post vía AJAX
+  fetch(`{% url 'plataforma_foro_ajax' curso.id %}?action=ver_post&post_id=${postId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        seccionForo.innerHTML = data.html;
+      } else {
+        seccionForo.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el post</h4>
+            <p>Hubo un problema al cargar el contenido del post.</p>
+          </div>
+        `;
+      }
+      
+      // Mostrar sección del foro
+      seccionForo.classList.add('active');
+      
+      // Ocultar loading
+      document.getElementById('loading').classList.remove('show');
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('seccion', 'foro');
+      url.searchParams.set('action', 'ver_post');
+      url.searchParams.set('post_id', postId);
+      window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+      console.error('Error cargando el post:', error);
+      seccionForo.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar el post</h4>
+          <p>Hubo un problema al cargar el contenido del post.</p>
+        </div>
+      `;
+      seccionForo.classList.add('active');
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para cargar el foro con filtros
+function cargarForoFiltrado(category) {
+  const seccionForo = document.getElementById('seccion-foro');
+  
+  // Construir URL con filtro para AJAX
+  let url = `{% url 'plataforma_foro_ajax' curso.id %}`;
+  if (category && category !== '') {
+    url += `?category=${category}`;
+  }
+  
+  // Cargar contenido del foro con filtro
+  fetch(url, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        seccionForo.innerHTML = data.html;
+        
+        // Actualizar botones activos
+        document.querySelectorAll('.btn-outline-primary').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        
+        // Activar el botón correspondiente
+        if (category && category !== '') {
+          const activeBtn = seccionForo.querySelector(`button[onclick*="${category}"]`);
+          if (activeBtn) {
+            activeBtn.classList.add('active');
+          }
+        } else {
+          const allCategoriesBtn = seccionForo.querySelector('button[onclick*="cargarForoFiltrado(\'\')"]');
+          if (allCategoriesBtn) {
+            allCategoriesBtn.classList.add('active');
+          }
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando el foro:', error);
+    });
+}
+
+// Event listeners para navegación
+document.addEventListener('DOMContentLoaded', function() {
+  // Navegación del sidebar
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      const seccion = this.getAttribute('data-seccion');
+      cambiarSeccion(seccion);
+    });
+  });
+  
+  // Event delegation para botones de soporte
+  document.addEventListener('click', function(e) {
+    const action = e.target.closest('[data-action]')?.getAttribute('data-action');
+    
+    if (action === 'crear-ticket') {
+      e.preventDefault();
+      cargarFormularioCrearTicket();
+    } else if (action === 'filtrar-soporte') {
+      e.preventDefault();
+      const estado = e.target.closest('[data-action]').getAttribute('data-estado');
+      cargarSoporteFiltrado(estado);
+    } else if (action === 'ver-ticket') {
+      e.preventDefault();
+      const ticketId = e.target.closest('[data-action]').getAttribute('data-ticket-id');
+      verTicket(ticketId);
+    }
+  });
+  
+  // Inicializar con la sección activa desde la URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const seccionActiva = urlParams.get('seccion') || 'inicio';
+  cambiarSeccion(seccionActiva);
+});
+
+// Función para toggle del sidebar en móvil
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.classList.toggle('show');
+}
+
+// Cerrar sidebar en móvil al hacer clic fuera
+document.addEventListener('click', function(event) {
+  const sidebar = document.querySelector('.sidebar');
+  const mobileToggle = document.querySelector('.mobile-toggle');
+  
+  if (window.innerWidth <= 768) {
+    if (!sidebar.contains(event.target) && !mobileToggle.contains(event.target)) {
+      sidebar.classList.remove('show');
+    }
+  }
+});
+
+// Manejar navegación del navegador (botones atrás/adelante)
+window.addEventListener('popstate', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const seccionActiva = urlParams.get('seccion') || 'inicio';
+  cambiarSeccion(seccionActiva);
+});
+
+// Función para mostrar el modal de confirmación
+function confirmarEntrega() {
+  const form = document.getElementById('form-subir-entrega');
+  if (form) {
+    // Validar que el formulario tenga datos
+    const formData = new FormData(form);
+    const archivo = formData.get('archivo');
+    
+    if (!archivo || archivo.size === 0) {
+      alert('Por favor, selecciona un archivo para entregar.');
+      return;
+    }
+    
+    // Mostrar el modal de confirmación
+    const modal = new bootstrap.Modal(document.getElementById('modalConfirmacionEntrega'));
+    modal.show();
+  }
+}
+
+// Función para manejar la subida de entrega
+function subirEntrega() {
+  const form = document.getElementById('form-subir-entrega');
+  if (form) {
+    // Limpiar mensajes anteriores
+    const mensajeDiv = document.getElementById('mensaje-entrega');
+    mensajeDiv.innerHTML = '';
+    
+    // Mostrar indicador de carga
+    const submitBtn = document.getElementById('btnConfirmarEntrega');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Subiendo...';
+    submitBtn.disabled = true;
+    
+    const formData = new FormData(form);
+    fetch(`{% url 'plataforma_entregas_ajax' curso.id %}`, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: formData
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Cerrar el modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmacionEntrega'));
+      modal.hide();
+      
+      // Actualizar el contenido de la página
+      document.getElementById('tabla-entregas-placeholder').innerHTML = data.html;
+      
+              // Verificar si hay errores en el formulario actualizado
+        const newForm = document.getElementById('form-subir-entrega');
+        if (newForm) {
+          const errorElements = newForm.querySelectorAll('.text-danger, .alert-danger');
+          if (errorElements.length > 0) {
+            // Hay errores, mostrar mensaje de error
+            mensajeDiv.innerHTML = '<div class="alert alert-danger">Por favor, corrige los errores en el formulario.</div>';
+          } else {
+            // No hay errores, mostrar mensaje de éxito y ocultar el formulario
+            mensajeDiv.innerHTML = '<div class="alert alert-success">Entrega subida correctamente.</div>';
+            // Ocultar el contenedor del formulario
+            const contenedorFormulario = document.getElementById('formulario-entrega');
+            if (contenedorFormulario) {
+              contenedorFormulario.style.display = 'none';
+            }
+            // También limpiar el formulario para evitar que se mantenga el estado
+            newForm.reset();
+          }
+        } else {
+          // No hay formulario, probablemente ya no hay evaluaciones activas
+          mensajeDiv.innerHTML = '<div class="alert alert-success">Entrega subida correctamente.</div>';
+        }
+      
+      // Reinicializar el formulario
+      inicializarFormularioEntrega();
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al subir la entrega. Por favor, intenta nuevamente.</div>';
+    })
+    .finally(() => {
+      // Restaurar el botón
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+    });
+  }
+}
+
+// Función para validar archivo
+function validateArchivo(file) {
+  console.log('Validando archivo:', file.name, 'Tamaño:', file.size);
+  
+  const archivoStatus = document.getElementById('archivoStatus');
+  const btnSubirEntrega = document.getElementById('btnSubirEntrega');
+  
+  // Verificar tamaño (50MB)
+  if (file.size > 50 * 1024 * 1024) {
+    console.log('Archivo demasiado grande');
+    archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm">❌ El archivo es demasiado grande. Máximo 50MB.</div>';
+    if (btnSubirEntrega) btnSubirEntrega.disabled = true;
+    return false;
+  }
+  
+  // Verificar tipo de archivo
+  const allowedExtensions = ['.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', '.jpg', '.jpeg', '.png', '.xlsx', '.xls', '.ppt', '.pptx', '.csv'];
+  const fileName = file.name.toLowerCase();
+  const isValidType = allowedExtensions.some(ext => fileName.endsWith(ext));
+  
+  console.log('Tipo de archivo válido:', isValidType, 'Nombre:', fileName);
+  
+  if (!isValidType) {
+    console.log('Tipo de archivo no permitido');
+    archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm">❌ Solo se permiten archivos PDF, DOC, DOCX, TXT, ZIP, RAR, JPG, JPEG, PNG, XLSX, XLS, PPT, PPTX, CSV.</div>';
+    if (btnSubirEntrega) btnSubirEntrega.disabled = true;
+    return false;
+  }
+  
+  console.log('Archivo válido');
+  return true;
+}
+
+// Función para mostrar vista previa del archivo
+function showArchivoPreview(file) {
+  console.log('Mostrando vista previa del archivo:', file.name);
+  
+  const archivoPreview = document.getElementById('archivoPreview');
+  const nombreArchivo = document.getElementById('nombreArchivo');
+  const archivoStatus = document.getElementById('archivoStatus');
+  const btnSubirEntrega = document.getElementById('btnSubirEntrega');
+  
+  console.log('Elementos encontrados:', {
+    archivoPreview: !!archivoPreview,
+    nombreArchivo: !!nombreArchivo,
+    archivoStatus: !!archivoStatus,
+    btnSubirEntrega: !!btnSubirEntrega
+  });
+  
+  // Mostrar nombre del archivo
+  if (nombreArchivo) {
+    nombreArchivo.textContent = file.name;
+  }
+  
+  // Mostrar vista previa
+  if (archivoPreview) {
+    archivoPreview.style.display = 'block';
+  }
+  
+  // Mostrar mensaje de éxito con información del archivo
+  const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+  if (archivoStatus) {
+    archivoStatus.innerHTML = `<div class="alert alert-success alert-sm">
+      <i class="fas fa-check-circle me-2"></i>
+      <strong>Archivo seleccionado correctamente</strong><br>
+      <small>Nombre: ${file.name} | Tamaño: ${fileSizeMB} MB</small>
+    </div>`;
+  }
+  
+  // Habilitar botón de subir entrega
+  if (btnSubirEntrega) {
+    btnSubirEntrega.disabled = false;
+    console.log('Botón de subir entrega habilitado');
+  } else {
+    console.error('No se encontró el botón de subir entrega');
+  }
+  
+  console.log('Vista previa mostrada correctamente');
+}
+
+// Función para eliminar archivo
+function removeArchivo() {
+  const archivoInput = document.getElementById('archivo_entrega');
+  const archivoPreview = document.getElementById('archivoPreview');
+  const archivoStatus = document.getElementById('archivoStatus');
+  const btnSubirEntrega = document.getElementById('btnSubirEntrega');
+  
+  // Limpiar input de archivo
+  archivoInput.value = '';
+  
+  // Ocultar vista previa
+  archivoPreview.style.display = 'none';
+  
+  // Limpiar mensaje de estado
+  archivoStatus.innerHTML = '';
+  
+  // Deshabilitar botón de subir entrega
+  if (btnSubirEntrega) {
+    btnSubirEntrega.disabled = true;
+  }
+}
+
+// Agregar función para manejar el formulario de entrega
+function inicializarFormularioEntrega() {
+  console.log('Inicializando formulario de entrega...');
+  
+  // Configurar el botón de confirmación del modal
+  const btnConfirmar = document.getElementById('btnConfirmarEntrega');
+  if (btnConfirmar) {
+    btnConfirmar.onclick = subirEntrega;
+  }
+  
+  // Configurar el botón de seleccionar archivo
+  const uploadBtn = document.getElementById('uploadArchivoBtn');
+  const archivoInput = document.getElementById('archivo_entrega');
+  
+  if (uploadBtn && archivoInput) {
+    console.log('Configurando botón de seleccionar archivo...');
+    
+    // Configurar event listener para el botón
+    uploadBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('Botón de seleccionar archivo clickeado');
+      archivoInput.click();
+    });
+    
+    // Configurar event listener para el input de archivo
+    archivoInput.addEventListener('change', function(e) {
+      console.log('Archivo seleccionado:', e.target.files[0]);
+      const file = e.target.files[0];
+      if (file) {
+        if (validateArchivo(file)) {
+          showArchivoPreview(file);
+        } else {
+          this.value = '';
+        }
+      }
+    });
+  }
+  
+  // Configurar botón de eliminar archivo
+  const removeArchivoBtn = document.getElementById('removeArchivoBtn');
+  if (removeArchivoBtn) {
+    removeArchivoBtn.addEventListener('click', removeArchivo);
+  }
+  
+  console.log('Formulario de entrega inicializado');
+}
+
+// Función para manejar el colapso de evaluaciones
+function toggleEvaluacion(evaluacionId) {
+  const header = event.target.closest('.evaluacion-header');
+  const content = document.getElementById(`evaluacion-${evaluacionId}`);
+  
+  if (!content) {
+    console.error('No se encontró el contenido para evaluacion:', evaluacionId);
+    return;
+  }
+  
+  // Usar style.display en lugar de clases
+  const isVisible = content.style.display !== 'none' && content.style.display !== '';
+  
+  if (isVisible) {
+    content.style.display = 'none';
+    header.classList.add('collapsed');
+  } else {
+    content.style.display = 'block';
+    header.classList.remove('collapsed');
+  }
+}
+
+// Función para inicializar las evaluaciones colapsables
+function inicializarEvaluacionesColapsables() {
+  console.log('Inicializando evaluaciones colapsables...');
+  
+  // Expandir la primera evaluación por defecto
+  const firstEvaluacion = document.querySelector('.evaluacion-card');
+  if (firstEvaluacion) {
+    const header = firstEvaluacion.querySelector('.evaluacion-header');
+    const content = firstEvaluacion.querySelector('.evaluacion-content');
+    if (content) {
+      content.style.display = 'block';
+      header.classList.remove('collapsed');
+      console.log('Primera evaluación expandida');
+    }
+  }
+  
+  // Agregar event listeners a todos los headers
+  const evaluacionHeaders = document.querySelectorAll('.evaluacion-header');
+  evaluacionHeaders.forEach((header, index) => {
+    const evaluacionId = header.getAttribute('data-evaluacion-id');
+    if (evaluacionId) {
+      // Configurar el estado inicial
+      const content = document.getElementById(`evaluacion-${evaluacionId}`);
+      if (content) {
+        if (index === 0) {
+          content.style.display = 'block';
+          header.classList.remove('collapsed');
+        } else {
+          content.style.display = 'none';
+          header.classList.add('collapsed');
+        }
+      }
+      
+      // Agregar event listener
+      header.addEventListener('click', function() {
+        console.log('Click en evaluación:', evaluacionId);
+        toggleEvaluacion(evaluacionId);
+      });
+    }
+  });
+  
+  console.log('Evaluaciones inicializadas:', evaluacionHeaders.length);
+}
+
+// Funciones para los botones de acción de entregas
+function evaluarEntrega(button) {
+  const entregaId = button.getAttribute('data-entrega-id');
+  const evaluacionId = button.getAttribute('data-evaluacion-id');
+  const estudianteId = button.getAttribute('data-estudiante-id');
+  // Obtener el curso_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const cursoId = urlParams.get('curso_id') || window.location.pathname.split('/')[2];
+  
+  console.log('Evaluando entrega:', { entregaId, evaluacionId, estudianteId, cursoId });
+  
+  // Redirigir a la página de calificar estudiante con el estudiante precargado
+  window.location.href = `/curso/${cursoId}/calificaciones/calificar/${evaluacionId}/?estudiante=${estudianteId}`;
+}
+
+function abrirModalReemplazar(button) {
+  const entregaId = button.getAttribute('data-entrega-id');
+  console.log('Abriendo modal para entrega:', entregaId);
+  
+  document.getElementById('entregaId').value = entregaId;
+  
+  // Verificar que Bootstrap esté disponible
+  if (typeof bootstrap !== 'undefined') {
+    const modal = new bootstrap.Modal(document.getElementById('modalReemplazar'));
+    modal.show();
+  } else {
+    console.error('Bootstrap no está disponible');
+    alert('Error: Bootstrap no está disponible');
+  }
+}
+
+// Función para inicializar el modal de reemplazo
+function inicializarModalReemplazo() {
+  const form = document.getElementById('formReemplazar');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      
+      // Obtener el token CSRF del formulario
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      
+      fetch('/reemplazar-archivo-entrega/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRFToken': csrfToken
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          // Cerrar modal y recargar la página
+          if (typeof bootstrap !== 'undefined') {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalReemplazar'));
+            if (modal) {
+              modal.hide();
+            }
+          }
+          location.reload();
+        } else {
+          alert('Error: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error al reemplazar el archivo: ' + error.message);
+      });
+    });
+  }
+}
+
+// Función para cargar contenido de soporte
+function cargarSoporteContenido() {
+  cambiarSeccion('soporte');
+}
+
+// ============================================================================
+// FUNCIONES PARA EL SISTEMA DE SOPORTE
+// ============================================================================
+
+// Función para cargar el formulario de crear ticket
+function cargarFormularioCrearTicket() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_soporte_ajax' curso.id %}?action=crear_ticket`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        document.getElementById('seccion-soporte').innerHTML = data.html;
+        document.getElementById('seccion-soporte').classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'soporte');
+        url.searchParams.set('action', 'crear_ticket');
+        window.history.pushState({}, '', url);
+        
+        // Inicializar el formulario después de un pequeño delay para asegurar que el DOM esté listo
+        setTimeout(() => {
+          console.log('Llamando a inicializarFormularioTicket desde cargarFormularioCrearTicket');
+          inicializarFormularioTicket();
+        }, 100);
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando el formulario:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para ver un ticket específico
+function verTicket(ticketId) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_soporte_ajax' curso.id %}?action=ver_ticket&ticket_id=${ticketId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        document.getElementById('seccion-soporte').innerHTML = data.html;
+        document.getElementById('seccion-soporte').classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'soporte');
+        url.searchParams.set('action', 'ver_ticket');
+        url.searchParams.set('ticket_id', ticketId);
+        window.history.pushState({}, '', url);
+        
+        // Inicializar formularios del ticket
+        inicializarFormulariosTicket();
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando el ticket:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para cargar soporte filtrado
+function cargarSoporteFiltrado(estado) {
+  // Actualizar botones activos
+  document.querySelectorAll('.btn-outline-primary').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Activar el botón correspondiente
+  const activeBtn = event.target;
+  activeBtn.classList.add('active');
+  
+  // Cargar contenido filtrado
+  let url = `{% url 'plataforma_soporte_ajax' curso.id %}`;
+  if (estado) {
+    url += `?estado=${estado}`;
+  }
+  
+  fetch(url, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        document.getElementById('seccion-soporte').innerHTML = data.html;
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando el soporte:', error);
+    });
+}
+
+// Función para volver a la lista de soporte
+function volverASoporte() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_soporte_ajax' curso.id %}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        document.getElementById('seccion-soporte').innerHTML = data.html;
+        document.getElementById('seccion-soporte').classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'soporte');
+        url.searchParams.delete('action');
+        url.searchParams.delete('ticket_id');
+        window.history.pushState({}, '', url);
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando el soporte:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para cargar subclasificaciones
+function cargarSubclasificaciones(clasificacion) {
+  const subclasificacionSelect = document.getElementById('subclasificacion-select');
+  
+  if (!subclasificacionSelect) {
+    console.error('No se encontró el elemento subclasificacion-select');
+    return;
+  }
+  
+  fetch(`{% url 'obtener_subclasificaciones' %}?clasificacion=${encodeURIComponent(clasificacion)}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      subclasificacionSelect.innerHTML = '';
+      data.choices.forEach(choice => {
+        const option = document.createElement('option');
+        option.value = choice[0];
+        option.textContent = choice[1];
+        subclasificacionSelect.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('Error cargando subclasificaciones:', error);
+    });
+}
+
+// Función para enviar ticket
+function enviarTicket() {
+  const form = document.getElementById('form-crear-ticket');
+  const mensajeDiv = document.getElementById('mensaje-ticket');
+  const submitBtn = document.getElementById('btn-crear-ticket');
+  
+  // Limpiar mensajes anteriores
+  mensajeDiv.innerHTML = '';
+  
+  // Mostrar indicador de carga
+  const originalText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enviando...';
+  submitBtn.disabled = true;
+  
+  const formData = new FormData(form);
+  
+  fetch(`{% url 'crear_ticket_soporte' curso.id %}`, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: formData
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        mensajeDiv.innerHTML = '<div class="alert alert-success">Ticket creado exitosamente. Recibirás una respuesta pronto.</div>';
+        
+        // Redirigir a la lista de tickets después de 2 segundos
+        setTimeout(() => {
+          volverASoporte();
+        }, 2000);
+      } else {
+        // Mostrar errores
+        let errorHtml = '<div class="alert alert-danger"><ul class="mb-0">';
+        for (const field in data.errors) {
+          data.errors[field].forEach(error => {
+            errorHtml += `<li>${error}</li>`;
+          });
+        }
+        errorHtml += '</ul></div>';
+        mensajeDiv.innerHTML = errorHtml;
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al crear el ticket. Por favor, intenta nuevamente.</div>';
+    })
+    .finally(() => {
+      // Restaurar el botón
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+    });
+}
+
+// Función para agregar comentario
+function agregarComentario() {
+  const form = document.getElementById('form-comentario');
+  const mensajeDiv = document.getElementById('mensaje-comentario');
+  const submitBtn = document.getElementById('btn-agregar-comentario');
+  
+  // Limpiar mensajes anteriores
+  mensajeDiv.innerHTML = '';
+  
+  // Mostrar indicador de carga
+  const originalText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enviando...';
+  submitBtn.disabled = true;
+  
+  const formData = new FormData(form);
+  
+  // Obtener el ticket_id del contexto actual
+  const ticketId = document.querySelector('[data-ticket-id]')?.getAttribute('data-ticket-id');
+  
+  fetch(`{% url 'agregar_comentario_ticket' 0 %}`.replace('0', ticketId), {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: formData
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        mensajeDiv.innerHTML = '<div class="alert alert-success">Comentario agregado exitosamente.</div>';
+        
+        // Recargar la página para mostrar el nuevo comentario
+        setTimeout(() => {
+          location.reload();
+        }, 1000);
+      } else {
+        // Mostrar errores
+        let errorHtml = '<div class="alert alert-danger"><ul class="mb-0">';
+        for (const field in data.errors) {
+          data.errors[field].forEach(error => {
+            errorHtml += `<li>${error}</li>`;
+          });
+        }
+        errorHtml += '</ul></div>';
+        mensajeDiv.innerHTML = errorHtml;
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al agregar el comentario. Por favor, intenta nuevamente.</div>';
+    })
+    .finally(() => {
+      // Restaurar el botón
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+    });
+}
+
+// Función para actualizar ticket (admin)
+function actualizarTicketAdmin() {
+  const form = document.getElementById('form-admin-ticket');
+  const mensajeDiv = document.getElementById('mensaje-admin');
+  const submitBtn = document.getElementById('btn-actualizar-admin');
+  
+  // Limpiar mensajes anteriores
+  mensajeDiv.innerHTML = '';
+  
+  // Mostrar indicador de carga
+  const originalText = submitBtn.innerHTML;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Actualizando...';
+  submitBtn.disabled = true;
+  
+  const formData = new FormData(form);
+  
+  // Obtener el ticket_id del contexto actual
+  const ticketId = document.querySelector('[data-ticket-id]')?.getAttribute('data-ticket-id');
+  
+  fetch(`{% url 'actualizar_ticket_admin' 0 %}`.replace('0', ticketId), {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: formData
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        mensajeDiv.innerHTML = '<div class="alert alert-success">Ticket actualizado exitosamente.</div>';
+        
+        // Recargar la página para mostrar los cambios
+        setTimeout(() => {
+          location.reload();
+        }, 1000);
+      } else {
+        // Mostrar errores
+        let errorHtml = '<div class="alert alert-danger"><ul class="mb-0">';
+        for (const field in data.errors) {
+          data.errors[field].forEach(error => {
+            errorHtml += `<li>${error}</li>`;
+          });
+        }
+        errorHtml += '</ul></div>';
+        mensajeDiv.innerHTML = errorHtml;
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al actualizar el ticket. Por favor, intenta nuevamente.</div>';
+    })
+    .finally(() => {
+      // Restaurar el botón
+      submitBtn.innerHTML = originalText;
+      submitBtn.disabled = false;
+    });
+}
+
+// Función para inicializar el formulario de crear ticket
+function inicializarFormularioTicket() {
+  // Esperar un poco más para asegurar que el DOM esté completamente cargado
+  setTimeout(() => {
+    const form = document.getElementById('form-crear-ticket');
+    const clasificacionSelect = document.getElementById('clasificacion-select');
+    const subclasificacionSelect = document.getElementById('subclasificacion-select');
+    
+    if (clasificacionSelect) {
+      
+      // Remover event listeners existentes usando removeEventListener
+      // Primero, vamos a agregar el event listener directamente sin clonar
+      // Agregar event listener directamente
+      clasificacionSelect.addEventListener('change', function(event) {
+        const clasificacion = this.value;
+        
+        if (clasificacion) {
+          cargarSubclasificaciones(clasificacion);
+        } else {
+          // Resetear subclasificaciones
+          if (subclasificacionSelect) {
+            subclasificacionSelect.innerHTML = '<option value="">Primero selecciona una clasificación</option>';
+          }
+        }
+      });
+    }
+    
+    // Event listener para el formulario
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        enviarTicket();
+      });
+    }
+    
+
+  }, 200); // Aumentar el delay a 200ms
+}
+
+// Función para inicializar formularios de ticket
+function inicializarFormulariosTicket() {
+  const formComentario = document.getElementById('form-comentario');
+  const formAdmin = document.getElementById('form-admin-ticket');
+  
+  // Event listener para el formulario de comentarios
+  if (formComentario) {
+    formComentario.addEventListener('submit', function(e) {
+      e.preventDefault();
+      agregarComentario();
+    });
+  }
+  
+  // Event listener para el formulario de administración
+  if (formAdmin) {
+    formAdmin.addEventListener('submit', function(e) {
+      e.preventDefault();
+      actualizarTicketAdmin();
+    });
+  }
+}
+
+// ============================================================================
+// FUNCIONES PARA EL PANEL DE ADMINISTRACIÓN DE SOPORTE
+// ============================================================================
+
+// Función para cargar soporte filtrado (admin)
+function cargarSoporteFiltrado(estado) {
+  // Mostrar loading
+  mostrarLoadingAdmin();
+  
+  // Actualizar botones activos
+  document.querySelectorAll('.btn-outline-primary').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Activar el botón correspondiente
+  const activeBtn = event.target;
+  activeBtn.classList.add('active');
+  
+  // Simular carga de datos filtrados
+  setTimeout(() => {
+    const tablaContainer = document.querySelector('.table-responsive');
+    if (!tablaContainer) {
+      ocultarLoadingAdmin();
+      return;
+    }
+    
+    const tabla = tablaContainer.querySelector('tbody');
+    
+    if (estado === '') {
+      // Mostrar todos los tickets
+      mostrarTodosLosTicketsAdmin();
+    } else {
+      // Filtrar por estado
+      filtrarTicketsPorEstadoAdmin(estado);
+    }
+    
+    ocultarLoadingAdmin();
+  }, 500);
+}
+
+// Función para mostrar todos los tickets (admin)
+function mostrarTodosLosTicketsAdmin() {
+  const filas = document.querySelectorAll('tbody tr');
+  filas.forEach(fila => {
+    fila.style.display = '';
+  });
+  
+  // Actualizar mensaje si no hay tickets
+  const tablaContainer = document.querySelector('.table-responsive');
+  const mensajeVacio = tablaContainer.querySelector('.text-center');
+  if (mensajeVacio) {
+    mensajeVacio.style.display = 'none';
+  }
+}
+
+// Función para filtrar tickets por estado (admin)
+function filtrarTicketsPorEstadoAdmin(estado) {
+  const filas = document.querySelectorAll('tbody tr');
+  let ticketsEncontrados = 0;
+  
+  filas.forEach(fila => {
+    const badgeEstado = fila.querySelector('.badge');
+    if (badgeEstado) {
+      const textoEstado = badgeEstado.textContent.toLowerCase();
+      const estadoFiltro = estado.toLowerCase();
+      
+      if (textoEstado.includes(estadoFiltro)) {
+        fila.style.display = '';
+        ticketsEncontrados++;
+      } else {
+        fila.style.display = 'none';
+      }
+    }
+  });
+  
+  // Mostrar mensaje si no hay tickets en ese estado
+  if (ticketsEncontrados === 0) {
+    mostrarMensajeSinTicketsAdmin(estado);
+  } else {
+    ocultarMensajeSinTicketsAdmin();
+  }
+}
+
+// Función para mostrar mensaje cuando no hay tickets (admin)
+function mostrarMensajeSinTicketsAdmin(estado) {
+  const tablaContainer = document.querySelector('.table-responsive');
+  const tbody = tablaContainer.querySelector('tbody');
+  
+  // Ocultar todas las filas
+  const filas = tbody.querySelectorAll('tr');
+  filas.forEach(fila => {
+    fila.style.display = 'none';
+  });
+  
+  // Crear mensaje personalizado según el estado
+  let mensaje = '';
+  let icono = '';
+  
+  switch(estado) {
+    case 'abierto':
+      mensaje = 'No hay tickets abiertos en este momento.';
+      icono = 'fas fa-clock';
+      break;
+    case 'en_proceso':
+      mensaje = 'No hay tickets en proceso actualmente.';
+      icono = 'fas fa-cogs';
+      break;
+    case 'resuelto':
+      mensaje = 'No hay tickets resueltos aún.';
+      icono = 'fas fa-check-circle';
+      break;
+    case 'cerrado':
+      mensaje = 'No hay tickets cerrados.';
+      icono = 'fas fa-times-circle';
+      break;
+    default:
+      mensaje = `No hay tickets con estado "${estado}".`;
+      icono = 'fas fa-inbox';
+  }
+  
+  // Crear elemento de mensaje
+  const mensajeElement = document.createElement('tr');
+  mensajeElement.innerHTML = `
+    <td colspan="8">
+      <div class="text-center py-5">
+        <i class="${icono} fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No hay tickets ${estado !== '' ? `en estado "${estado}"` : ''}</h5>
+        <p class="text-muted">${mensaje}</p>
+        <button class="btn btn-outline-primary" onclick="cargarSoporteFiltrado('')">
+          <i class="fas fa-eye me-2"></i>Ver todos los tickets
+        </button>
+      </div>
+    </td>
+  `;
+  
+  tbody.appendChild(mensajeElement);
+}
+
+// Función para ocultar mensaje de sin tickets (admin)
+function ocultarMensajeSinTicketsAdmin() {
+  const tbody = document.querySelector('tbody');
+  const mensajeFila = tbody.querySelector('tr td[colspan="8"]');
+  if (mensajeFila) {
+    mensajeFila.parentElement.remove();
+  }
+}
+
+// Función para mostrar loading (admin)
+function mostrarLoadingAdmin() {
+  const tablaContainer = document.querySelector('.table-responsive');
+  if (!tablaContainer) return;
+  
+  const overlay = document.createElement('div');
+  overlay.className = 'loading-overlay';
+  overlay.innerHTML = `
+    <div class="text-center">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <p class="mt-2 text-muted">Filtrando tickets...</p>
+    </div>
+  `;
+  tablaContainer.appendChild(overlay);
+}
+
+// Función para ocultar loading (admin)
+function ocultarLoadingAdmin() {
+  const overlay = document.querySelector('.loading-overlay');
+  if (overlay) {
+    overlay.remove();
+  }
+}
+
+// Función para cambiar el orden de los tickets (admin)
+function cambiarOrdenTickets() {
+  const orden = document.getElementById('orden-tickets');
+  if (!orden) return;
+  
+  const ordenValue = orden.value;
+  console.log('Cambiando orden a:', ordenValue);
+  
+  // Implementar lógica de ordenamiento básica
+  const tbody = document.querySelector('tbody');
+  if (!tbody) return;
+  
+  const filas = Array.from(tbody.querySelectorAll('tr'));
+  
+  filas.sort((a, b) => {
+    const fechaA = new Date(a.querySelector('td:nth-child(7)')?.textContent || '');
+    const fechaB = new Date(b.querySelector('td:nth-child(7)')?.textContent || '');
+    
+    if (ordenValue === 'fecha_desc') {
+      return fechaB - fechaA;
+    } else if (ordenValue === 'fecha_asc') {
+      return fechaA - fechaB;
+    }
+    return 0;
+  });
+  
+  // Reordenar filas en la tabla
+  filas.forEach(fila => tbody.appendChild(fila));
+}
+
+// Función para buscar tickets (admin)
+function buscarTickets() {
+  const buscarInput = document.getElementById('buscar-tickets');
+  if (!buscarInput) return;
+  
+  const busqueda = buscarInput.value.toLowerCase();
+  const filas = document.querySelectorAll('tbody tr');
+  let encontrados = 0;
+  
+  filas.forEach(fila => {
+    const texto = fila.textContent.toLowerCase();
+    if (texto.includes(busqueda)) {
+      fila.style.display = '';
+      encontrados++;
+    } else {
+      fila.style.display = 'none';
+    }
+  });
+  
+  // Mostrar mensaje si no se encuentra nada
+  if (encontrados === 0 && busqueda !== '') {
+    mostrarMensajeBusquedaVaciaAdmin(busqueda);
+  } else {
+    ocultarMensajeSinTicketsAdmin();
+  }
+}
+
+// Función para mostrar mensaje de búsqueda vacía (admin)
+function mostrarMensajeBusquedaVaciaAdmin(termino) {
+  const tbody = document.querySelector('tbody');
+  if (!tbody) return;
+  
+  const mensajeElement = document.createElement('tr');
+  mensajeElement.innerHTML = `
+    <td colspan="8">
+      <div class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No se encontraron resultados</h5>
+        <p class="text-muted">No hay tickets que coincidan con "${termino}"</p>
+        <button class="btn btn-outline-primary" onclick="limpiarBusquedaAdmin()">
+          <i class="fas fa-times me-2"></i>Limpiar búsqueda
+        </button>
+      </div>
+    </td>
+  `;
+  tbody.appendChild(mensajeElement);
+}
+
+// Función para limpiar búsqueda (admin)
+function limpiarBusquedaAdmin() {
+  const buscarInput = document.getElementById('buscar-tickets');
+  if (buscarInput) {
+    buscarInput.value = '';
+  }
+  mostrarTodosLosTicketsAdmin();
+}
+
+// Funciones para acciones de tickets (admin)
+function verTicket(ticketId) {
+  console.log('Viendo ticket:', ticketId);
+  // Implementar lógica para ver ticket
+  alert(`Funcionalidad para ver ticket ${ticketId} - En desarrollo`);
+}
+
+function editarTicket(ticketId) {
+  console.log('Editando ticket:', ticketId);
+  // Implementar lógica para editar ticket
+  alert(`Funcionalidad para editar ticket ${ticketId} - En desarrollo`);
+}
+
+function responderTicket(ticketId) {
+  console.log('Respondiendo ticket:', ticketId);
+  // Implementar lógica para responder ticket
+  alert(`Funcionalidad para responder ticket ${ticketId} - En desarrollo`);
+}
+
+// Event listeners para admin
+document.addEventListener('DOMContentLoaded', function() {
+  // Event listener para búsqueda en tiempo real (admin)
+  const buscarInput = document.getElementById('buscar-tickets');
+  if (buscarInput) {
+    buscarInput.addEventListener('input', function() {
+      if (this.value.length > 2 || this.value.length === 0) {
+        buscarTickets();
+      }
+    });
+  }
+});
+</script>
+
+{% endblock content %} 

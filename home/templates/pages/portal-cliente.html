@@ -5,8 +5,6 @@
 {% block body %} class="about-us bg-gray-200" {% endblock body %}
 {% block content %}
 
-</div></div>
-
   <header class="bg-gradient-dark">
    <div class="page-header min-vh-50" style="background-image: url('{% static 'img/bggryphos-small.jpg' %}');">
       <span class="mask bg-gradient-dark opacity-6"></span>
@@ -67,11 +65,8 @@
                       <small>{{ curso.descripcion }}</small>
                     </div>
                     <div>
-                      <a href="{% url 'curso_detail' curso.id %}" class="btn btn-outline-info btn-sm me-2">
-                        <i class="fas fa-eye me-1"></i>Ver curso
-                      </a>
-                      <a href="{% url 'forum_list' %}?curso_id={{ curso.id }}" class="btn btn-outline-primary btn-sm me-2">
-                        <i class="fas fa-comments me-1"></i>Ir al foro
+                      <a href="{% url 'plataforma_aprendizaje' curso.id %}" class="btn btn-outline-info btn-sm me-2">
+                        <i class="fas fa-graduation-cap me-1"></i>Ingresar
                       </a>
                       {% for videollamada in curso.videollamadas.all %}
                         {% if videollamada.activa and videollamada.link_videollamada and videollamada.esta_activa_ahora %}
@@ -103,6 +98,11 @@
                       <div class="card">
                         <div class="card-header">
                           <h6 class="mb-0">{{ curso.nombre }}</h6>
+                          {% if curso.fecha_inicio and curso.fecha_fin %}
+                            <small class="text-muted">
+                              Del {{ curso.fecha_inicio|date:"d/m/Y" }} al {{ curso.fecha_fin|date:"d/m/Y" }}
+                            </small>
+                          {% endif %}
                         </div>
                         <div class="card-body">
                           <div class="row">
@@ -176,36 +176,7 @@
             </div>
           </div>
           
-          <!-- Sección de Administrador -->
-          {% if user.is_staff %}
-          <div class="mt-4">
-            <div class="card">
-              <div class="card-header bg-primary text-white">
-                <h6 class="mb-0">
-                  <i class="fas fa-cog me-2"></i>Panel de Administración
-                </h6>
-              </div>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-md-6">
-                    <h6>Gestión de Inscripciones</h6>
-                    <p class="text-sm text-muted">Administra las inscripciones a cursos y confirma pagos.</p>
-                    <a href="{% url 'admin-inscripciones' %}" class="btn btn-info btn-sm">
-                      <i class="fas fa-users me-1"></i>Ver Inscripciones
-                    </a>
-                  </div>
-                  <div class="col-md-6">
-                    <h6>Panel de Django Admin</h6>
-                    <p class="text-sm text-muted">Acceso completo al panel de administración de Django.</p>
-                    <a href="{% url 'admin:index' %}" target="_blank" class="btn btn-secondary btn-sm">
-                      <i class="fas fa-tools me-1"></i>Django Admin
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          {% endif %}
+
         </div>
       </div>
     </div>
