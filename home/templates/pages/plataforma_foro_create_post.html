@@ -118,17 +118,7 @@ window.addEventListener('popstate', function() {
 <div id="create-post-content" style="display: none;">
   <div class="row">
     <div class="col-12">
-      <!-- Breadcrumb -->
-      <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">
-            <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=foro" class="text-decoration-none">
-              <i class="fas fa-arrow-left me-1"></i>Volver al Foro
-            </a>
-          </li>
-          <li class="breadcrumb-item active">Crear Post</li>
-        </ol>
-      </nav>
+
 
       <!-- Formulario -->
       <div class="card">
@@ -139,6 +129,23 @@ window.addEventListener('popstate', function() {
           </h4>
         </div>
         <div class="card-body">
+          <!-- Información del autor -->
+          <div class="d-flex align-items-center mb-4 p-3 bg-light rounded">
+            <div class="me-3">
+              {% if user.profile_photo %}
+                <img src="{{ user.profile_photo.url }}" alt="Tu foto de perfil" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+              {% else %}
+                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                  <i class="fas fa-user text-white"></i>
+                </div>
+              {% endif %}
+            </div>
+            <div>
+              <h6 class="mb-1">Publicando como:</h6>
+              <p class="mb-0 text-muted">{{ user.get_full_name|default:user.username }}</p>
+            </div>
+          </div>
+
           <form method="post">
             {% csrf_token %}
             

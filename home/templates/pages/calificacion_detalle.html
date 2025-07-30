@@ -83,16 +83,7 @@
     margin-bottom: 20px;
   }
   
-  .breadcrumb-custom {
-    background: transparent;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .breadcrumb-custom .breadcrumb-item + .breadcrumb-item::before {
-    content: ">";
-    color: #6c757d;
-  }
+
   
   .calificacion-detail-card {
     background: white;
@@ -403,28 +394,7 @@
 <div class="main-content">
   <!-- Content Header -->
   <div class="content-header">
-    <nav aria-label="breadcrumb">
-      <ol class="breadcrumb breadcrumb-custom">
-        <li class="breadcrumb-item">
-          <a href="{% url 'user_space' %}" class="text-decoration-none">
-            <i class="fas fa-arrow-left me-1"></i>Portal de Miembros
-          </a>
-        </li>
-        <li class="breadcrumb-item">
-          <a href="{% url 'plataforma_aprendizaje' curso.id %}" class="text-decoration-none">
-            {{ curso.nombre }}
-          </a>
-        </li>
-        <li class="breadcrumb-item">
-          <a href="{% url 'plataforma_calificaciones' curso.id %}" class="text-decoration-none">
-            Calificaciones
-          </a>
-        </li>
-        <li class="breadcrumb-item active" aria-current="page">
-          Detalle de Calificación
-        </li>
-      </ol>
-    </nav>
+
     
     <div class="d-flex justify-content-between align-items-start mt-3">
       <div>

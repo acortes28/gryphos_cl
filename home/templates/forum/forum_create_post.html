@@ -21,16 +21,7 @@
 <div class="container mt-5 forum-form">
   <div class="row">
     <div class="col-lg-8 mx-auto">
-      <!-- Breadcrumb -->
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'forum_list' %}{% if curso_especifico %}?curso_id={{ curso_especifico.id }}{% endif %}">Foro</a></li>
-          {% if curso_especifico %}
-            <li class="breadcrumb-item">{{ curso_especifico.nombre }}</li>
-          {% endif %}
-          <li class="breadcrumb-item active">Crear Post</li>
-        </ol>
-      </nav>
+
 
       <!-- Formulario -->
       <div class="card">

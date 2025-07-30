@@ -38,13 +38,25 @@
     <div class="card mb-4">
       <div class="card-header">
         <div class="d-flex justify-content-between align-items-start">
-          <div>
-            <h4 class="mb-1">{{ post.title }}</h4>
-            <div class="text-muted small">
-              <i class="fas fa-user me-1"></i>{{ post.author.get_full_name|default:post.author.username }}
-              <i class="fas fa-calendar me-1 ms-3"></i>{{ post.created_at|date:"d/m/Y H:i" }}
-              <i class="fas fa-eye me-1 ms-3"></i>{{ post.views }} vistas
-              <span class="badge bg-primary ms-2">{{ post.get_category_display }}</span>
+          <div class="d-flex align-items-center">
+            <!-- Avatar del autor del post -->
+            <div class="me-3">
+              {% if post.author.profile_photo %}
+                <img src="{{ post.author.profile_photo.url }}" alt="Foto de perfil" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+              {% else %}
+                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                  <i class="fas fa-user text-white"></i>
+                </div>
+              {% endif %}
+            </div>
+            <div>
+              <h4 class="mb-1">{{ post.title }}</h4>
+              <div class="text-muted small">
+                <i class="fas fa-user me-1"></i>{{ post.author.get_full_name|default:post.author.username }}
+                <i class="fas fa-calendar me-1 ms-3"></i>{{ post.created_at|date:"d/m/Y H:i" }}
+                <i class="fas fa-eye me-1 ms-3"></i>{{ post.views }} vistas
+                <span class="badge bg-primary ms-2">{{ post.get_category_display }}</span>
+              </div>
             </div>
           </div>
           {% if user == post.author %}
@@ -75,14 +87,37 @@
         {% if comments %}
           {% for comment in comments %}
             <div class="comment mb-3 pb-3 border-bottom">
-              <div class="d-flex justify-content-between align-items-start">
+              <div class="d-flex align-items-start">
+                <!-- Avatar del autor del comentario -->
+                <div class="me-3">
+                  {% if comment.author.profile_photo %}
+                    <img src="{{ comment.author.profile_photo.url }}" alt="Foto de perfil" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                  {% else %}
+                    <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                      <i class="fas fa-user text-white" style="font-size: 0.9rem;"></i>
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <!-- Contenido del comentario -->
                 <div class="flex-grow-1">
-                  <div class="fw-bold">{{ comment.author.get_full_name|default:comment.author.username }}</div>
-                  <div class="text-muted small mb-2">
-                    <i class="fas fa-calendar me-1"></i>{{ comment.created_at|date:"d/m/Y H:i" }}
-                  </div>
-                  <div class="comment-content">
-                    {{ comment.content|safe }}
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                      <div class="fw-bold">{{ comment.author.get_full_name|default:comment.author.username }}</div>
+                      <div class="text-muted small mb-2">
+                        <i class="fas fa-calendar me-1"></i>{{ comment.created_at|date:"d/m/Y H:i" }}
+                      </div>
+                      <div class="comment-content">
+                        {{ comment.content|safe }}
+                      </div>
+                    </div>
+                    {% if user == comment.author %}
+                      <a href="{% url 'forum_delete_comment' comment.id %}" 
+                         class="btn btn-sm btn-outline-danger"
+                         onclick="return confirm('¿Estás seguro de que quieres eliminar este comentario?')">
+                        <i class="fas fa-trash"></i>
+                      </a>
+                    {% endif %}
                   </div>
                 </div>
               </div>

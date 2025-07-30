@@ -83,16 +83,7 @@
     margin-bottom: 20px;
   }
   
-  .breadcrumb-custom {
-    background: transparent;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .breadcrumb-custom .breadcrumb-item + .breadcrumb-item::before {
-    content: ">";
-    color: #6c757d;
-  }
+
   
   .form-card {
     background: white;
@@ -584,28 +575,7 @@
 <div class="main-content">
   <!-- Content Header -->
   <div class="content-header">
-    <nav aria-label="breadcrumb">
-      <ol class="breadcrumb breadcrumb-custom">
-        <li class="breadcrumb-item">
-          <a href="{% url 'user_space' %}" class="text-decoration-none">
-            <i class="fas fa-arrow-left me-1"></i>Portal de Miembros
-          </a>
-        </li>
-        <li class="breadcrumb-item">
-          <a href="{% url 'plataforma_aprendizaje' curso.id %}" class="text-decoration-none">
-            {{ curso.nombre }}
-          </a>
-        </li>
-        <li class="breadcrumb-item">
-          <a href="{% url 'plataforma_calificaciones' curso.id %}" class="text-decoration-none">
-            Calificaciones
-          </a>
-        </li>
-        <li class="breadcrumb-item active" aria-current="page">
-          Calificar Estudiantes
-        </li>
-      </ol>
-    </nav>
+
     
     <div class="d-flex justify-content-between align-items-start mt-3">
       <div>
@@ -671,10 +641,28 @@
         </div>
         <div class="stat-item">
           <span class="stat-value">{{ estudiantes.count }}</span>
-          <span class="stat-label">Total Estudiantes</span>
+          <span class="stat-label">Disponibles para Calificar</span>
         </div>
       </div>
     </div>
+    
+    {% if stats %}
+      <div class="alert alert-info mb-4">
+        <div class="d-flex align-items-center">
+          <i class="fas fa-info-circle me-2"></i>
+          <div>
+            <strong>Estadísticas de la Evaluación:</strong>
+            <br>
+            <small class="text-muted">
+              • Total estudiantes del curso: {{ stats.total_estudiantes_curso }}
+              • Estudiantes con entregas: {{ stats.total_estudiantes_con_entregas }}
+              • Ya calificados: {{ stats.estudiantes_ya_calificados }}
+              • Pendientes de calificar: {{ stats.estudiantes_disponibles_para_calificar }}
+            </small>
+          </div>
+        </div>
+      </div>
+    {% endif %}
     
     <!-- Formulario de Calificación -->
     <div class="row justify-content-center">
@@ -723,7 +711,7 @@
             
             <div class="form-group">
               <label for="{{ form.retroalimentacion.id_for_label }}" class="form-label">
-                <i class="fas fa-comment me-1"></i>Retroalimentación (Opcional)
+                <i class="fas fa-comment me-1"></i>Retroalimentación
               </label>
               {{ form.retroalimentacion }}
               {% if form.retroalimentacion.errors %}
@@ -759,9 +747,9 @@
             <i class="fas fa-users me-2"></i>Estudiantes del Curso
           </h4>
           
-          {% if estudiantes %}
+          {% if todos_estudiantes %}
             <div class="row">
-              {% for estudiante in estudiantes %}
+              {% for estudiante in todos_estudiantes %}
                 <div class="col-md-6 col-lg-4 mb-3">
                   <div class="card border-0 shadow-sm">
                     <div class="card-body text-center">
@@ -805,7 +793,23 @@
                           </button>
                         {% endif %}
                       {% empty %}
-                        <span class="badge bg-secondary">Sin calificar</span>
+                        {% if estudiante.entregas.all %}
+                          {% for entrega in estudiante.entregas.all %}
+                            {% if entrega.evaluacion == evaluacion %}
+                              <span class="badge bg-warning">Con entrega</span>
+                              <small class="text-muted mb-2 d-block">
+                                Entregado el {{ entrega.fecha_entrega|date:"d/m/Y" }}
+                              </small>
+                              <span class="text-muted small">Pendiente de calificar</span>
+                            {% endif %}
+                          {% empty %}
+                            <span class="badge bg-secondary">Sin entrega</span>
+                            <small class="text-muted">No ha entregado</small>
+                          {% endfor %}
+                        {% else %}
+                          <span class="badge bg-secondary">Sin entrega</span>
+                          <small class="text-muted">No ha entregado</small>
+                        {% endif %}
                       {% endfor %}
                     </div>
                   </div>
@@ -861,7 +865,7 @@
         
         <div class="form-group-edit">
           <label for="editRetroalimentacion" class="form-label-edit">
-            <i class="fas fa-comment me-1"></i>Retroalimentación (Opcional)
+            <i class="fas fa-comment me-1"></i>Retroalimentación
           </label>
           <textarea id="editRetroalimentacion" 
                     name="retroalimentacion" 

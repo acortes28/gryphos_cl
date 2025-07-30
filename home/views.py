@@ -1965,6 +1965,28 @@ def plataforma_calificaciones(request, curso_id):
             }
             context['estadisticas'] = estadisticas
         
+        # Estadísticas de entregas por evaluación
+        for evaluacion in evaluaciones:
+            total_estudiantes = curso.usuarios.filter(is_staff=False, is_superuser=False).count()
+            estudiantes_con_entregas = evaluacion.entregas.values('estudiante').distinct().count()
+            estudiantes_calificados = evaluacion.calificaciones.count()
+            
+            evaluacion.stats_entregas = {
+                'total_estudiantes': total_estudiantes,
+                'estudiantes_con_entregas': estudiantes_con_entregas,
+                'estudiantes_sin_entregas': total_estudiantes - estudiantes_con_entregas,
+                'estudiantes_calificados': estudiantes_calificados,
+                'estudiantes_pendientes_calificacion': estudiantes_con_entregas - estudiantes_calificados
+            }
+        
+        # Agregar información sobre la nueva funcionalidad
+        context['info_entregas'] = {
+            'mensaje': '💡 Solo se pueden calificar estudiantes que hayan entregado su trabajo. Desde la primera entrega se puede acceder a calificar una evaluación.',
+            'total_evaluaciones': evaluaciones.count(),
+            'evaluaciones_con_entregas': sum(1 for e in evaluaciones if e.stats_entregas['estudiantes_con_entregas'] > 0)
+            #'evaluaciones_sin_entregas': sum(1 for e in evaluaciones if e.stats_entregas['estudiantes_con_entregas'] == 0)
+        }
+        
     else:
         # Vista para Estudiantes
         calificaciones_usuario = Calificacion.objects.filter(
@@ -2060,6 +2082,7 @@ def crear_evaluacion(request, curso_id):
 def calificar_estudiante(request, curso_id, evaluacion_id):
     """
     Vista para calificar estudiantes en una evaluación específica (solo staff/admin)
+    Solo permite calificar estudiantes que tienen entregas para esta evaluación
     """
     curso = get_object_or_404(Curso, id=curso_id)
     evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
@@ -2069,16 +2092,39 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
         messages.error(request, 'No tienes permisos para calificar estudiantes.')
         return redirect('plataforma_calificaciones', curso_id=curso_id)
     
-    # Obtener estudiantes del curso (no staff/admin)
-    estudiantes = User.objects.filter(
+    # Obtener estudiantes del curso que tienen entregas para esta evaluación (no staff/admin)
+    estudiantes_con_entregas = User.objects.filter(
         cursos=curso,
         is_staff=False,
-        is_superuser=False
-    ).order_by('first_name', 'last_name', 'username')
+        is_superuser=False,
+        entregas__evaluacion=evaluacion
+    ).distinct().order_by('first_name', 'last_name', 'username')
+    
+    # Excluir estudiantes que ya están calificados
+    estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
+    estudiantes_disponibles_para_calificar = estudiantes_con_entregas.exclude(id__in=estudiantes_calificados_ids)
+    
+    # Si no hay estudiantes con entregas, mostrar mensaje
+    if not estudiantes_con_entregas.exists():
+        messages.warning(request, f'No hay estudiantes con entregas para la evaluación "{evaluacion.nombre}". Solo se pueden calificar estudiantes que hayan entregado su trabajo.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    # Si no hay estudiantes disponibles para calificar (todos ya están calificados)
+    if not estudiantes_disponibles_para_calificar.exists():
+        messages.info(request, f'Todos los estudiantes con entregas para la evaluación "{evaluacion.nombre}" ya han sido calificados.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
     
     if request.method == 'POST':
-        form = CalificacionForm(request.POST, curso=curso, evaluacion=evaluacion)
+        form = CalificacionForm(request.POST, curso=curso, evaluacion=evaluacion, estudiantes_con_entregas=estudiantes_disponibles_para_calificar)
         if form.is_valid():
+            # Verificar que el estudiante tenga una entrega para esta evaluación
+            estudiante = form.cleaned_data.get('estudiante')
+            if estudiante:
+                tiene_entrega = estudiante.entregas.filter(evaluacion=evaluacion).exists()
+                if not tiene_entrega:
+                    messages.error(request, f'El estudiante {estudiante.get_full_name()} no tiene entregas para la evaluación "{evaluacion.nombre}". Solo se pueden calificar estudiantes que hayan entregado su trabajo.')
+                    return redirect('calificar_estudiante', curso_id=curso_id, evaluacion_id=evaluacion_id)
+            
             calificacion = form.save(commit=False)
             calificacion.evaluacion = evaluacion
             calificacion.calificado_por = request.user
@@ -2115,24 +2161,44 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
             
             return redirect('plataforma_calificaciones', curso_id=curso_id)
     else:
-        form = CalificacionForm(curso=curso, evaluacion=evaluacion)
+        form = CalificacionForm(curso=curso, evaluacion=evaluacion, estudiantes_con_entregas=estudiantes_disponibles_para_calificar)
         
         # Si se especifica un estudiante en la URL, precargarlo en el formulario
         estudiante_id = request.GET.get('estudiante')
         if estudiante_id:
             try:
-                estudiante = User.objects.get(id=estudiante_id, cursos=curso)
-                form.initial['estudiante'] = estudiante
-                print(f"Estudiante precargado: {estudiante.get_full_name()} (ID: {estudiante.id})")
+                estudiante = estudiantes_disponibles_para_calificar.get(id=estudiante_id)
+                if estudiante:
+                    form.initial['estudiante'] = estudiante
+                    print(f"Estudiante precargado: {estudiante.get_full_name()} (ID: {estudiante.id})")
+                else:
+                    print(f"Estudiante con ID {estudiante_id} no está disponible para calificar")
             except User.DoesNotExist:
                 print(f"Estudiante no encontrado con ID: {estudiante_id}")
                 pass
+    
+    # Obtener todos los estudiantes del curso para mostrar en la lista
+    todos_estudiantes = User.objects.filter(
+        cursos=curso,
+        is_staff=False,
+        is_superuser=False
+    ).order_by('first_name', 'last_name', 'username')
+    
+    # Estadísticas para mostrar en el template
+    stats = {
+        'total_estudiantes_con_entregas': estudiantes_con_entregas.count(),
+        'estudiantes_disponibles_para_calificar': estudiantes_disponibles_para_calificar.count(),
+        'estudiantes_ya_calificados': estudiantes_con_entregas.count() - estudiantes_disponibles_para_calificar.count(),
+        'total_estudiantes_curso': todos_estudiantes.count(),
+    }
     
     context = {
         'curso': curso,
         'evaluacion': evaluacion,
         'form': form,
-        'estudiantes': estudiantes,
+        'estudiantes': estudiantes_disponibles_para_calificar,  # Para el formulario
+        'todos_estudiantes': todos_estudiantes,  # Para la lista completa
+        'stats': stats,
         'user': request.user,
     }
     return render(request, 'pages/calificar_estudiante.html', context)

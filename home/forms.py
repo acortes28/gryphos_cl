@@ -481,13 +481,13 @@ class CalificacionForm(forms.ModelForm):
             'retroalimentacion': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 4,
-                'placeholder': 'Retroalimentación para el estudiante (opcional)...'
+                'placeholder': 'Recuerda que nuestro sello de calidad es la retroalimentación al estudiante para su aprendizaje personalizado.'
             })
         }
         labels = {
             'estudiante': 'Estudiante',
             'nota': 'Nota',
-            'retroalimentacion': 'Retroalimentación (Opcional)'
+            'retroalimentacion': 'Retroalimentación'
         }
         help_texts = {
             'estudiante': 'Selecciona el estudiante a calificar',
@@ -498,23 +498,54 @@ class CalificacionForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         curso = kwargs.pop('curso', None)
         evaluacion = kwargs.pop('evaluacion', None)
+        estudiantes_con_entregas = kwargs.pop('estudiantes_con_entregas', None)
         super().__init__(*args, **kwargs)
         
+        # Guardar la evaluación para validaciones posteriores
+        if evaluacion:
+            self.evaluacion = evaluacion
+        
         if curso:
-            # Obtener estudiantes inscritos en el curso (no staff/admin)
-            estudiantes_inscritos = User.objects.filter(
-                cursos=curso,
-                is_staff=False,
-                is_superuser=False
-            )
-            
-            # Si hay una evaluación específica, excluir estudiantes ya calificados
-            if evaluacion:
-                # Obtener IDs de estudiantes ya calificados en esta evaluación
-                estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
-                # Filtrar estudiantes que NO están en la lista de calificados
-                estudiantes_disponibles = estudiantes_inscritos.exclude(id__in=estudiantes_calificados_ids)
+            if estudiantes_con_entregas is not None:
+                # Usar la lista de estudiantes con entregas proporcionada
+                # Pero excluir los que ya están calificados
+                if evaluacion:
+                    estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
+                    estudiantes_disponibles = estudiantes_con_entregas.exclude(id__in=estudiantes_calificados_ids)
+                else:
+                    estudiantes_disponibles = estudiantes_con_entregas
             else:
-                estudiantes_disponibles = estudiantes_inscritos
+                # Obtener estudiantes inscritos en el curso (no staff/admin)
+                estudiantes_inscritos = User.objects.filter(
+                    cursos=curso,
+                    is_staff=False,
+                    is_superuser=False
+                )
+                
+                # Si hay una evaluación específica, solo incluir estudiantes con entregas
+                if evaluacion:
+                    # Obtener estudiantes que tienen entregas para esta evaluación
+                    estudiantes_con_entregas = estudiantes_inscritos.filter(
+                        entregas__evaluacion=evaluacion
+                    ).distinct()
+                    
+                    # Excluir estudiantes ya calificados
+                    estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
+                    estudiantes_disponibles = estudiantes_con_entregas.exclude(id__in=estudiantes_calificados_ids)
+                else:
+                    estudiantes_disponibles = estudiantes_inscritos
             
             self.fields['estudiante'].queryset = estudiantes_disponibles.order_by('first_name', 'last_name', 'username')
+    
+    def clean_estudiante(self):
+        """Validar que el estudiante tenga una entrega para esta evaluación"""
+        estudiante = self.cleaned_data.get('estudiante')
+        evaluacion = getattr(self, 'evaluacion', None)
+        
+        if estudiante and evaluacion:
+            # Verificar que el estudiante tenga una entrega para esta evaluación
+            tiene_entrega = estudiante.entregas.filter(evaluacion=evaluacion).exists()
+            if not tiene_entrega:
+                raise ValidationError(f'El estudiante {estudiante.get_full_name()} no tiene entregas para la evaluación "{evaluacion.nombre}". Solo se pueden calificar estudiantes que hayan entregado su trabajo.')
+        
+        return estudiante

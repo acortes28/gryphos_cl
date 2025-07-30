@@ -162,7 +162,6 @@
                   <th>Estudiante</th>
                   <th>Archivo</th>
                   <th>Fecha de Entrega</th>
-                  <th>Estado</th>
                   <th>Comentario</th>
                   <th>Acciones</th>
                 </tr>
@@ -205,23 +204,7 @@
                       <span class="text-muted">-</span>
                     {% endif %}
                   </td>
-                  <td>
-                    {% if info_estudiante.tiene_entrega %}
-                      {% if info_estudiante.entrega.estado == 'pendiente' %}
-                        <span class="badge bg-warning estado-badge">Pendiente</span>
-                      {% elif info_estudiante.entrega.estado == 'entregado' %}
-                        <span class="badge bg-info estado-badge">Entregado</span>
-                      {% elif info_estudiante.entrega.estado == 'tardio' %}
-                        <span class="badge bg-danger estado-badge">Tardío</span>
-                      {% elif info_estudiante.entrega.estado == 'rechazado' %}
-                        <span class="badge bg-danger estado-badge">Rechazado</span>
-                      {% elif info_estudiante.entrega.estado == 'aprobado' %}
-                        <span class="badge bg-success estado-badge">Aprobado</span>
-                      {% endif %}
-                    {% else %}
-                      <span class="badge bg-secondary estado-badge">Sin entregar</span>
-                    {% endif %}
-                  </td>
+
                   <td>
                     {% if info_estudiante.tiene_entrega and info_estudiante.entrega.comentario %}
                       <span title="{{ info_estudiante.entrega.comentario }}">{{ info_estudiante.entrega.comentario|truncatechars:50 }}</span>
@@ -231,28 +214,33 @@
                   </td>
                   <td>
                     <div class="btn-group btn-group-sm">
-                      {% if not info_estudiante.tiene_calificacion %}
-                        <button class="btn btn-outline-primary" title="Evaluar" 
-                                data-entrega-id="{% if info_estudiante.tiene_entrega %}{{ info_estudiante.entrega.id }}{% endif %}" 
-                                data-evaluacion-id="{{ evaluacion.id }}"
-                                data-estudiante-id="{{ info_estudiante.estudiante.id }}"
-                                onclick="evaluarEntrega(this)">
-                          <i class="fas fa-star"></i> Evaluar
-                        </button>
-                        {% if info_estudiante.tiene_entrega %}
+                      {% if info_estudiante.tiene_entrega %}
+                        {% if not info_estudiante.tiene_calificacion %}
+                          <button class="btn btn-outline-primary" title="Evaluar" 
+                                  data-entrega-id="{{ info_estudiante.entrega.id }}" 
+                                  data-evaluacion-id="{{ evaluacion.id }}"
+                                  data-estudiante-id="{{ info_estudiante.estudiante.id }}"
+                                  onclick="evaluarEntrega(this)">
+                            <i class="fas fa-star"></i> Evaluar
+                          </button>
                           <button class="btn btn-outline-warning" title="Reemplazar" 
                                   data-entrega-id="{{ info_estudiante.entrega.id }}"
                                   onclick="abrirModalReemplazar(this)">
                             <i class="fas fa-upload"></i> Reemplazar
                           </button>
+                        {% else %}
+                          <div class="d-flex align-items-center">
+                            <span class="badge badge-calificado d-flex align-items-center" style="font-size: 0.8rem; padding: 0.5rem 0.75rem;">
+                              <i class="fas fa-check-circle me-1"></i>
+                              Ya calificado
+                            </span>
+                          </div>
                         {% endif %}
                       {% else %}
-                        <div class="d-flex align-items-center">
-                          <span class="badge badge-calificado d-flex align-items-center" style="font-size: 0.8rem; padding: 0.5rem 0.75rem;">
-                            <i class="fas fa-check-circle me-1"></i>
-                            Ya calificado
-                          </span>
-                        </div>
+                        <span class="text-muted small">
+                          <i class="fas fa-info-circle me-1"></i>
+                          Sin entrega
+                        </span>
                       {% endif %}
                     </div>
                   </td>

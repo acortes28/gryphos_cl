@@ -65,14 +65,20 @@
   }
   
   .content-header {
+    position: fixed;
+    top: 0;
+    left: 280px;
+    right: 0;
     background: white;
     padding: 20px 30px;
     border-bottom: 1px solid #e9ecef;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 999;
   }
   
   .content-body {
     padding: 30px;
+    margin-top: 120px; /* Compensar el header fijo */
   }
   
   .section-content {
@@ -83,16 +89,7 @@
     margin-bottom: 20px;
   }
   
-  .breadcrumb-custom {
-    background: transparent;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .breadcrumb-custom .breadcrumb-item + .breadcrumb-item::before {
-    content: ">";
-    color: #6c757d;
-  }
+
   
   @media (max-width: 768px) {
     .sidebar {
@@ -352,6 +349,15 @@
   
   /* Ajuste para el header en móviles */
   @media (max-width: 768px) {
+    .content-header {
+      left: 0;
+      margin-top: 60px; /* Compensar el botón de toggle */
+    }
+    
+    .content-body {
+      margin-top: 180px; /* Ajustar para móviles */
+    }
+    
     .content-header .d-flex {
       flex-direction: column;
       align-items: flex-start !important;
@@ -461,18 +467,7 @@
 <div class="main-content">
   <!-- Content Header -->
   <div class="content-header">
-    <nav aria-label="breadcrumb">
-      <ol class="breadcrumb breadcrumb-custom">
-        <li class="breadcrumb-item">
-          <a href="{% url 'user_space' %}" class="text-decoration-none">
-            <i class="fas fa-arrow-left me-1"></i>Portal de Miembros
-          </a>
-        </li>
-        <li class="breadcrumb-item active" aria-current="page">
-          {{ curso.nombre }}
-        </li>
-      </ol>
-    </nav>
+
     
     <div class="d-flex justify-content-between align-items-start mt-3">
       <div>

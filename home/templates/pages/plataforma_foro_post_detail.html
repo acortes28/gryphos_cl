@@ -126,48 +126,54 @@ window.addEventListener('popstate', function() {
 <div id="post-content" style="display: none;">
   <div class="row">
     <div class="col-12">
-      <!-- Breadcrumb -->
-      <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item">
-            <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=foro" class="text-decoration-none">
-              <i class="fas fa-arrow-left me-1"></i>Volver al Foro
-            </a>
-          </li>
-          <li class="breadcrumb-item active">{{ post.title }}</li>
-        </ol>
-      </nav>
+
 
       <!-- Post -->
       <div class="card mb-4">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start mb-3">
-            <div>
-              <h2 class="card-title">{{ post.title }}</h2>
-              <div class="d-flex align-items-center text-muted small mb-3">
-                <span class="me-3">
-                  <i class="fas fa-user me-1"></i>{{ post.author.get_full_name|default:post.author.username }}
-                </span>
-                <span class="me-3">
-                  <i class="fas fa-calendar me-1"></i>{{ post.created_at|date:"d/m/Y H:i" }}
-                </span>
-                <span class="me-3">
-                  <i class="fas fa-eye me-1"></i>{{ post.get_view_count }} vistas
-                </span>
-                <span class="badge bg-primary">{{ post.get_category_display }}</span>
+          <div class="d-flex align-items-start mb-3">
+            <!-- Avatar del autor del post -->
+            <div class="me-3">
+              {% if post.author.profile_photo %}
+                <img src="{{ post.author.profile_photo.url }}" alt="Foto de perfil" class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover;">
+              {% else %}
+                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                  <i class="fas fa-user text-white"></i>
+                </div>
+              {% endif %}
+            </div>
+            
+            <!-- Información del post -->
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <h2 class="card-title">{{ post.title }}</h2>
+                  <div class="d-flex align-items-center text-muted small mb-3">
+                    <span class="me-3">
+                      <i class="fas fa-user me-1"></i>{{ post.author.get_full_name|default:post.author.username }}
+                    </span>
+                    <span class="me-3">
+                      <i class="fas fa-calendar me-1"></i>{{ post.created_at|date:"d/m/Y H:i" }}
+                    </span>
+                    <span class="me-3">
+                      <i class="fas fa-eye me-1"></i>{{ post.get_view_count }} vistas
+                    </span>
+                    <span class="badge bg-primary">{{ post.get_category_display }}</span>
+                  </div>
+                </div>
+                {% if user == post.author %}
+                  <a href="{% url 'forum_delete_post' post.id %}" 
+                     class="btn btn-sm btn-outline-danger"
+                     onclick="return confirm('¿Estás seguro de que quieres eliminar este post?')">
+                    <i class="fas fa-trash me-1"></i>Eliminar
+                  </a>
+                {% endif %}
+              </div>
+              
+              <div class="post-content">
+                {{ post.content|safe }}
               </div>
             </div>
-            {% if user == post.author %}
-              <a href="{% url 'forum_delete_post' post.id %}" 
-                 class="btn btn-sm btn-outline-danger"
-                 onclick="return confirm('¿Estás seguro de que quieres eliminar este post?')">
-                <i class="fas fa-trash me-1"></i>Eliminar
-              </a>
-            {% endif %}
-          </div>
-          
-          <div class="post-content">
-            {{ post.content|safe }}
           </div>
         </div>
       </div>
@@ -205,21 +211,37 @@ window.addEventListener('popstate', function() {
             <div class="comments-list">
               {% for comment in comments %}
                 <div class="comment-item">
-                  <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
-                      <small class="text-muted ms-2">{{ comment.created_at|date:"d/m/Y H:i" }}</small>
+                  <div class="d-flex align-items-start">
+                    <!-- Avatar del autor del comentario -->
+                    <div class="me-3">
+                      {% if comment.author.profile_photo %}
+                        <img src="{{ comment.author.profile_photo.url }}" alt="Foto de perfil" class="rounded-circle" style="width: 45px; height: 45px; object-fit: cover;">
+                      {% else %}
+                        <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                          <i class="fas fa-user text-white" style="font-size: 0.9rem;"></i>
+                        </div>
+                      {% endif %}
                     </div>
-                    {% if user == comment.author %}
-                      <a href="{% url 'forum_delete_comment' comment.id %}" 
-                         class="btn btn-sm btn-outline-danger"
-                         onclick="return confirm('¿Estás seguro de que quieres eliminar este comentario?')">
-                        <i class="fas fa-trash"></i>
-                      </a>
-                    {% endif %}
-                  </div>
-                  <div class="comment-content">
-                    {{ comment.content|linebreaks }}
+                    
+                    <!-- Contenido del comentario -->
+                    <div class="flex-grow-1">
+                      <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                          <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                          <small class="text-muted ms-2">{{ comment.created_at|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        {% if user == comment.author %}
+                          <a href="{% url 'forum_delete_comment' comment.id %}" 
+                             class="btn btn-sm btn-outline-danger"
+                             onclick="return confirm('¿Estás seguro de que quieres eliminar este comentario?')">
+                            <i class="fas fa-trash"></i>
+                          </a>
+                        {% endif %}
+                      </div>
+                      <div class="comment-content">
+                        {{ comment.content|linebreaks }}
+                      </div>
+                    </div>
                   </div>
                 </div>
               {% endfor %}
