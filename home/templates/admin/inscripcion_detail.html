@@ -280,12 +280,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Mostrar mensaje de éxito
                 const alertDiv = document.createElement('div');
                 alertDiv.className = 'alert alert-success alert-dismissible fade show';
-                alertDiv.innerHTML = `
-                    ${data.message}<br>
-                    Usuario creado: ${data.username}<br>
-                    Contraseña temporal: ${data.password_temp}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                `;
+                
+                if (data.usuario_nuevo) {
+                    // Usuario nuevo creado
+                    alertDiv.innerHTML = `
+                        ${data.message}<br>
+                        Usuario creado: ${data.username}<br>
+                        Contraseña temporal: ${data.password_temp}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                } else {
+                    // Usuario existente reutilizado
+                    alertDiv.innerHTML = `
+                        ${data.message}<br>
+                        Usuario existente reutilizado: ${data.username}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    `;
+                }
+                
                 document.querySelector('.card-header').appendChild(alertDiv);
                 
                 // Recargar la página después de 3 segundos

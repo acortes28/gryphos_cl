@@ -352,7 +352,7 @@ class InscripcionCurso(models.Model):
         return f"{self.nombre_interesado} - {self.curso.nombre} ({self.get_estado_display()})"
     
     def marcar_como_pagado(self):
-        """Marca la inscripción como pagada y crea el usuario"""
+        """Marca la inscripción como pagada y crea el usuario o reutiliza uno existente"""
         from django.utils import timezone
         import secrets
         import string
@@ -361,32 +361,62 @@ class InscripcionCurso(models.Model):
             self.estado = 'pagado'
             self.fecha_pago = timezone.now()
             
-            # Generar contraseña temporal
-            alphabet = string.ascii_letters + string.digits
-            password_temp = ''.join(secrets.choice(alphabet) for i in range(12))
-            
-            # Crear usuario
+            # Generar username basado en el nombre
             username = f"{self.nombre_interesado.lower().replace(' ', '_')}"
-            # Asegurar que el username sea único
-            counter = 1
-            original_username = username
-            while CustomUser.objects.filter(username=username).exists():
-                username = f"{original_username}_{counter}"
-                counter += 1
             
-            user = CustomUser.objects.create_user(
-                username=username,
-                email=self.correo_contacto,
-                password=password_temp,
-                first_name=self.nombre_interesado.split()[0] if self.nombre_interesado.split() else '',
-                last_name=' '.join(self.nombre_interesado.split()[1:]) if len(self.nombre_interesado.split()) > 1 else '',
-                phone_number=self.telefono_contacto,
-                company_name=self.nombre_empresa,
-                is_active=True
-            )
+            # Verificar si ya existe un usuario con el mismo username
+            user_existente = CustomUser.objects.filter(username=username).first()
             
-            # Asignar el curso al usuario
-            user.cursos.add(self.curso)
+            if user_existente:
+                # Usar usuario existente
+                user = user_existente
+                password_temp = None
+                
+                # Verificar si el usuario ya tiene acceso al curso
+                if not user.cursos.filter(id=self.curso.id).exists():
+                    # Agregar el curso al usuario existente
+                    user.cursos.add(self.curso)
+                
+                # Actualizar información del usuario si es necesario
+                if not user.first_name and self.nombre_interesado.split():
+                    user.first_name = self.nombre_interesado.split()[0]
+                if not user.last_name and len(self.nombre_interesado.split()) > 1:
+                    user.last_name = ' '.join(self.nombre_interesado.split()[1:])
+                if not user.phone_number and self.telefono_contacto:
+                    user.phone_number = self.telefono_contacto
+                if not user.company_name and self.nombre_empresa:
+                    user.company_name = self.nombre_empresa
+                if not user.email and self.correo_contacto:
+                    user.email = self.correo_contacto
+                
+                user.save()
+                
+            else:
+                # Crear nuevo usuario
+                # Generar contraseña temporal
+                alphabet = string.ascii_letters + string.digits
+                password_temp = ''.join(secrets.choice(alphabet) for i in range(12))
+                
+                # Asegurar que el username sea único
+                counter = 1
+                original_username = username
+                while CustomUser.objects.filter(username=username).exists():
+                    username = f"{original_username}_{counter}"
+                    counter += 1
+                
+                user = CustomUser.objects.create_user(
+                    username=username,
+                    email=self.correo_contacto,
+                    password=password_temp,
+                    first_name=self.nombre_interesado.split()[0] if self.nombre_interesado.split() else '',
+                    last_name=' '.join(self.nombre_interesado.split()[1:]) if len(self.nombre_interesado.split()) > 1 else '',
+                    phone_number=self.telefono_contacto,
+                    company_name=self.nombre_empresa,
+                    is_active=True
+                )
+                
+                # Asignar el curso al usuario
+                user.cursos.add(self.curso)
             
             self.usuario_creado = user
             self.save()

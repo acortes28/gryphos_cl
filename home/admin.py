@@ -128,12 +128,21 @@ class InscripcionCursoAdmin(admin.ModelAdmin):
         
         for inscripcion in queryset.filter(estado='pendiente'):
             user, password_temp = inscripcion.marcar_como_pagado()
-            if user and password_temp:
-                self.message_user(
-                    request, 
-                    f'Inscripción de {inscripcion.nombre_interesado} marcada como pagada. Usuario creado: {user.username}',
-                    messages.SUCCESS
-                )
+            if user:
+                if password_temp:
+                    # Usuario nuevo creado
+                    self.message_user(
+                        request, 
+                        f'Inscripción de {inscripcion.nombre_interesado} marcada como pagada. Usuario creado: {user.username}',
+                        messages.SUCCESS
+                    )
+                else:
+                    # Usuario existente reutilizado
+                    self.message_user(
+                        request, 
+                        f'Inscripción de {inscripcion.nombre_interesado} marcada como pagada. Usuario existente reutilizado: {user.username}',
+                        messages.SUCCESS
+                    )
             else:
                 self.message_user(
                     request, 

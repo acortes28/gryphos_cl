@@ -189,6 +189,11 @@ class UserPasswordChangeView(auth_views.PasswordChangeView):
     form_class = UserPasswordChangeForm
 
 def user_logout_view(request):
+    # Limpiar todos los mensajes de la sesión antes de hacer logout
+    from django.contrib import messages
+    storage = messages.get_messages(request)
+    storage.used = True  # Marcar todos los mensajes como usados para limpiarlos
+    
     logout(request)
     return redirect('/')
 
@@ -401,6 +406,25 @@ def enviar_correo_bienvenida(request, user, password_temp, curso_nombre):
     """
     from django.template.loader import render_to_string
     from django.utils.html import strip_tags
+    from .models import Curso
+    
+    # Obtener el curso completo para acceder a sus videollamadas
+    try:
+        curso = Curso.objects.get(nombre=curso_nombre)
+        videollamadas = curso.videollamadas.filter(activa=True).order_by('dia_semana', 'hora_inicio')
+        
+        # Formatear información de horarios
+        horarios_info = []
+        for videollamada in videollamadas:
+            horarios_info.append({
+                'dia': videollamada.get_dia_semana_display(),
+                'hora_inicio': videollamada.hora_inicio.strftime('%H:%M'),
+                'hora_fin': videollamada.hora_fin.strftime('%H:%M'),
+                'descripcion': videollamada.descripcion
+            })
+    except Curso.DoesNotExist:
+        curso = None
+        horarios_info = []
     
     # Generar URLs
     login_url = request.build_absolute_uri('/accounts/login/')
@@ -413,6 +437,8 @@ def enviar_correo_bienvenida(request, user, password_temp, curso_nombre):
         'password_temp': password_temp,
         'email': user.email,
         'curso_nombre': curso_nombre,
+        'curso': curso,
+        'horarios_info': horarios_info,
         'login_url': login_url,
         'change_password_url': change_password_url,
     })
@@ -1426,11 +1452,10 @@ def admin_inscripcion_detail(request, inscripcion_id):
     return render(request, 'admin/inscripcion_detail.html', context)
 
 
-#FIXME: No eiste validacion de que el usuario no exista
 @login_required
 def admin_marcar_pagado(request, inscripcion_id):
     """
-    Marcar una inscripción como pagada y crear el usuario
+    Marcar una inscripción como pagada y crear el usuario o reutilizar uno existente
     """
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para realizar esta acción.')
@@ -1440,28 +1465,37 @@ def admin_marcar_pagado(request, inscripcion_id):
         inscripcion = InscripcionCurso.objects.get(id=inscripcion_id)
         
         if inscripcion.estado == 'pendiente':
-            # Marcar como pagado y crear usuario
+            # Marcar como pagado y crear/reutilizar usuario
             user, password_temp = inscripcion.marcar_como_pagado()
             
-            if user and password_temp:
-                # Enviar correo de bienvenida
-                
-                if enviar_correo_bienvenida(request, user, password_temp, inscripcion.curso.nombre) and crear_direccion_gryphos(request, user, password_temp):
-                    messages.success(request, f'Inscripción marcada como pagada. Usuario creado: {user.username}')
-                    logger.info(f"Correo de bienvenida enviado exitosamente a {user.email}")
+            if user:
+                if password_temp:
+                    # Usuario nuevo creado - enviar correo de bienvenida
+                    if enviar_correo_bienvenida(request, user, password_temp, inscripcion.curso.nombre) and crear_direccion_gryphos(request, user, password_temp):
+                        messages.success(request, f'Inscripción marcada como pagada. Usuario creado: {user.username}')
+                        logger.info(f"Correo de bienvenida enviado exitosamente a {user.email}")
+                    else:
+                        messages.warning(request, f'Usuario creado pero error al enviar correo de bienvenida. Usuario: {user.username}, Contraseña: {password_temp}')
+                        logger.error(f"Error al enviar correo de bienvenida")
                 else:
-                    messages.warning(request, f'Usuario creado pero error al enviar correo de bienvenida. Usuario: {user.username}, Contraseña: {password_temp}')
-                    logger.error(f"Error al enviar correo de bienvenida: {e}")
+                    # Usuario existente reutilizado - no enviar correo de bienvenida
+                    if enviar_correo_bienvenida_usuario_existente(request, user, inscripcion.curso.nombre):
+                        messages.success(request, f'Inscripción marcada como pagada. Usuario existente reutilizado: {user.username}')
+                        logger.info(f"Correo de bienvenida a usuario existente enviado exitosamente a {user.email}")
+                    else:
+                        messages.warning(request, f'Usuario existente reutilizado pero error al enviar correo de bienvenida. Usuario: {user.username}')
+                        logger.error(f"Error al enviar correo de bienvenida a usuario existente")
                 
                 return JsonResponse({
                     'success': True, 
                     'message': 'Inscripción marcada como pagada',
-                    'username': user.username
+                    'username': user.username,
+                    'usuario_nuevo': password_temp is not None
                 })
             else:
                 return JsonResponse({
                     'success': False, 
-                    'message': 'Error al crear el usuario'
+                    'message': 'Error al procesar la inscripción'
                 })
         else:
             return JsonResponse({
@@ -1594,15 +1628,18 @@ def crear_direccion_gryphos(request, user, password_temp):
     "tls_enforce_in": "1",
     "tls_enforce_out": "1",
     "tags": [
-        "corporativo"
+        "estudiante"
     ]
     }
     try:
         response = requests.post(url, headers=headers, json=data)
-        logger.info(f"Dirección de correo creada exitosamente: {response.json()}")
-        return True
+        if response.status_code == 200:
+            logger.info(f"Dirección de correo creada exitosamente: {response.json()}")
+            return True
+        else:
+            logger.error(f"Error al crear la dirección de correo: {response.json()}")
+            return False
     except Exception as e:
-        messages.error(request, f"Error al crear la dirección de correo: {e}")
         logger.error(f"Error al crear la dirección de correo: {e}")
         return False
 
@@ -2736,3 +2773,63 @@ def reemplazar_archivo_entrega(request):
     except Exception as e:
         logger.error(f"Error al reemplazar archivo de entrega: {str(e)}")
         return JsonResponse({'success': False, 'error': f'Error al reemplazar el archivo: {str(e)}'})
+
+def enviar_correo_bienvenida_usuario_existente(request, user, curso_nombre):
+    """
+    Función para enviar correo de bienvenida a un usuario existente que se inscribe a un nuevo curso
+    """
+    from django.template.loader import render_to_string
+    from django.utils.html import strip_tags
+    from .models import Curso
+    
+    # Obtener el curso completo para acceder a sus videollamadas
+    try:
+        curso = Curso.objects.get(nombre=curso_nombre)
+        videollamadas = curso.videollamadas.filter(activa=True).order_by('dia_semana', 'hora_inicio')
+        
+        # Formatear información de horarios
+        horarios_info = []
+        for videollamada in videollamadas:
+            horarios_info.append({
+                'dia': videollamada.get_dia_semana_display(),
+                'hora_inicio': videollamada.hora_inicio.strftime('%H:%M'),
+                'hora_fin': videollamada.hora_fin.strftime('%H:%M'),
+                'descripcion': videollamada.descripcion
+            })
+    except Curso.DoesNotExist:
+        curso = None
+        horarios_info = []
+    
+    # Generar URLs
+    login_url = request.build_absolute_uri('/accounts/login/')
+    
+    # Renderizar el template HTML
+    html_message = render_to_string('emails/nueva_inscripcion.html', {
+        'nombre_usuario': user.get_full_name() or user.username,
+        'username': user.username,
+        'email': user.email,
+        'curso_nombre': curso_nombre,
+        'curso': curso,
+        'horarios_info': horarios_info,
+        'login_url': login_url,
+    })
+    
+    # Crear versión de texto plano
+    plain_message = strip_tags(html_message)
+    
+    subject = f'¡Bienvenido a tu nuevo curso! - {curso_nombre}'
+    
+    try:
+        send_mail(
+            subject=subject,
+            message=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'contacto@gryphos.cl',
+            recipient_list=[user.email],
+            html_message=html_message,
+            fail_silently=False,
+        )
+        logger.info(f"Correo de bienvenida a usuario existente enviado exitosamente a {user.email}")
+        return True
+    except Exception as e:
+        logger.error(f"Error enviando correo de bienvenida a usuario existente: {e}")
+        return False

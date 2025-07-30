@@ -68,22 +68,18 @@
 
     <p>Estimado/a {{ nombre_usuario }},</p>
 
-    <p>Es un gusto confirmar tu inscripción en nuestro <strong>Curso Intensivo de Gestión para PYMES</strong>. En nombre de todo el equipo de Gryphos Consulting, queremos agradecerte por confiar en nosotros para esta importante etapa de crecimiento para tu negocio.</p>
+    <p>Es un gusto confirmar tu inscripción en nuestro <strong>Curso Intensivo de Gestión para PYMES</strong>. En nombre de todo el equipo de Gryphos Consulting, queremos agradecerte por seguir confiando en nosotros para acompañarte en tu crecimiento profesional.</p>
 
-    <p>Te entregamos un correo electrónico exclusivo para este curso, el cual esta configurado para que lo uses a lo largo de este aprendizaje. A continuación está el usuario y contraseña que debes utilizar para ingresar a la plataforma de aprendizaje de Gryphos, a tu correo de gryphos y a las videollamadas.</p>
+    <p>Te recordamos que ya tienes acceso a la plataforma de aprendizaje de Gryphos, a tu correo de gryphos y a las videollamadas, por lo que podrás seguir usando nuestra plataforma con el mismo usuario y contraseña que ya tenías.</p>
 
-    <li><strong>Correo: </strong>{{ username }}@gryphos.cl</li>
-    <li><strong>Contraseña: </strong>{{ password_temp }}</li>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="https://www.gryphos.cl/accounts/login/" class="cta-button">Plataforma Virtual</a>
+        </div>
 
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="https://mail.gryphos.cl/" class="cta-button">Correo de Gryphos</a>
-    </div>
-
-
-    <p><small>(Recuerda no compartir tu usuario y contraseña con nadie)</small></p>
+    <p>Si tienes alguna pregunta o problema con tus credenciales entregadas no dudes en contactarnos respondiendo este mismo correo.</p>
 
     <div class="highlight">
-        <p><strong>Información importante para comenzar:</strong></p>
+        <p><strong>Información importante para continuar:</strong></p>
         <ul style="list-style-type: none;">
             {% if curso.fecha_inicio %}
                 <li>📅 <strong>Fecha de inicio:</strong> {{ curso.fecha_inicio|date:"d/m/Y" }}</li>
@@ -114,18 +110,6 @@
         <li>Tener a mano información básica de tu empresa (opcional, para ejercicios prácticos).</li>
         <li>Preparar un espacio tranquilo para las sesiones en vivo.</li>
     </ul>
-
-    <p><strong>Próximos pasos:</strong><br>
-    Puedes ingresar a la plataforma de aprendizaje de Gryphos donde tendrás a disposición el material que se irá entregando y un foro donde puedes compartir dudas o información con los demás estudiantes.</p>
-
-    <li><strong>Usuario: </strong>{{ username }}</li>
-    <li><strong>Contraseña: </strong>{{ password_temp }}</li>
-
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="https://www.gryphos.cl/accounts/login/" class="cta-button">Plataforma Virtual</a>
-    </div>
-
-    <p>Si tienes alguna pregunta o problema con tus credenciales entregadas no dudes en contactarnos respondiendo este mismo correo.</p>
 
     <p>Estamos comprometidos con tu éxito y preparando contenido de alto valor que podrás aplicar inmediatamente en tu negocio.</p>
 

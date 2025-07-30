@@ -1010,13 +1010,153 @@ function subirEntrega() {
   }
 }
 
+// Función para validar archivo
+function validateArchivo(file) {
+  console.log('Validando archivo:', file.name, 'Tamaño:', file.size);
+  
+  const archivoStatus = document.getElementById('archivoStatus');
+  const btnSubirEntrega = document.getElementById('btnSubirEntrega');
+  
+  // Verificar tamaño (50MB)
+  if (file.size > 50 * 1024 * 1024) {
+    console.log('Archivo demasiado grande');
+    archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm">❌ El archivo es demasiado grande. Máximo 50MB.</div>';
+    if (btnSubirEntrega) btnSubirEntrega.disabled = true;
+    return false;
+  }
+  
+  // Verificar tipo de archivo
+  const allowedExtensions = ['.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', '.jpg', '.jpeg', '.png', '.xlsx', '.xls', '.ppt', '.pptx', '.csv'];
+  const fileName = file.name.toLowerCase();
+  const isValidType = allowedExtensions.some(ext => fileName.endsWith(ext));
+  
+  console.log('Tipo de archivo válido:', isValidType, 'Nombre:', fileName);
+  
+  if (!isValidType) {
+    console.log('Tipo de archivo no permitido');
+    archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm">❌ Solo se permiten archivos PDF, DOC, DOCX, TXT, ZIP, RAR, JPG, JPEG, PNG, XLSX, XLS, PPT, PPTX, CSV.</div>';
+    if (btnSubirEntrega) btnSubirEntrega.disabled = true;
+    return false;
+  }
+  
+  console.log('Archivo válido');
+  return true;
+}
+
+// Función para mostrar vista previa del archivo
+function showArchivoPreview(file) {
+  console.log('Mostrando vista previa del archivo:', file.name);
+  
+  const archivoPreview = document.getElementById('archivoPreview');
+  const nombreArchivo = document.getElementById('nombreArchivo');
+  const archivoStatus = document.getElementById('archivoStatus');
+  const btnSubirEntrega = document.getElementById('btnSubirEntrega');
+  
+  console.log('Elementos encontrados:', {
+    archivoPreview: !!archivoPreview,
+    nombreArchivo: !!nombreArchivo,
+    archivoStatus: !!archivoStatus,
+    btnSubirEntrega: !!btnSubirEntrega
+  });
+  
+  // Mostrar nombre del archivo
+  if (nombreArchivo) {
+    nombreArchivo.textContent = file.name;
+  }
+  
+  // Mostrar vista previa
+  if (archivoPreview) {
+    archivoPreview.style.display = 'block';
+  }
+  
+  // Mostrar mensaje de éxito con información del archivo
+  const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+  if (archivoStatus) {
+    archivoStatus.innerHTML = `<div class="alert alert-success alert-sm">
+      <i class="fas fa-check-circle me-2"></i>
+      <strong>Archivo seleccionado correctamente</strong><br>
+      <small>Nombre: ${file.name} | Tamaño: ${fileSizeMB} MB</small>
+    </div>`;
+  }
+  
+  // Habilitar botón de subir entrega
+  if (btnSubirEntrega) {
+    btnSubirEntrega.disabled = false;
+    console.log('Botón de subir entrega habilitado');
+  } else {
+    console.error('No se encontró el botón de subir entrega');
+  }
+  
+  console.log('Vista previa mostrada correctamente');
+}
+
+// Función para eliminar archivo
+function removeArchivo() {
+  const archivoInput = document.getElementById('archivo_entrega');
+  const archivoPreview = document.getElementById('archivoPreview');
+  const archivoStatus = document.getElementById('archivoStatus');
+  const btnSubirEntrega = document.getElementById('btnSubirEntrega');
+  
+  // Limpiar input de archivo
+  archivoInput.value = '';
+  
+  // Ocultar vista previa
+  archivoPreview.style.display = 'none';
+  
+  // Limpiar mensaje de estado
+  archivoStatus.innerHTML = '';
+  
+  // Deshabilitar botón de subir entrega
+  if (btnSubirEntrega) {
+    btnSubirEntrega.disabled = true;
+  }
+}
+
 // Agregar función para manejar el formulario de entrega
 function inicializarFormularioEntrega() {
+  console.log('Inicializando formulario de entrega...');
+  
   // Configurar el botón de confirmación del modal
   const btnConfirmar = document.getElementById('btnConfirmarEntrega');
   if (btnConfirmar) {
     btnConfirmar.onclick = subirEntrega;
   }
+  
+  // Configurar el botón de seleccionar archivo
+  const uploadBtn = document.getElementById('uploadArchivoBtn');
+  const archivoInput = document.getElementById('archivo_entrega');
+  
+  if (uploadBtn && archivoInput) {
+    console.log('Configurando botón de seleccionar archivo...');
+    
+    // Configurar event listener para el botón
+    uploadBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('Botón de seleccionar archivo clickeado');
+      archivoInput.click();
+    });
+    
+    // Configurar event listener para el input de archivo
+    archivoInput.addEventListener('change', function(e) {
+      console.log('Archivo seleccionado:', e.target.files[0]);
+      const file = e.target.files[0];
+      if (file) {
+        if (validateArchivo(file)) {
+          showArchivoPreview(file);
+        } else {
+          this.value = '';
+        }
+      }
+    });
+  }
+  
+  // Configurar botón de eliminar archivo
+  const removeArchivoBtn = document.getElementById('removeArchivoBtn');
+  if (removeArchivoBtn) {
+    removeArchivoBtn.addEventListener('click', removeArchivo);
+  }
+  
+  console.log('Formulario de entrega inicializado');
 }
 
 // Función para manejar el colapso de evaluaciones
