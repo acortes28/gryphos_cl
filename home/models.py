@@ -341,6 +341,13 @@ class InscripcionCurso(models.Model):
     usuario_creado = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, blank=True, null=True, related_name='inscripciones_creadas')
     observaciones = models.TextField(blank=True, null=True)
     
+    # Campos para tracking de errores en el proceso de pago
+    error_creacion_correo = models.TextField(blank=True, null=True, help_text="Error al crear dirección de correo")
+    error_envio_bienvenida = models.TextField(blank=True, null=True, help_text="Error al enviar correo de bienvenida")
+    fecha_ultimo_intento = models.DateTimeField(blank=True, null=True, help_text="Fecha del último intento de procesamiento")
+    intentos_procesamiento = models.PositiveIntegerField(default=0, help_text="Número de intentos de procesamiento")
+    password_temp = models.CharField(max_length=100, blank=True, null=True, help_text="Contraseña temporal para usuarios nuevos")
+    
     class Meta:
         ordering = ['-fecha_solicitud']
         verbose_name = 'Inscripción a Curso'
@@ -417,6 +424,7 @@ class InscripcionCurso(models.Model):
                 user.cursos.add(self.curso)
             
             self.usuario_creado = user
+            self.password_temp = password_temp
             self.save()
             
             return user, password_temp

@@ -39,7 +39,7 @@ def str2bool(v):
         raise ValueError('Boolean value expected.')
 
 # Enable/Disable DEBUG Mode
-DEBUG = os.environ.get('DEBUG', 'False')  
+DEBUG = str2bool(os.environ.get('DEBUG', 'False'))
 
 print("DEBUG -> " + str(DEBUG))
 
@@ -94,13 +94,12 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "core.middleware.SessionFixMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "core.middleware.SessionDebugMiddleware",
+    "core.middleware.SessionFixMiddleware",
     "home.middleware.SessionTimeoutMiddleware",
 ]
 
@@ -315,27 +314,27 @@ LOGGING = {
         'django': {
             'handlers': ['console', 'file', 'error_file'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
         'home': {
             'handlers': ['console', 'file', 'error_file'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
         'home.views': {
             'handlers': ['console', 'file', 'error_file'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
         'home.middleware': {
             'handlers': ['console', 'file', 'error_file'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
         'core.middleware': {
             'handlers': ['console', 'file', 'error_file'],
             'level': 'DEBUG',
-            'propagate': True,
+            'propagate': False,
         },
     },
 }

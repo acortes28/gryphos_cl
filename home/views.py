@@ -264,38 +264,17 @@ def quienes_somos(request):
 @login_required
 def portal_cliente(request):
     logger.info(f"Acceso al portal del cliente - Usuario: {request.user.username}")
-    logger.debug(f"Request method: {request.method}")
-    logger.debug(f"Request path: {request.path}")
-    logger.debug(f"Request GET params: {request.GET}")
-    logger.debug(f"Request POST params: {request.POST}")
     
     try:
-        logger.debug("Obteniendo cursos del usuario...")
         cursos_usuario = request.user.cursos.all()
         logger.debug(f"Usuario {request.user.username} tiene {cursos_usuario.count()} cursos")
-        
-        # Log detallado de los cursos
-        for curso in cursos_usuario:
-            logger.debug(f"Curso: {curso.nombre} (ID: {curso.id})")
-            logger.debug(f"  - Videollamadas: {curso.videollamadas.count()}")
-            for v in curso.videollamadas.all():
-                logger.debug(f"    * Videollamada: {v} (activa: {v.activa})")
         
         context = {
             'cursos_usuario': cursos_usuario,
             'request': request
         }
         
-        logger.debug(f"Contexto preparado para portal del cliente")
-        logger.debug(f"Template a renderizar: pages/portal-cliente.html")
-        
-        # Intentar renderizar el template
-        logger.debug("Iniciando renderizado del template...")
         response = render(request, 'pages/portal-cliente.html', context)
-        logger.debug(f"Template renderizado exitosamente")
-        logger.debug(f"Response status: {getattr(response, 'status_code', 'N/A')}")
-        logger.debug(f"Response content length: {len(response.content) if hasattr(response, 'content') else 'N/A'}")
-        
         logger.info(f"Portal del cliente renderizado exitosamente para {request.user.username}")
         return response
         
@@ -378,6 +357,9 @@ def enviar_correo_instrucciones_pago(request, inscripcion):
         'curso_precio_formateado': curso_precio_formateado,
         'dias_plazo_pago': inscripcion.curso.dias_plazo_pago,
     })
+
+    logger.debug(f"HTML message: {html_message}")
+    logger.debug(f"Preparando envío de correo electrónico a {inscripcion.correo_contacto}")
     
     # Crear versión de texto plano
     plain_message = strip_tags(html_message)
@@ -1475,28 +1457,95 @@ def admin_marcar_pagado(request, inscripcion_id):
             
             if user:
                 if password_temp:
-                    # Usuario nuevo creado - enviar correo de bienvenida
-                    if enviar_correo_bienvenida(request, user, password_temp, inscripcion.curso.nombre) and crear_direccion_gryphos(request, user, password_temp):
-                        messages.success(request, f'Inscripción marcada como pagada. Usuario creado: {user.username}')
-                        logger.info(f"Correo de bienvenida enviado exitosamente a {user.email}")
-                    else:
-                        messages.warning(request, f'Usuario creado pero error al enviar correo de bienvenida. Usuario: {user.username}, Contraseña: {password_temp}')
-                        logger.error(f"Error al enviar correo de bienvenida")
+                    # Usuario nuevo creado - procesar correo y dirección
+                    from django.utils import timezone
+                    
+                    # Actualizar tracking
+                    inscripcion.intentos_procesamiento += 1
+                    inscripcion.fecha_ultimo_intento = timezone.now()
+                    
+                    # Paso 1: Intentar crear dirección gryphos
+                    direccion_creada = crear_direccion_gryphos(request, user, password_temp)
+                    
+                    if not direccion_creada:
+                        # Error al crear dirección de correo
+                        inscripcion.error_creacion_correo = f"Error al crear dirección de correo para {user.username}@gryphos.cl"
+                        inscripcion.error_envio_bienvenida = None
+                        inscripcion.save()
+                        
+                        return JsonResponse({
+                            'success': False,
+                            'message': 'Error al crear dirección de correo electrónico',
+                            'error_type': 'creacion_correo',
+                            'username': user.username,
+                            'usuario_nuevo': True,
+                            'password_temp': password_temp,
+                            'can_retry': True
+                        })
+                    
+                    # Paso 2: Si se creó la dirección, intentar enviar correo de bienvenida
+                    correo_enviado = enviar_correo_bienvenida(request, user, inscripcion.password_temp, inscripcion.curso.nombre)
+                    
+                    if not correo_enviado:
+                        # Error al enviar correo de bienvenida
+                        inscripcion.error_creacion_correo = None
+                        inscripcion.error_envio_bienvenida = f"Error al enviar correo de bienvenida a {user.email}"
+                        inscripcion.save()
+                        
+                        return JsonResponse({
+                            'success': False,
+                            'message': 'Se creó el correo electrónico pero falló el envío del correo de bienvenida',
+                            'error_type': 'envio_bienvenida',
+                            'username': user.username,
+                            'usuario_nuevo': True,
+                            'password_temp': password_temp,
+                            'can_retry': True
+                        })
+                    
+                    # Éxito completo
+                    inscripcion.error_creacion_correo = None
+                    inscripcion.error_envio_bienvenida = None
+                    inscripcion.save()
+                    
+                    messages.success(request, f'Inscripción marcada como pagada. Usuario creado: {user.username}')
+                    logger.info(f"Correo de bienvenida enviado exitosamente a {user.email}")
+                    
+                    return JsonResponse({
+                        'success': True, 
+                        'message': 'Inscripción marcada como pagada',
+                        'username': user.username,
+                        'usuario_nuevo': True
+                    })
+                    
                 else:
-                    # Usuario existente reutilizado - no enviar correo de bienvenida
-                    if enviar_correo_bienvenida_usuario_existente(request, user, inscripcion.curso.nombre):
-                        messages.success(request, f'Inscripción marcada como pagada. Usuario existente reutilizado: {user.username}')
-                        logger.info(f"Correo de bienvenida a usuario existente enviado exitosamente a {user.email}")
-                    else:
-                        messages.warning(request, f'Usuario existente reutilizado pero error al enviar correo de bienvenida. Usuario: {user.username}')
-                        logger.error(f"Error al enviar correo de bienvenida a usuario existente")
-                
-                return JsonResponse({
-                    'success': True, 
-                    'message': 'Inscripción marcada como pagada',
-                    'username': user.username,
-                    'usuario_nuevo': password_temp is not None
-                })
+                    # Usuario existente reutilizado - solo enviar correo de bienvenida
+                    correo_enviado = enviar_correo_bienvenida_usuario_existente(request, user, inscripcion.curso.nombre)
+                    
+                    if not correo_enviado:
+                        inscripcion.error_envio_bienvenida = f"Error al enviar correo de bienvenida a usuario existente {user.email}"
+                        inscripcion.save()
+                        
+                        return JsonResponse({
+                            'success': False,
+                            'message': 'Error al enviar correo de bienvenida a usuario existente',
+                            'error_type': 'envio_bienvenida_existente',
+                            'username': user.username,
+                            'usuario_nuevo': False,
+                            'can_retry': True
+                        })
+                    
+                    inscripcion.error_envio_bienvenida = None
+                    inscripcion.save()
+                    
+                    messages.success(request, f'Inscripción marcada como pagada. Usuario existente reutilizado: {user.username}')
+                    logger.info(f"Correo de bienvenida a usuario existente enviado exitosamente a {user.email}")
+                    
+                    return JsonResponse({
+                        'success': True, 
+                        'message': 'Inscripción marcada como pagada',
+                        'username': user.username,
+                        'usuario_nuevo': False
+                    })
             else:
                 return JsonResponse({
                     'success': False, 
@@ -1612,6 +1661,137 @@ def admin_reenviar_correo(request, inscripcion_id):
         'success': False, 
         'message': 'Método no permitido'
     })
+
+
+@login_required
+def admin_reintentar_procesamiento(request, inscripcion_id):
+    """
+    Reintentar el procesamiento de una inscripción pagada que tuvo errores
+    """
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permisos para realizar esta acción.')
+        return JsonResponse({'success': False, 'message': 'Sin permisos'})
+    
+    try:
+        inscripcion = InscripcionCurso.objects.get(id=inscripcion_id)
+        
+        if inscripcion.estado != 'pagado':
+            return JsonResponse({
+                'success': False, 
+                'message': 'Solo se puede reintentar procesamiento de inscripciones pagadas'
+            })
+        
+        if not inscripcion.usuario_creado:
+            return JsonResponse({
+                'success': False, 
+                'message': 'No hay usuario asociado a esta inscripción'
+            })
+        
+        user = inscripcion.usuario_creado
+        
+        # Verificar si es usuario nuevo o existente
+        from django.contrib.auth.hashers import check_password
+        is_new_user = not user.has_usable_password() or user.password.startswith('pbkdf2_sha256$')
+        
+        if is_new_user:
+            # Usuario nuevo - reintentar creación de dirección y correo de bienvenida
+            from django.utils import timezone
+            
+            # Actualizar tracking
+            inscripcion.intentos_procesamiento += 1
+            inscripcion.fecha_ultimo_intento = timezone.now()
+            
+            # Obtener la contraseña temporal guardada en la inscripción
+            password_temp = inscripcion.password_temp
+            
+            # Paso 1: Intentar crear dirección gryphos
+            direccion_creada = crear_direccion_gryphos(request, user, password_temp)
+            
+            if not direccion_creada:
+                inscripcion.error_creacion_correo = f"Error al crear dirección de correo para {user.username}@gryphos.cl"
+                inscripcion.error_envio_bienvenida = None
+                inscripcion.save()
+                
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Error al crear dirección de correo electrónico',
+                    'error_type': 'creacion_correo',
+                    'username': user.username,
+                    'usuario_nuevo': True,
+                    'can_retry': True
+                })
+            
+            # Paso 2: Si se creó la dirección, intentar enviar correo de bienvenida
+            correo_enviado = enviar_correo_bienvenida(request, user, inscripcion.password_temp, inscripcion.curso.nombre)
+            
+            if not correo_enviado:
+                inscripcion.error_creacion_correo = None
+                inscripcion.error_envio_bienvenida = f"Error al enviar correo de bienvenida a {user.email}"
+                inscripcion.save()
+                
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Se creó el correo electrónico pero falló el envío del correo de bienvenida',
+                    'error_type': 'envio_bienvenida',
+                    'username': user.username,
+                    'usuario_nuevo': True,
+                    'can_retry': True
+                })
+            
+            # Éxito completo
+            inscripcion.error_creacion_correo = None
+            inscripcion.error_envio_bienvenida = None
+            inscripcion.save()
+            
+            messages.success(request, f'Procesamiento completado exitosamente para usuario: {user.username}')
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'Procesamiento completado exitosamente',
+                'username': user.username,
+                'usuario_nuevo': True
+            })
+            
+        else:
+            # Usuario existente - solo reintentar correo de bienvenida
+            correo_enviado = enviar_correo_bienvenida_usuario_existente(request, user, inscripcion.curso.nombre)
+            
+            if not correo_enviado:
+                inscripcion.error_envio_bienvenida = f"Error al enviar correo de bienvenida a usuario existente {user.email}"
+                inscripcion.save()
+                
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Error al enviar correo de bienvenida a usuario existente',
+                    'error_type': 'envio_bienvenida_existente',
+                    'username': user.username,
+                    'usuario_nuevo': False,
+                    'can_retry': True
+                })
+            
+            inscripcion.error_envio_bienvenida = None
+            inscripcion.save()
+            
+            messages.success(request, f'Correo de bienvenida enviado exitosamente a usuario existente: {user.username}')
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'Correo de bienvenida enviado exitosamente',
+                'username': user.username,
+                'usuario_nuevo': False
+            })
+            
+    except InscripcionCurso.DoesNotExist:
+        return JsonResponse({
+            'success': False, 
+            'message': 'Inscripción no encontrada'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'message': f'Error: {str(e)}'
+        })
+
 
 def crear_direccion_gryphos(request, user, password_temp):
     url = "https://mail.gryphos.cl/api/v1/add/mailbox"
@@ -2972,8 +3152,8 @@ def plataforma_soporte_ajax(request, curso_id):
                 for choice in form.fields['clasificacion'].choices:
                     print(f"  - {choice[1]} (valor: {choice[0]})")
                 
-                print(f"Opciones de subclasificación en form: {len(form.fields['subclasificacion'].choices)}")
-                for choice in form.fields['subclasificacion'].choices:
+                print(f"Opciones de subclasificación en form widget: {len(form.fields['subclasificacion'].widget.choices)}")
+                for choice in form.fields['subclasificacion'].widget.choices:
                     print(f"  - {choice[1]} (valor: {choice[0]})")
                 
                 context = {
@@ -3108,16 +3288,27 @@ def crear_ticket_soporte(request, curso_id):
     Vista para crear un nuevo ticket de soporte
     """
     if request.method == 'POST':
+        print("=== DEBUG CREAR TICKET ===")
+        print(f"Datos POST recibidos: {request.POST}")
+        
         form = TicketSoporteForm(request.POST)
+        print(f"Formulario válido: {form.is_valid()}")
+        
         if form.is_valid():
             ticket = form.save(commit=False)
             ticket.usuario = request.user
             ticket.curso_id = curso_id
             ticket.save()
             
+            print("✓ Ticket creado exitosamente")
+            print("=== FIN DEBUG CREAR TICKET ===")
+            
             messages.success(request, 'Ticket creado exitosamente. Recibirás una respuesta pronto.')
             return JsonResponse({'success': True, 'message': 'Ticket creado exitosamente'})
         else:
+            print("✗ Formulario inválido")
+            print(f"Errores del formulario: {form.errors}")
+            print("=== FIN DEBUG CREAR TICKET ===")
             return JsonResponse({'success': False, 'errors': form.errors})
     
     return JsonResponse({'error': 'Método no permitido'}, status=405)

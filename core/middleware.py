@@ -45,21 +45,13 @@ class SessionDebugMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if settings.DEBUG:
+        # Solo mostrar debug si DEBUG está activo y hay problemas de sesión
+        if settings.DEBUG and not request.user.is_authenticated and hasattr(request, 'session'):
             print(f"\n=== DEBUG SESIÓN ===")
-            print(f"Usuario autenticado: {request.user.is_authenticated}")
             print(f"Usuario: {request.user}")
             print(f"Session ID: {request.session.session_key}")
-            print(f"Session data: {dict(request.session)}")
-            print(f"Cookies: {request.COOKIES}")
         
         response = self.get_response(request)
-        
-        if settings.DEBUG:
-            print(f"Response status: {response.status_code}")
-            if hasattr(response, 'cookies'):
-                print(f"Response cookies: {dict(response.cookies)}")
-        
         return response
 
 

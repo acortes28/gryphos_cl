@@ -182,7 +182,7 @@ class CursoCapacitacionForm(forms.Form):
             'class': 'form-control',
             'placeholder': ''
         }),
-        label="Curso de interés",
+        label="",
         required=True
     )
     
@@ -571,8 +571,8 @@ class TicketSoporteForm(forms.ModelForm):
         help_text='Selecciona la categoría principal de tu consulta'
     )
     
-    subclasificacion = forms.ChoiceField(
-        choices=[],
+    subclasificacion = forms.CharField(
+        max_length=100,
         widget=forms.Select(attrs={
             'class': 'form-control',
             'id': 'subclasificacion-select'
@@ -583,7 +583,7 @@ class TicketSoporteForm(forms.ModelForm):
     
     class Meta:
         model = TicketSoporte
-        fields = ['titulo', 'clasificacion', 'subclasificacion', 'descripcion']
+        fields = ['titulo', 'descripcion']
         widgets = {
             'titulo': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -625,11 +625,13 @@ class TicketSoporteForm(forms.ModelForm):
         for choice in self.fields['clasificacion'].choices:
             print(f"  - {choice[1]} (valor: {choice[0]})")
         
-        # Inicialmente no hay subclasificaciones
-        self.fields['subclasificacion'].choices = [('', 'Primero selecciona una clasificación')]
+        # Configurar subclasificación como campo de texto con opciones iniciales
+        self.fields['subclasificacion'].widget.choices = [('', 'Primero selecciona una clasificación')]
+        # Deshabilitar la validación inicial de subclasificación
+        self.fields['subclasificacion'].required = False
         
-        print(f"Opciones finales de subclasificación: {len(self.fields['subclasificacion'].choices)}")
-        for choice in self.fields['subclasificacion'].choices:
+        print(f"Opciones finales de subclasificación: {len(self.fields['subclasificacion'].widget.choices)}")
+        for choice in self.fields['subclasificacion'].widget.choices:
             print(f"  - {choice[1]} (valor: {choice[0]})")
         
         print("=== FIN DEBUG TICKETSOPORTEFORM __INIT__ ===")
@@ -645,6 +647,64 @@ class TicketSoporteForm(forms.ModelForm):
         if len(descripcion) < 20:
             raise forms.ValidationError('La descripción debe tener al menos 20 caracteres.')
         return descripcion
+    
+    def clean_subclasificacion(self):
+        """
+        Validación personalizada para subclasificación que permite valores dinámicos
+        """
+        subclasificacion = self.cleaned_data.get('subclasificacion')
+        clasificacion = self.cleaned_data.get('clasificacion')
+        
+        if not subclasificacion:
+            raise forms.ValidationError('Debes seleccionar una subclasificación.')
+        
+        if not clasificacion:
+            raise forms.ValidationError('Debes seleccionar una clasificación primero.')
+        
+        # Verificar que la subclasificación existe para la clasificación seleccionada
+        try:
+            from .models import ClasificacionTicket, SubclasificacionTicket
+            clasificacion_obj = ClasificacionTicket.objects.get(nombre=clasificacion, activa=True)
+            subclasificacion_obj = SubclasificacionTicket.objects.get(
+                clasificacion=clasificacion_obj,
+                nombre=subclasificacion,
+                activa=True
+            )
+            return subclasificacion
+        except (ClasificacionTicket.DoesNotExist, SubclasificacionTicket.DoesNotExist):
+            raise forms.ValidationError('La subclasificación seleccionada no es válida para la clasificación elegida.')
+    
+    def clean_clasificacion(self):
+        """
+        Validación personalizada para clasificación
+        """
+        clasificacion = self.cleaned_data.get('clasificacion')
+        
+        if not clasificacion:
+            raise forms.ValidationError('Debes seleccionar una clasificación.')
+        
+        # Verificar que la clasificación existe y está activa
+        try:
+            from .models import ClasificacionTicket
+            ClasificacionTicket.objects.get(nombre=clasificacion, activa=True)
+            return clasificacion
+        except ClasificacionTicket.DoesNotExist:
+            raise forms.ValidationError('La clasificación seleccionada no es válida.')
+    
+    def save(self, commit=True):
+        """
+        Guardar el ticket con los campos de clasificación y subclasificación
+        """
+        ticket = super().save(commit=False)
+        
+        # Asignar los campos de clasificación y subclasificación
+        ticket.clasificacion = self.cleaned_data.get('clasificacion')
+        ticket.subclasificacion = self.cleaned_data.get('subclasificacion')
+        
+        if commit:
+            ticket.save()
+        
+        return ticket
 
 
 class ComentarioTicketForm(forms.ModelForm):

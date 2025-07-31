@@ -87,48 +87,6 @@
           </div>
         </div>
 
-        <!-- Información del docente -->
-        {% if curso.docente_nombre %}
-        <div class="card mb-4">
-          <div class="card-header">
-            <h4 class="mb-0">
-              <i class="fas fa-user-tie me-2"></i>
-              Docente del Curso
-            </h4>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              {% if curso.docente_foto %}
-              <div class="col-md-3 text-center">
-                <img src="{{ curso.docente_foto.url }}" alt="{{ curso.docente_nombre }}" class="img-fluid rounded-circle" style="max-width: 150px;">
-              </div>
-              <div class="col-md-9">
-              {% else %}
-              <div class="col-md-12">
-              {% endif %}
-                <h5>{{ curso.docente_nombre }}</h5>
-                {% if curso.docente_titulos %}
-                <div class="mb-3">
-                  <strong><i class="fas fa-award me-2"></i>Títulos y Certificaciones:</strong>
-                  <div class="mt-2">
-                    {{ curso.docente_titulos|linebreaks }}
-                  </div>
-                </div>
-                {% endif %}
-                {% if curso.docente_trayectoria %}
-                <div class="mb-3">
-                  <strong><i class="fas fa-briefcase me-2"></i>Trayectoria Profesional:</strong>
-                  <div class="mt-2">
-                    {{ curso.docente_trayectoria|linebreaks }}
-                  </div>
-                </div>
-                {% endif %}
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endif %}
-
         <!-- Requisitos del curso -->
         {% if curso.requisitos %}
         <div class="card mb-4">
@@ -167,6 +125,48 @@
               </a>
             </div>
             {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Información del docente -->
+        {% if curso.docente_nombre %}
+        <div class="card mb-4">
+          <div class="card-header">
+            <h4 class="mb-0">
+              <i class="fas fa-user-tie me-2"></i>
+              Docente del Curso
+            </h4>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              {% if curso.docente_foto %}
+              <div class="col-md-3 text-center">
+                <img src="{{ curso.docente_foto.url }}" alt="{{ curso.docente_nombre }}" class="img-fluid rounded-circle" style="max-width: 150px;">
+              </div>
+              <div class="col-md-9">
+              {% else %}
+              <div class="col-md-12">
+              {% endif %}
+                <h5>{{ curso.docente_nombre }}</h5>
+                {% if curso.docente_titulos %}
+                <div class="mb-3">
+                  <strong><i class="fas fa-award me-2"></i>Títulos y Certificaciones:</strong>
+                  <div class="mt-2">
+                    {{ curso.docente_titulos|linebreaks }}
+                  </div>
+                </div>
+                {% endif %}
+                {% if curso.docente_trayectoria %}
+                <div class="mb-3">
+                  <strong><i class="fas fa-briefcase me-2"></i>Trayectoria Profesional:</strong>
+                  <div class="mt-2">
+                    {{ curso.docente_trayectoria|linebreaks }}
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+            </div>
           </div>
         </div>
         {% endif %}
