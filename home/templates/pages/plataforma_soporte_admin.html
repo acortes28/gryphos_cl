@@ -56,7 +56,12 @@
             
             <div class="col-md-4">
               <label class="form-label">Buscar</label>
-              <input type="text" class="form-control" id="buscar-tickets" placeholder="Buscar por título, usuario..." onkeyup="buscarTickets()">
+                              <div class="d-flex">
+                  <input type="text" class="form-control me-2" id="buscar-tickets" placeholder="Buscar por título, usuario..." onkeyup="buscarTickets()">
+                  <button class="btn btn-outline-secondary" type="button" onclick="resetearFiltrosAdmin()" title="Limpiar filtros">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                  </button>
+                </div>
             </div>
           </div>
         </div>
@@ -139,6 +144,7 @@
                     <th>Clasificación</th>
                     <th>Estado</th>
                     <th>Prioridad</th>
+                    <th>Asignado a</th>
                     <th>Fecha</th>
                     <th>Acciones</th>
                   </tr>
@@ -199,6 +205,24 @@
                         {% endif %}
                       </td>
                       <td>
+                        {% if ticket.asignado_a %}
+                          <div class="d-flex align-items-center">
+                            {% if ticket.asignado_a.profile_photo %}
+                              <img src="{{ ticket.asignado_a.profile_photo.url }}" alt="Avatar" class="rounded-circle me-2" width="24" height="24">
+                            {% else %}
+                              <div class="bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                                <i class="fas fa-user text-white" style="font-size: 10px;"></i>
+                              </div>
+                            {% endif %}
+                            <div>
+                              <div class="fw-bold small">{{ ticket.asignado_a.get_full_name|default:ticket.asignado_a.username }}</div>
+                            </div>
+                          </div>
+                        {% else %}
+                          <span class="text-muted small">Sin asignar</span>
+                        {% endif %}
+                      </td>
+                      <td>
                         <div>
                           <div class="fw-bold">{{ ticket.fecha_creacion|date:"d/m/Y" }}</div>
                           <small class="text-muted">{{ ticket.fecha_creacion|date:"H:i" }}</small>
@@ -207,14 +231,17 @@
                       <td>
                         <div class="btn-group" role="group">
                           <button class="btn btn-sm btn-outline-primary" onclick="verTicket({{ ticket.id }})" title="Ver detalles">
-                            <i class="fas fa-eye"></i>
+                            <i class="fas fa-eye"></i>Ver
                           </button>
-                          <button class="btn btn-sm btn-outline-warning" onclick="editarTicket({{ ticket.id }})" title="Editar">
-                            <i class="fas fa-edit"></i>
-                          </button>
-                          <button class="btn btn-sm btn-outline-success" onclick="responderTicket({{ ticket.id }})" title="Responder">
-                            <i class="fas fa-reply"></i>
-                          </button>
+                          {% if ticket.estado == 'resuelto' %}
+                            <button class="btn btn-sm btn-outline-warning" onclick="reabrirTicket({{ ticket.id }})" title="Reabrir">
+                              <i class="fas fa-undo"></i>Reabrir
+                            </button>
+                          {% else %}
+                            <button class="btn btn-sm btn-outline-warning" onclick="reasignarTicket({{ ticket.id }})" title="Reasignar">
+                              <i class="fas fa-user-plus"></i>Reasignar
+                            </button>
+                          {% endif %}
                         </div>
                       </td>
                     </tr>
@@ -230,6 +257,193 @@
             </div>
           {% endif %}
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Reasignación -->
+<div class="modal fade" id="modalReasignar" tabindex="-1" aria-labelledby="modalReasignarLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalReasignarLabel">
+          <i class="fas fa-user-plus me-2"></i>Reasignar Ticket
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formReasignar">
+          {% csrf_token %}
+          <input type="hidden" id="ticketIdReasignar" name="ticket_id">
+          
+          <div class="mb-3">
+            <label for="usuarioAsignar" class="form-label">Asignar a:</label>
+            <select class="form-select" id="usuarioAsignar" name="usuario_asignar" required>
+              <option value="">Seleccionar usuario...</option>
+              {% for usuario in usuarios_staff %}
+                <option value="{{ usuario.id }}">{{ usuario.get_full_name|default:usuario.username }} ({{ usuario.email }})</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Selecciona el usuario admin/staff que se encargará del ticket.</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="comentarioReasignacion" class="form-label">Comentario interno (opcional):</label>
+            <textarea class="form-control" id="comentarioReasignacion" name="comentario_interno" rows="3" placeholder="Comentario interno sobre la reasignación..."></textarea>
+            <div class="form-text">Este comentario solo será visible para usuarios admin/staff.</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" onclick="confirmarReasignacion()">
+          <i class="fas fa-check me-2"></i>Confirmar Reasignación
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Reabrir Ticket -->
+<div class="modal fade" id="modalReabrirTicket" tabindex="-1" aria-labelledby="modalReabrirTicketLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalReabrirTicketLabel">
+          <i class="fas fa-undo me-2"></i>Reabrir Ticket
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formReabrirTicket">
+          {% csrf_token %}
+          <input type="hidden" id="ticketIdReabrir" name="ticket_id">
+          
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Importante:</strong> Para reabrir el ticket, debes proporcionar un comentario explicando por qué se reabre.
+          </div>
+          
+          <div class="mb-3">
+            <label for="comentarioReapertura" class="form-label">Comentario de reapertura:</label>
+            <textarea class="form-control" id="comentarioReapertura" name="comentario_reapertura" rows="4" placeholder="Explica por qué se reabre el ticket..." required></textarea>
+            <div class="form-text">Este comentario será visible para el usuario que creó el ticket.</div>
+          </div>
+          
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="esInternoReapertura" name="es_interno_reapertura">
+              <label class="form-check-label" for="esInternoReapertura">
+                <i class="fas fa-eye-slash me-1"></i>Comentario interno (solo visible para admin/staff)
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-warning" onclick="confirmarReapertura()">
+          <i class="fas fa-undo me-2"></i>Reabrir Ticket
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Resolver Ticket -->
+<div class="modal fade" id="modalResolverTicket" tabindex="-1" aria-labelledby="modalResolverTicketLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalResolverTicketLabel">
+          <i class="fas fa-check-circle me-2"></i>Resolver Ticket
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formResolverTicket">
+          {% csrf_token %}
+          <input type="hidden" id="ticketIdResolver" name="ticket_id">
+          
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Importante:</strong> Para resolver el ticket, debes proporcionar un comentario explicando la solución.
+          </div>
+          
+          <div class="mb-3">
+            <label for="comentarioResolucion" class="form-label">Comentario de resolución:</label>
+            <textarea class="form-control" id="comentarioResolucion" name="comentario_resolucion" rows="4" placeholder="Explica cómo se resolvió el problema..." required></textarea>
+            <div class="form-text">Este comentario será visible para el usuario que creó el ticket.</div>
+          </div>
+          
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="esInternoResolucion" name="es_interno_resolucion">
+              <label class="form-check-label" for="esInternoResolucion">
+                <i class="fas fa-eye-slash me-1"></i>Comentario interno (solo visible para admin/staff)
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-success" onclick="confirmarResolucion()">
+          <i class="fas fa-check me-2"></i>Resolver Ticket
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Cambiar Prioridad -->
+<div class="modal fade" id="modalCambiarPrioridad" tabindex="-1" aria-labelledby="modalCambiarPrioridadLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalCambiarPrioridadLabel">
+          <i class="fas fa-exclamation-triangle me-2"></i>Cambiar Prioridad
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formCambiarPrioridad">
+          {% csrf_token %}
+          <input type="hidden" id="ticketIdPrioridad" name="ticket_id">
+          
+          <div class="mb-3">
+            <label for="nuevaPrioridad" class="form-label">Nueva prioridad:</label>
+            <select class="form-select" id="nuevaPrioridad" name="nueva_prioridad" required>
+              <option value="">Seleccionar prioridad...</option>
+              <option value="baja">Baja</option>
+              <option value="media">Media</option>
+              <option value="alta">Alta</option>
+              <option value="urgente">Urgente</option>
+            </select>
+            <div class="form-text">Selecciona la nueva prioridad para el ticket.</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="comentarioPrioridad" class="form-label">Comentario (opcional):</label>
+            <textarea class="form-control" id="comentarioPrioridad" name="comentario_prioridad" rows="3" placeholder="Comentario sobre el cambio de prioridad..."></textarea>
+            <div class="form-text">Este comentario será visible para todos los usuarios del ticket.</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" onclick="confirmarCambioPrioridad()">
+          <i class="fas fa-check me-2"></i>Confirmar Cambio
+        </button>
       </div>
     </div>
   </div>
@@ -259,17 +473,17 @@
   background-color: rgba(0, 0, 0, 0.02);
 }
 
-/* Estilos para las stats-card (igual que en calificaciones) */
+/* Estilos para las stats-card con colores fijos */
 .stats-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: white !important;
   border-radius: 10px;
   padding: 20px;
   margin-bottom: 20px;
 }
 
 .stats-card h3 {
-  color: white;
+  color: white !important;
   margin-bottom: 10px;
 }
 
@@ -277,11 +491,18 @@
   font-size: 2rem;
   font-weight: bold;
   margin-bottom: 5px;
+  color: white !important;
 }
 
 .stats-card .stat-label {
   font-size: 0.9rem;
   opacity: 0.9;
+  color: white !important;
+}
+
+.stats-card i {
+  color: white !important;
+  opacity: 0.8;
 }
 
 /* Estilos para el overlay de loading */
@@ -299,9 +520,6 @@
   border-radius: 0.375rem;
 }
 
-/* Estilos para los botones de filtro */
-
-
 /* Estilos para mensajes de estado vacío */
 .text-center.py-5 {
   padding: 3rem 1rem !important;
@@ -316,9 +534,208 @@
   position: relative;
   min-height: 200px;
 }
+
+/* Estilos para el modal */
+.modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.modal-header .btn-close {
+  filter: invert(1);
+}
+
+.modal-title {
+  color: white !important;
+}
+
+/* Estilos mejorados para formularios - Bordes visibles */
+.form-control,
+.form-select {
+  border: 1px solid #d2d6da !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 0.75rem !important;
+  background-color: #fff !important;
+  color: #495057 !important;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #667eea !important;
+  outline: 0 !important;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+}
+
+.form-control:hover,
+.form-select:hover {
+  border-color: #adb5bd !important;
+}
+
+.form-label {
+  color: #495057 !important;
+  font-weight: 500 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.form-text {
+  color: #6c757d !important;
+  font-size: 0.875rem !important;
+}
+
+/* Estilos para el campo de búsqueda */
+#buscar-tickets {
+  border: 1px solid #d2d6da !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 0.75rem !important;
+  background-color: #fff !important;
+  flex: 1 !important;
+}
+
+#buscar-tickets:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+}
+
+/* Estilos para el botón de limpiar filtros */
+/* .d-flex .btn {
+  border: 1px solid #d2d6da !important;
+  border-radius: 0.375rem !important;
+  background-color: #fff !important;
+  color: #6c757d !important;
+  transition: all 0.15s ease-in-out !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+}
+
+.d-flex .btn:hover {
+  background-color: #f8f9fa !important;
+  color: #495057 !important;
+  border-color: #adb5bd !important;
+}
+
+.d-flex .btn:focus {
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+  border-color: #667eea !important;
+} */
+
+/* Estilos para el contenedor de búsqueda */
+.d-flex {
+  align-items: center !important;
+}
+
+/* Estilos para el select de ordenamiento */
+#orden-tickets {
+  border: 1px solid #d2d6da !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 0.75rem !important;
+  background-color: #fff !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 16px 12px !important;
+}
+
+#orden-tickets:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+}
+
+/* Estilos para textarea en el modal */
+#comentarioReasignacion {
+  border: 1px solid #d2d6da !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 0.75rem !important;
+  background-color: #fff !important;
+  resize: vertical !important;
+  min-height: 80px !important;
+}
+
+#comentarioReasignacion:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+}
+
+/* Estilos para el select en el modal */
+#usuarioAsignar {
+  border: 1px solid #d2d6da !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 0.75rem !important;
+  background-color: #fff !important;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 0.75rem center !important;
+  background-size: 16px 12px !important;
+}
+
+#usuarioAsignar:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25) !important;
+}
+
+/* Estilos responsivos para los filtros */
+@media (max-width: 768px) {
+  .card-body .row > div {
+    margin-bottom: 1rem;
+  }
+  
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+/* Estilos para mejorar la accesibilidad */
+.form-control:focus,
+.form-select:focus,
+.btn:focus {
+  outline: 2px solid #667eea !important;
+  outline-offset: 2px !important;
+}
+
+/* Estilos para animaciones suaves */
+.table-hover tbody tr {
+  transition: all 0.2s ease-in-out;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(102, 126, 234, 0.05) !important;
+  transform: scale(1.01);
+}
+
+/* Estilos para los badges de estado */
+.badge {
+  font-weight: 500 !important;
+  letter-spacing: 0.025em !important;
+}
+
+.badge.bg-warning {
+  color: #664d03 !important;
+}
+
+.badge.bg-info {
+  color: #055160 !important;
+}
+
+.badge.bg-success {
+  color: #0f5132 !important;
+}
+
+.badge.bg-secondary {
+  color: #495057 !important;
+}
+
+.badge.bg-danger {
+  color: #721c24 !important;
+}
 </style>
 
-<script>
-// Las funciones JavaScript están ahora en plataforma_aprendizaje.html
-// Este archivo solo contiene el HTML del panel de administración
-</script> 
+<!-- Las funciones JavaScript están definidas en plataforma_aprendizaje.html --> 

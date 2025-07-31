@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from django.db import models
 import time
 import re
 import json
@@ -8,7 +9,7 @@ from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, CustomUser, ComentarioTicket
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -3201,17 +3202,37 @@ def plataforma_soporte_ajax(request, curso_id):
         elif action == 'ver_ticket':
             # Cargar ticket específico
             ticket_id = request.GET.get('ticket_id')
+            print(f"=== DEBUG VER TICKET ===")
+            print(f"Ticket ID: {ticket_id}")
+            print(f"Usuario: {request.user.username}")
+            print(f"Es staff: {request.user.is_staff}")
+            print(f"Es superuser: {request.user.is_superuser}")
+            
             if ticket_id:
                 try:
                     ticket = TicketSoporte.objects.get(id=ticket_id, curso=curso)
+                    print(f"Ticket encontrado: {ticket.titulo}")
                     
                     # Verificar permisos
                     if not (request.user == ticket.usuario or request.user.is_staff or request.user.is_superuser):
+                        print("Usuario no tiene permisos para ver este ticket")
                         return JsonResponse({'error': 'No tienes permisos para ver este ticket'}, status=403)
                     
-                    comentarios = ticket.comentarios.all()
+                    # Filtrar comentarios según permisos del usuario
+                    if request.user.is_staff or request.user.is_superuser:
+                        comentarios = ticket.comentarios.all()
+                        print(f"Comentarios para admin: {comentarios.count()}")
+                    else:
+                        comentarios = ticket.comentarios.filter(es_interno=False)
+                        print(f"Comentarios para usuario: {comentarios.count()}")
+                    
                     comentario_form = ComentarioTicketForm()
                     admin_form = TicketSoporteAdminForm(instance=ticket) if request.user.is_staff else None
+                    
+                    # Obtener usuarios staff para reasignación
+                    usuarios_staff = CustomUser.objects.filter(
+                        models.Q(is_staff=True) | models.Q(is_superuser=True)
+                    ).exclude(id=request.user.id).order_by('first_name', 'last_name', 'username')
                     
                     context = {
                         'curso': curso,
@@ -3219,13 +3240,31 @@ def plataforma_soporte_ajax(request, curso_id):
                         'comentarios': comentarios,
                         'comentario_form': comentario_form,
                         'admin_form': admin_form,
+                        'usuarios_staff': usuarios_staff,
                     }
                     
-                    html = render_to_string('pages/plataforma_soporte_ticket_detail.html', context, request=request)
+                    print(f"Contexto preparado con {len(comentarios)} comentarios")
+                    
+                    # Usar template diferente según el tipo de usuario
+                    if request.user.is_staff or request.user.is_superuser:
+                        print("Usando template de admin")
+                        html = render_to_string('pages/plataforma_soporte_ticket_detail.html', context, request=request)
+                    else:
+                        print("Usando template de usuario")
+                        html = render_to_string('pages/plataforma_soporte_ticket_detail_user.html', context, request=request)
+                    
+                    print(f"HTML generado: {len(html)} caracteres")
                     return JsonResponse({'html': html})
                 except TicketSoporte.DoesNotExist:
+                    print(f"Ticket {ticket_id} no existe")
                     return JsonResponse({'error': 'El ticket no existe'}, status=404)
+                except Exception as e:
+                    print(f"Error al cargar ticket {ticket_id}: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    return JsonResponse({'error': f'Error interno del servidor: {str(e)}'}, status=500)
             else:
+                print("No se proporcionó ticket_id")
                 return JsonResponse({'error': 'ID de ticket no proporcionado'}, status=400)
         
         # Verificar si el usuario es admin/staff
@@ -3245,12 +3284,18 @@ def plataforma_soporte_ajax(request, curso_id):
             tickets_resueltos = tickets.filter(estado='resuelto').count()
             tickets_cerrados = tickets.filter(estado='cerrado').count()
             
+            # Obtener usuarios staff para reasignación
+            usuarios_staff = CustomUser.objects.filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True)
+            ).exclude(id=request.user.id).order_by('first_name', 'last_name', 'username')
+            
             context = {
                 'curso': curso,
                 'tickets': tickets,
                 'estados': TicketSoporte.ESTADO_CHOICES,
                 'current_estado': estado_filter,
                 'is_admin': True,
+                'usuarios_staff': usuarios_staff,
                 'stats': {
                     'total': total_tickets,
                     'abiertos': tickets_abiertos,
@@ -3323,27 +3368,45 @@ def agregar_comentario_ticket(request, ticket_id):
     """
     Vista para agregar comentarios a un ticket
     """
+    print(f"=== DEBUG AGREGAR COMENTARIO ===")
+    print(f"Ticket ID: {ticket_id}")
+    print(f"Usuario: {request.user.username}")
+    print(f"Método: {request.method}")
+    print(f"Datos POST: {request.POST}")
+    
     try:
         ticket = TicketSoporte.objects.get(id=ticket_id)
+        print(f"Ticket encontrado: {ticket.titulo}")
         
         # Verificar permisos
-        if not ticket.puede_comentar(request.user):
+        puede_comentar = ticket.puede_comentar(request.user)
+        print(f"Puede comentar: {puede_comentar}")
+        
+        if not puede_comentar:
+            print("Usuario no tiene permisos para comentar")
             return JsonResponse({'error': 'No tienes permisos para comentar en este ticket'}, status=403)
         
         if request.method == 'POST':
             form = ComentarioTicketForm(request.POST)
+            print(f"Formulario válido: {form.is_valid()}")
+            
             if form.is_valid():
                 comentario = form.save(commit=False)
                 comentario.ticket = ticket
                 comentario.autor = request.user
                 comentario.save()
                 
+                print(f"Comentario guardado: {comentario.id}")
+                
                 # Actualizar fecha de actualización del ticket
                 ticket.fecha_actualizacion = timezone.now()
                 ticket.save()
                 
+                print("=== FIN DEBUG AGREGAR COMENTARIO ===")
                 return JsonResponse({'success': True, 'message': 'Comentario agregado exitosamente'})
             else:
+                print(f"Errores del formulario: {form.errors}")
+                print("=== FIN DEBUG AGREGAR COMENTARIO ===")
                 return JsonResponse({'success': False, 'errors': form.errors})
     
     except TicketSoporte.DoesNotExist:
@@ -3590,11 +3653,30 @@ def editar_rubrica(request, curso_id, evaluacion_id):
             rubrica.aprendizaje_esperado = aprendizaje_esperado
             rubrica.save()
             
-            messages.success(request, 'Rúbrica actualizada exitosamente.')
+            # Verificar si es una petición AJAX
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Rúbrica actualizada exitosamente.'
+                })
+            else:
+                messages.success(request, 'Rúbrica actualizada exitosamente.')
         else:
-            messages.error(request, 'Por favor completa todos los campos obligatorios.')
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Por favor completa todos los campos obligatorios.'
+                }, status=400)
+            else:
+                messages.error(request, 'Por favor completa todos los campos obligatorios.')
     elif request.method == 'POST' and not puede_editar:
-        messages.error(request, mensaje_restriccion)
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'error': mensaje_restriccion
+            }, status=403)
+        else:
+            messages.error(request, mensaje_restriccion)
     
     # Contexto necesario para el template que hereda de plataforma_aprendizaje.html
     context = {
@@ -3908,3 +3990,283 @@ def eliminar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
     criterio.delete()
     
     return JsonResponse({'success': True})
+
+@login_required
+def reasignar_ticket(request):
+    """
+    Vista para reasignar un ticket a otro usuario admin/staff
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        # Verificar que el usuario sea admin/staff
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para reasignar tickets'}, status=403)
+        
+        ticket_id = request.POST.get('ticket_id')
+        usuario_asignar_id = request.POST.get('usuario_asignar')
+        comentario_interno = request.POST.get('comentario_interno', '')
+        
+        if not ticket_id or not usuario_asignar_id:
+            return JsonResponse({'error': 'Faltan datos requeridos'}, status=400)
+        
+        # Obtener el ticket
+        ticket = TicketSoporte.objects.get(id=ticket_id)
+        
+        # Obtener el usuario al que se va a asignar
+        usuario_asignar = CustomUser.objects.get(id=usuario_asignar_id)
+        
+        # Verificar que el usuario sea admin/staff
+        if not (usuario_asignar.is_staff or usuario_asignar.is_superuser):
+            return JsonResponse({'error': 'Solo se pueden asignar tickets a usuarios admin/staff'}, status=400)
+        
+        # Guardar el usuario anterior para el comentario
+        usuario_anterior = ticket.asignado_a
+        
+        # Reasignar el ticket
+        ticket.asignado_a = usuario_asignar
+        ticket.save()
+        
+        # Crear comentario interno si se proporcionó
+        if comentario_interno.strip():
+            ComentarioTicket.objects.create(
+                ticket=ticket,
+                autor=request.user,
+                contenido=f"Ticket reasignado de {usuario_anterior.get_full_name() if usuario_anterior else 'Sin asignar'} a {usuario_asignar.get_full_name()}. {comentario_interno}",
+                es_interno=True
+            )
+        else:
+            # Crear comentario automático
+            ComentarioTicket.objects.create(
+                ticket=ticket,
+                autor=request.user,
+                contenido=f"Ticket reasignado de {usuario_anterior.get_full_name() if usuario_anterior else 'Sin asignar'} a {usuario_asignar.get_full_name()}.",
+                es_interno=True
+            )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Ticket reasignado exitosamente a {usuario_asignar.get_full_name()}'
+        })
+        
+    except TicketSoporte.DoesNotExist:
+        return JsonResponse({'error': 'El ticket no existe'}, status=404)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({'error': 'El usuario no existe'}, status=404)
+    except Exception as e:
+        print(f"Error reasignando ticket: {e}")
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+
+
+@login_required
+def obtener_usuarios_staff(request):
+    """
+    Vista AJAX para obtener la lista de usuarios admin/staff para reasignación
+    """
+    try:
+        # Verificar que el usuario sea admin/staff
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para ver usuarios staff'}, status=403)
+        
+        # Obtener usuarios admin/staff (excluyendo al usuario actual)
+        usuarios_staff = CustomUser.objects.filter(
+            models.Q(is_staff=True) | models.Q(is_superuser=True)
+        ).exclude(id=request.user.id).order_by('first_name', 'last_name', 'username')
+        
+        usuarios_data = []
+        for usuario in usuarios_staff:
+            usuarios_data.append({
+                'id': usuario.id,
+                'nombre': usuario.get_full_name() or usuario.username,
+                'email': usuario.email,
+                'username': usuario.username
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'usuarios': usuarios_data
+        })
+        
+    except Exception as e:
+        print(f"Error obteniendo usuarios staff: {e}")
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+
+@login_required
+def cambiar_prioridad_ticket(request):
+    """
+    Vista para cambiar la prioridad de un ticket
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        # Verificar que el usuario sea admin/staff
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para cambiar prioridades'}, status=403)
+        
+        ticket_id = request.POST.get('ticket_id')
+        nueva_prioridad = request.POST.get('nueva_prioridad')
+        comentario_prioridad = request.POST.get('comentario_prioridad', '')
+        
+        if not ticket_id or not nueva_prioridad:
+            return JsonResponse({'error': 'Faltan datos requeridos'}, status=400)
+        
+        # Validar prioridad
+        prioridades_validas = ['baja', 'media', 'alta', 'urgente']
+        if nueva_prioridad not in prioridades_validas:
+            return JsonResponse({'error': 'Prioridad no válida'}, status=400)
+        
+        # Obtener el ticket
+        ticket = TicketSoporte.objects.get(id=ticket_id)
+        
+        # Guardar la prioridad anterior para el comentario
+        prioridad_anterior = ticket.prioridad
+        
+        # Cambiar la prioridad
+        ticket.prioridad = nueva_prioridad
+        ticket.save()
+        
+        # Crear comentario si se proporcionó
+        if comentario_prioridad.strip():
+            ComentarioTicket.objects.create(
+                ticket=ticket,
+                autor=request.user,
+                contenido=f"Prioridad cambiada de {prioridad_anterior} a {nueva_prioridad}. {comentario_prioridad}",
+                es_interno=False
+            )
+        else:
+            # Crear comentario automático
+            ComentarioTicket.objects.create(
+                ticket=ticket,
+                autor=request.user,
+                contenido=f"Prioridad cambiada de {prioridad_anterior} a {nueva_prioridad}.",
+                es_interno=False
+            )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Prioridad cambiada exitosamente a {nueva_prioridad}'
+        })
+        
+    except TicketSoporte.DoesNotExist:
+        return JsonResponse({'error': 'El ticket no existe'}, status=404)
+    except Exception as e:
+        print(f"Error cambiando prioridad: {e}")
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+
+
+@login_required
+def resolver_ticket(request):
+    """
+    Vista para resolver un ticket
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        # Verificar que el usuario sea admin/staff
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para resolver tickets'}, status=403)
+        
+        ticket_id = request.POST.get('ticket_id')
+        comentario_resolucion = request.POST.get('comentario_resolucion')
+        es_interno = request.POST.get('es_interno_resolucion') == 'on'
+        
+        if not ticket_id or not comentario_resolucion:
+            return JsonResponse({'error': 'Faltan datos requeridos'}, status=400)
+        
+        # Obtener el ticket
+        ticket = TicketSoporte.objects.get(id=ticket_id)
+        
+        # Verificar que el ticket no esté ya resuelto
+        if ticket.estado == 'resuelto':
+            return JsonResponse({'error': 'El ticket ya está resuelto'}, status=400)
+        
+        # Cambiar estado a resuelto
+        ticket.estado = 'resuelto'
+        ticket.fecha_resolucion = timezone.now()
+        ticket.save()
+        
+        # Crear comentario de resolución
+        ComentarioTicket.objects.create(
+            ticket=ticket,
+            autor=request.user,
+            contenido=comentario_resolucion,
+            es_interno=es_interno
+        )
+        
+        # Agregar un campo temporal para identificar el comentario de resolución
+        # Esto se puede hacer agregando un prefijo especial al contenido
+        comentario_resolucion_obj = ComentarioTicket.objects.filter(
+            ticket=ticket,
+            autor=request.user,
+            contenido=comentario_resolucion
+        ).order_by('-fecha_creacion').first()
+        
+        if comentario_resolucion_obj:
+            # Agregar un marcador especial al contenido para identificar que es de resolución
+            comentario_resolucion_obj.contenido = f"[RESUELTO] {comentario_resolucion}"
+            comentario_resolucion_obj.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Ticket resuelto exitosamente'
+        })
+        
+    except TicketSoporte.DoesNotExist:
+        return JsonResponse({'error': 'El ticket no existe'}, status=404)
+    except Exception as e:
+        print(f"Error resolviendo ticket: {e}")
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+
+@login_required
+def reabrir_ticket(request):
+    """
+    Vista para reabrir un ticket resuelto
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        ticket_id = request.POST.get('ticket_id')
+        comentario_reapertura = request.POST.get('comentario_reapertura')
+        es_interno = request.POST.get('es_interno_reapertura') == 'on'
+        
+        if not ticket_id or not comentario_reapertura:
+            return JsonResponse({'error': 'Faltan datos requeridos'}, status=400)
+        
+        # Obtener el ticket
+        ticket = TicketSoporte.objects.get(id=ticket_id)
+        
+        # Verificar que el usuario sea admin/staff
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para reabrir tickets'}, status=403)
+        
+        # Verificar que el ticket esté resuelto
+        if ticket.estado != 'resuelto':
+            return JsonResponse({'error': 'Solo se pueden reabrir tickets resueltos'}, status=400)
+        
+        # Cambiar estado a en_proceso
+        ticket.estado = 'en_proceso'
+        ticket.fecha_resolucion = None  # Limpiar fecha de resolución
+        ticket.save()
+        
+        # Crear comentario de reapertura con tag
+        ComentarioTicket.objects.create(
+            ticket=ticket,
+            autor=request.user,
+            contenido=f"[REAPERTURA] {comentario_reapertura}",
+            es_interno=es_interno
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Ticket reabierto exitosamente'
+        })
+        
+    except TicketSoporte.DoesNotExist:
+        return JsonResponse({'error': 'El ticket no existe'}, status=404)
+    except Exception as e:
+        print(f"Error reabriendo ticket: {e}")
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)

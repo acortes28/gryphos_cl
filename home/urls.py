@@ -110,5 +110,10 @@ urlpatterns = [
     path('curso/<int:curso_id>/plataforma/soporte/crear-ticket/', views.crear_ticket_soporte, name='crear_ticket_soporte'),
     path('ticket/<int:ticket_id>/agregar-comentario/', views.agregar_comentario_ticket, name='agregar_comentario_ticket'),
     path('ticket/<int:ticket_id>/actualizar-admin/', views.actualizar_ticket_admin, name='actualizar_ticket_admin'),
+    path('reasignar-ticket/', views.reasignar_ticket, name='reasignar_ticket'),
+    path('cambiar-prioridad-ticket/', views.cambiar_prioridad_ticket, name='cambiar_prioridad_ticket'),
+    path('resolver-ticket/', views.resolver_ticket, name='resolver_ticket'),
+    path('reabrir-ticket/', views.reabrir_ticket, name='reabrir_ticket'),
+    path('obtener-usuarios-staff/', views.obtener_usuarios_staff, name='obtener_usuarios_staff'),
     path('obtener-subclasificaciones/', views.obtener_subclasificaciones, name='obtener_subclasificaciones'),
 ]

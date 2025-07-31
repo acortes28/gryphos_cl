@@ -763,6 +763,11 @@ class TicketSoporte(models.Model):
     
     def puede_comentar(self, usuario):
         """Verifica si un usuario puede comentar en el ticket"""
+        # Si el ticket está resuelto, solo los superusuarios pueden comentar
+        if self.estado == 'resuelto':
+            return usuario.is_superuser
+        
+        # Para otros estados, permitir al usuario que creó el ticket, staff y superusuarios
         return usuario == self.usuario or usuario.is_staff or usuario.is_superuser
 
 

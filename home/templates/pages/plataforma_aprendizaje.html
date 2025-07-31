@@ -667,8 +667,23 @@ function cambiarSeccion(seccion) {
     // Redirigir a la página de calificaciones
     window.location.href = `{% url 'plataforma_calificaciones' curso.id %}`;
   } else if (seccion === 'soporte') {
+    // Verificar si hay parámetros específicos en la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get('action');
+    const ticketId = urlParams.get('ticket_id');
+    
+    let url = `{% url 'plataforma_soporte_ajax' curso.id %}`;
+    
+    // Si hay una acción específica, agregarla a la URL
+    if (action) {
+      url += `?action=${action}`;
+      if (ticketId) {
+        url += `&ticket_id=${ticketId}`;
+      }
+    }
+    
     // Cargar contenido de soporte vía AJAX
-    fetch(`{% url 'plataforma_soporte_ajax' curso.id %}`, {
+    fetch(url, {
       headers: {
         'X-Requested-With': 'XMLHttpRequest'
       }
@@ -681,6 +696,13 @@ function cambiarSeccion(seccion) {
         // Actualizar URL sin recargar
         const url = new URL(window.location);
         url.searchParams.set('seccion', 'soporte');
+        // Mantener los parámetros específicos si existen
+        if (action) {
+          url.searchParams.set('action', action);
+          if (ticketId) {
+            url.searchParams.set('ticket_id', ticketId);
+          }
+        }
         window.history.pushState({}, '', url);
       });
   } else if (seccion === 'entregas') {
@@ -1420,6 +1442,8 @@ function cargarFormularioCrearTicket() {
 
 // Función para ver un ticket específico
 function verTicket(ticketId) {
+  console.log('Viendo ticket:', ticketId);
+  
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
   
@@ -1489,6 +1513,8 @@ function cargarSoporteFiltrado(estado) {
 
 // Función para volver a la lista de soporte
 function volverASoporte() {
+  console.log('Volviendo a soporte...');
+  
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
   
@@ -1604,62 +1630,115 @@ function enviarTicket() {
     });
 }
 
-// Función para agregar comentario
-function agregarComentario() {
-  const form = document.getElementById('form-comentario');
-  const mensajeDiv = document.getElementById('mensaje-comentario');
-  const submitBtn = document.getElementById('btn-agregar-comentario');
+// Función para agregar comentario (unificada)
+function agregarComentario(event) {
+  console.log('Función agregarComentario llamada');
   
-  // Limpiar mensajes anteriores
-  mensajeDiv.innerHTML = '';
+  if (event) {
+    event.preventDefault();
+    console.log('Evento prevenido');
+  }
   
-  // Mostrar indicador de carga
+  const form = event ? event.target : document.getElementById('formComentario');
+  console.log('Formulario encontrado:', form);
+  
+  if (!form) {
+    console.error('Formulario de comentario no encontrado');
+    return;
+  }
+  
+  const formData = new FormData(form);
+  const ticketId = formData.get('ticket_id');
+  const contenido = formData.get('contenido');
+  const esInterno = formData.get('es_interno');
+  
+  console.log('Datos del formulario:', {
+    ticketId: ticketId,
+    contenido: contenido,
+    esInterno: esInterno
+  });
+  
+  if (!ticketId) {
+    console.error('Ticket ID no encontrado en el formulario');
+    alert('Error: No se pudo identificar el ticket');
+    return;
+  }
+  
+  // Obtener el token CSRF
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  console.log('Token CSRF obtenido:', csrfToken ? 'Sí' : 'No');
+  
+  // Mostrar indicador de carga en el botón
+  const submitBtn = form.querySelector('button[type="submit"]');
   const originalText = submitBtn.innerHTML;
   submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Enviando...';
   submitBtn.disabled = true;
   
-  const formData = new FormData(form);
+  const url = `{% url 'agregar_comentario_ticket' 0 %}`.replace('0', ticketId);
+  console.log('URL de la petición:', url);
   
-  // Obtener el ticket_id del contexto actual
-  const ticketId = document.querySelector('[data-ticket-id]')?.getAttribute('data-ticket-id');
-  
-  fetch(`{% url 'agregar_comentario_ticket' 0 %}`.replace('0', ticketId), {
+  fetch(url, {
     method: 'POST',
     headers: {
-      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest'
     },
     body: formData
   })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        mensajeDiv.innerHTML = '<div class="alert alert-success">Comentario agregado exitosamente.</div>';
-        
-        // Recargar la página para mostrar el nuevo comentario
-        setTimeout(() => {
-          location.reload();
-        }, 1000);
-      } else {
-        // Mostrar errores
-        let errorHtml = '<div class="alert alert-danger"><ul class="mb-0">';
+  .then(response => {
+    console.log('Respuesta recibida:', response.status, response.statusText);
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('Datos de respuesta:', data);
+    if (data.success) {
+      // Mostrar mensaje de éxito
+      const successDiv = document.createElement('div');
+      successDiv.className = 'alert alert-success mt-3';
+      successDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Comentario agregado exitosamente.';
+      form.parentNode.insertBefore(successDiv, form.nextSibling);
+      
+      // Limpiar el formulario
+      form.reset();
+      
+      // Recargar la página después de un breve delay
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    } else {
+      // Mostrar errores
+      let errorHtml = '<div class="alert alert-danger mt-3"><ul class="mb-0">';
+      if (data.errors) {
         for (const field in data.errors) {
           data.errors[field].forEach(error => {
             errorHtml += `<li>${error}</li>`;
           });
         }
-        errorHtml += '</ul></div>';
-        mensajeDiv.innerHTML = errorHtml;
+      } else if (data.error) {
+        errorHtml += `<li>${data.error}</li>`;
       }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al agregar el comentario. Por favor, intenta nuevamente.</div>';
-    })
-    .finally(() => {
-      // Restaurar el botón
-      submitBtn.innerHTML = originalText;
-      submitBtn.disabled = false;
-    });
+      errorHtml += '</ul></div>';
+      
+      const errorDiv = document.createElement('div');
+      errorDiv.innerHTML = errorHtml;
+      form.parentNode.insertBefore(errorDiv, form.nextSibling);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger mt-3';
+    errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error al agregar el comentario. Por favor, intenta nuevamente.';
+    form.parentNode.insertBefore(errorDiv, form.nextSibling);
+  })
+  .finally(() => {
+    // Restaurar el botón
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+  });
 }
 
 // Función para actualizar ticket (admin)
@@ -1669,12 +1748,16 @@ function actualizarTicketAdmin() {
   const submitBtn = document.getElementById('btn-actualizar-admin');
   
   // Limpiar mensajes anteriores
-  mensajeDiv.innerHTML = '';
+  if (mensajeDiv) {
+    mensajeDiv.innerHTML = '';
+  }
   
   // Mostrar indicador de carga
-  const originalText = submitBtn.innerHTML;
-  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Actualizando...';
-  submitBtn.disabled = true;
+  if (submitBtn) {
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Actualizando...';
+    submitBtn.disabled = true;
+  }
   
   const formData = new FormData(form);
   
@@ -1691,7 +1774,9 @@ function actualizarTicketAdmin() {
     .then(response => response.json())
     .then(data => {
       if (data.success) {
-        mensajeDiv.innerHTML = '<div class="alert alert-success">Ticket actualizado exitosamente.</div>';
+        if (mensajeDiv) {
+          mensajeDiv.innerHTML = '<div class="alert alert-success">Ticket actualizado exitosamente.</div>';
+        }
         
         // Recargar la página para mostrar los cambios
         setTimeout(() => {
@@ -1699,24 +1784,30 @@ function actualizarTicketAdmin() {
         }, 1000);
       } else {
         // Mostrar errores
-        let errorHtml = '<div class="alert alert-danger"><ul class="mb-0">';
-        for (const field in data.errors) {
-          data.errors[field].forEach(error => {
-            errorHtml += `<li>${error}</li>`;
-          });
+        if (mensajeDiv) {
+          let errorHtml = '<div class="alert alert-danger"><ul class="mb-0">';
+          for (const field in data.errors) {
+            data.errors[field].forEach(error => {
+              errorHtml += `<li>${error}</li>`;
+            });
+          }
+          errorHtml += '</ul></div>';
+          mensajeDiv.innerHTML = errorHtml;
         }
-        errorHtml += '</ul></div>';
-        mensajeDiv.innerHTML = errorHtml;
       }
     })
     .catch(error => {
       console.error('Error:', error);
-      mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al actualizar el ticket. Por favor, intenta nuevamente.</div>';
+      if (mensajeDiv) {
+        mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al actualizar el ticket. Por favor, intenta nuevamente.</div>';
+      }
     })
     .finally(() => {
       // Restaurar el botón
-      submitBtn.innerHTML = originalText;
-      submitBtn.disabled = false;
+      if (submitBtn) {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      }
     });
 }
 
@@ -1778,6 +1869,13 @@ function inicializarFormulariosTicket() {
       e.preventDefault();
       actualizarTicketAdmin();
     });
+  }
+  
+  // Inicializar formularios de reapertura si existen
+  const formReabrir = document.getElementById('formReabrirTicket');
+  if (formReabrir) {
+    // La función confirmarReapertura ya está definida globalmente
+    console.log('Formulario de reapertura inicializado');
   }
 }
 
@@ -1842,16 +1940,30 @@ function filtrarTicketsPorEstadoAdmin(estado) {
   let ticketsEncontrados = 0;
   
   filas.forEach(fila => {
-    const badgeEstado = fila.querySelector('.badge');
-    if (badgeEstado) {
-      const textoEstado = badgeEstado.textContent.toLowerCase();
-      const estadoFiltro = estado.toLowerCase();
-      
-      if (textoEstado.includes(estadoFiltro)) {
-        fila.style.display = '';
-        ticketsEncontrados++;
-      } else {
-        fila.style.display = 'none';
+    // Buscar el badge de estado en la 5ª columna (índice 4)
+    const columnaEstado = fila.querySelector('td:nth-child(5)');
+    if (columnaEstado) {
+      const badgeEstado = columnaEstado.querySelector('.badge');
+      if (badgeEstado) {
+        const textoEstado = badgeEstado.textContent.toLowerCase();
+        const estadoFiltro = estado.toLowerCase();
+        
+        // Mapear los estados para la comparación
+        const estadoMap = {
+          'abierto': 'abierto',
+          'en_proceso': 'en proceso',
+          'resuelto': 'resuelto',
+          'cerrado': 'cerrado'
+        };
+        
+        const estadoComparar = estadoMap[estado] || estado;
+        
+        if (textoEstado.includes(estadoComparar)) {
+          fila.style.display = '';
+          ticketsEncontrados++;
+        } else {
+          fila.style.display = 'none';
+        }
       }
     }
   });
@@ -1969,13 +2081,28 @@ function cambiarOrdenTickets() {
   const filas = Array.from(tbody.querySelectorAll('tr'));
   
   filas.sort((a, b) => {
-    const fechaA = new Date(a.querySelector('td:nth-child(7)')?.textContent || '');
-    const fechaB = new Date(b.querySelector('td:nth-child(7)')?.textContent || '');
+    // La fecha está en la 8ª columna (índice 7)
+    const fechaA = new Date(a.querySelector('td:nth-child(8)')?.textContent || '');
+    const fechaB = new Date(b.querySelector('td:nth-child(8)')?.textContent || '');
     
     if (ordenValue === 'fecha_desc') {
       return fechaB - fechaA;
     } else if (ordenValue === 'fecha_asc') {
       return fechaA - fechaB;
+    } else if (ordenValue === 'prioridad_desc') {
+      // Ordenar por prioridad (6ª columna)
+      const prioridadA = a.querySelector('td:nth-child(6) .badge')?.textContent || '';
+      const prioridadB = b.querySelector('td:nth-child(6) .badge')?.textContent || '';
+      
+      const prioridadOrder = { 'Urgente': 4, 'Alta': 3, 'Media': 2, 'Baja': 1 };
+      return (prioridadOrder[prioridadB] || 0) - (prioridadOrder[prioridadA] || 0);
+    } else if (ordenValue === 'estado') {
+      // Ordenar por estado (5ª columna)
+      const estadoA = a.querySelector('td:nth-child(5) .badge')?.textContent || '';
+      const estadoB = b.querySelector('td:nth-child(5) .badge')?.textContent || '';
+      
+      const estadoOrder = { 'Abierto': 1, 'En Proceso': 2, 'Resuelto': 3, 'Cerrado': 4 };
+      return (estadoOrder[estadoA] || 0) - (estadoOrder[estadoB] || 0);
     }
     return 0;
   });
@@ -1989,13 +2116,22 @@ function buscarTickets() {
   const buscarInput = document.getElementById('buscar-tickets');
   if (!buscarInput) return;
   
-  const busqueda = buscarInput.value.toLowerCase();
+  const busqueda = buscarInput.value.toLowerCase().trim();
   const filas = document.querySelectorAll('tbody tr');
   let encontrados = 0;
   
+  // Limpiar mensajes anteriores
+  ocultarMensajeSinTicketsAdmin();
+  
   filas.forEach(fila => {
-    const texto = fila.textContent.toLowerCase();
-    if (texto.includes(busqueda)) {
+    // Buscar en título (2ª columna), usuario (3ª columna), clasificación (4ª columna)
+    const titulo = fila.querySelector('td:nth-child(2)')?.textContent || '';
+    const usuario = fila.querySelector('td:nth-child(3)')?.textContent || '';
+    const clasificacion = fila.querySelector('td:nth-child(4)')?.textContent || '';
+    
+    const textoCompleto = (titulo + ' ' + usuario + ' ' + clasificacion).toLowerCase();
+    
+    if (textoCompleto.includes(busqueda)) {
       fila.style.display = '';
       encontrados++;
     } else {
@@ -2006,8 +2142,9 @@ function buscarTickets() {
   // Mostrar mensaje si no se encuentra nada
   if (encontrados === 0 && busqueda !== '') {
     mostrarMensajeBusquedaVaciaAdmin(busqueda);
-  } else {
-    ocultarMensajeSinTicketsAdmin();
+  } else if (encontrados === 0 && busqueda === '') {
+    // Si no hay búsqueda, mostrar todos
+    mostrarTodosLosTicketsAdmin();
   }
 }
 
@@ -2039,25 +2176,531 @@ function limpiarBusquedaAdmin() {
     buscarInput.value = '';
   }
   mostrarTodosLosTicketsAdmin();
+  ocultarMensajeSinTicketsAdmin();
+}
+
+// Función para resetear filtros (admin)
+function resetearFiltrosAdmin() {
+  // Limpiar búsqueda
+  const buscarInput = document.getElementById('buscar-tickets');
+  if (buscarInput) {
+    buscarInput.value = '';
+  }
+  
+  // Resetear orden
+  const ordenSelect = document.getElementById('orden-tickets');
+  if (ordenSelect) {
+    ordenSelect.value = 'fecha_desc';
+  }
+  
+  // Resetear botones de estado
+  document.querySelectorAll('.btn-outline-primary').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // Activar botón "Todos"
+  const btnTodos = document.querySelector('.btn-outline-primary[onclick*="cargarSoporteFiltrado(\'\')"]');
+  if (btnTodos) {
+    btnTodos.classList.add('active');
+  }
+  
+  // Mostrar todos los tickets
+  mostrarTodosLosTicketsAdmin();
+  ocultarMensajeSinTicketsAdmin();
 }
 
 // Funciones para acciones de tickets (admin)
 function verTicket(ticketId) {
   console.log('Viendo ticket:', ticketId);
-  // Implementar lógica para ver ticket
-  alert(`Funcionalidad para ver ticket ${ticketId} - En desarrollo`);
+  
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_soporte_ajax' curso.id %}?action=ver_ticket&ticket_id=${ticketId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        document.getElementById('seccion-soporte').innerHTML = data.html;
+        document.getElementById('seccion-soporte').classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'soporte');
+        url.searchParams.set('action', 'ver_ticket');
+        url.searchParams.set('ticket_id', ticketId);
+        window.history.pushState({}, '', url);
+        
+        // Inicializar formularios del ticket después de cargar el contenido
+        // Usar un enfoque más robusto para asegurar que el DOM esté listo
+        const inicializarConRetraso = () => {
+          const modalReabrir = document.getElementById('modalReabrirTicket');
+          if (modalReabrir) {
+            console.log('Modal encontrado, inicializando formularios...');
+            inicializarFormulariosTicket();
+          } else {
+            console.log('Modal no encontrado, reintentando...');
+            setTimeout(inicializarConRetraso, 50);
+          }
+        };
+        
+        // Iniciar el proceso de inicialización
+        setTimeout(inicializarConRetraso, 50);
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando el ticket:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
 }
 
-function editarTicket(ticketId) {
-  console.log('Editando ticket:', ticketId);
-  // Implementar lógica para editar ticket
-  alert(`Funcionalidad para editar ticket ${ticketId} - En desarrollo`);
+// Función para reasignar ticket
+function reasignarTicket(ticketId) {
+  console.log('Reasignando ticket:', ticketId);
+  
+  // Verificar que los elementos existan antes de acceder a ellos
+  const ticketIdElement = document.getElementById('ticketIdReasignar');
+  const usuarioElement = document.getElementById('usuarioAsignar');
+  const comentarioElement = document.getElementById('comentarioReasignacion');
+  const modalElement = document.getElementById('modalReasignar');
+  
+  if (!ticketIdElement) {
+    console.error('Elemento ticketIdReasignar no encontrado');
+    alert('Error: No se pudo encontrar el formulario de reasignación');
+    return;
+  }
+  
+  if (!usuarioElement) {
+    console.error('Elemento usuarioAsignar no encontrado');
+    alert('Error: No se pudo encontrar el campo de usuario');
+    return;
+  }
+  
+  if (!comentarioElement) {
+    console.error('Elemento comentarioReasignacion no encontrado');
+    alert('Error: No se pudo encontrar el campo de comentario');
+    return;
+  }
+  
+  if (!modalElement) {
+    console.error('Modal modalReasignar no encontrado');
+    alert('Error: No se pudo encontrar el modal de reasignación');
+    return;
+  }
+  
+  // Establecer el ID del ticket en el formulario
+  ticketIdElement.value = ticketId;
+  
+  // Limpiar formulario
+  usuarioElement.value = '';
+  comentarioElement.value = '';
+  
+  // Mostrar modal
+  if (typeof bootstrap !== 'undefined') {
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+  } else {
+    console.error('Bootstrap no está disponible');
+    alert('Error: Bootstrap no está disponible');
+  }
 }
 
-function responderTicket(ticketId) {
-  console.log('Respondiendo ticket:', ticketId);
-  // Implementar lógica para responder ticket
-  alert(`Funcionalidad para responder ticket ${ticketId} - En desarrollo`);
+// Función para confirmar reasignación
+function confirmarReasignacion() {
+  const form = document.getElementById('formReasignar');
+  const formData = new FormData(form);
+  
+  // Obtener el token CSRF
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  
+  fetch('{% url "reasignar_ticket" %}', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': csrfToken
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Error en la respuesta del servidor');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Cerrar modal
+      if (typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalReasignar'));
+        if (modal) {
+          modal.hide();
+        }
+      }
+
+      
+      // Recargar la página para mostrar los cambios
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error al reasignar el ticket: ' + error.message);
+  });
+}
+
+
+
+// Función para cambiar prioridad
+function cambiarPrioridad(ticketId) {
+  console.log('Cambiando prioridad del ticket:', ticketId);
+  
+  // Verificar que los elementos existan antes de acceder a ellos
+  const ticketIdElement = document.getElementById('ticketIdPrioridad');
+  const nuevaPrioridadElement = document.getElementById('nuevaPrioridad');
+  const comentarioElement = document.getElementById('comentarioPrioridad');
+  const modalElement = document.getElementById('modalCambiarPrioridad');
+  
+  if (!ticketIdElement) {
+    console.error('Elemento ticketIdPrioridad no encontrado');
+    alert('Error: No se pudo encontrar el formulario de cambio de prioridad');
+    return;
+  }
+  
+  if (!nuevaPrioridadElement) {
+    console.error('Elemento nuevaPrioridad no encontrado');
+    alert('Error: No se pudo encontrar el campo de nueva prioridad');
+    return;
+  }
+  
+  if (!comentarioElement) {
+    console.error('Elemento comentarioPrioridad no encontrado');
+    alert('Error: No se pudo encontrar el campo de comentario');
+    return;
+  }
+  
+  if (!modalElement) {
+    console.error('Modal modalCambiarPrioridad no encontrado');
+    alert('Error: No se pudo encontrar el modal de cambio de prioridad');
+    return;
+  }
+  
+  // Establecer el ID del ticket en el formulario
+  ticketIdElement.value = ticketId;
+  
+  // Limpiar formulario
+  nuevaPrioridadElement.value = '';
+  comentarioElement.value = '';
+  
+  // Mostrar modal
+  if (typeof bootstrap !== 'undefined') {
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+  } else {
+    console.error('Bootstrap no está disponible');
+    alert('Error: Bootstrap no está disponible');
+  }
+}
+
+// Función para confirmar cambio de prioridad
+function confirmarCambioPrioridad() {
+  const form = document.getElementById('formCambiarPrioridad');
+  const formData = new FormData(form);
+  
+  // Obtener el token CSRF
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  
+  fetch('{% url "cambiar_prioridad_ticket" %}', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': csrfToken
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Error en la respuesta del servidor');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Cerrar modal
+      if (typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalCambiarPrioridad'));
+        if (modal) {
+          modal.hide();
+        }
+      }
+      
+      // Recargar la página para mostrar los cambios
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error al cambiar la prioridad: ' + error.message);
+  });
+}
+
+// Función para resolver ticket
+function resolverTicket(ticketId) {
+  console.log('Resolviendo ticket:', ticketId);
+  
+  // Verificar que los elementos existan antes de acceder a ellos
+  const ticketIdElement = document.getElementById('ticketIdResolver');
+  const comentarioElement = document.getElementById('comentarioResolucion');
+  const esInternoElement = document.getElementById('esInternoResolucion');
+  const modalElement = document.getElementById('modalResolverTicket');
+  
+  if (!ticketIdElement) {
+    console.error('Elemento ticketIdResolver no encontrado');
+    alert('Error: No se pudo encontrar el formulario de resolución');
+    return;
+  }
+  
+  if (!comentarioElement) {
+    console.error('Elemento comentarioResolucion no encontrado');
+    alert('Error: No se pudo encontrar el campo de comentario');
+    return;
+  }
+  
+  if (!esInternoElement) {
+    console.error('Elemento esInternoResolucion no encontrado');
+    alert('Error: No se pudo encontrar el checkbox de interno');
+    return;
+  }
+  
+  if (!modalElement) {
+    console.error('Modal modalResolverTicket no encontrado');
+    alert('Error: No se pudo encontrar el modal de resolución');
+    return;
+  }
+  
+  // Establecer el ID del ticket en el formulario
+  ticketIdElement.value = ticketId;
+  
+  // Limpiar formulario
+  comentarioElement.value = '';
+  esInternoElement.checked = false;
+  
+  // Mostrar modal
+  if (typeof bootstrap !== 'undefined') {
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+  } else {
+    console.error('Bootstrap no está disponible');
+    alert('Error: Bootstrap no está disponible');
+  }
+}
+
+// Función para reabrir ticket
+function reabrirTicket(ticketId) {
+  console.log('Reabriendo ticket:', ticketId);
+  
+  // Verificar que los elementos existan antes de acceder a ellos
+  const ticketIdElement = document.getElementById('ticketIdReabrir');
+  const comentarioElement = document.getElementById('comentarioReapertura');
+  const esInternoElement = document.getElementById('esInternoReapertura');
+  const modalElement = document.getElementById('modalReabrirTicket');
+  
+  if (!ticketIdElement) {
+    console.error('Elemento ticketIdReabrir no encontrado');
+    alert('Error: No se pudo encontrar el formulario de reapertura');
+    return;
+  }
+  
+  if (!comentarioElement) {
+    console.error('Elemento comentarioReapertura no encontrado');
+    alert('Error: No se pudo encontrar el campo de comentario');
+    return;
+  }
+  
+  if (!esInternoElement) {
+    console.error('Elemento esInternoReapertura no encontrado');
+    alert('Error: No se pudo encontrar el checkbox de interno');
+    return;
+  }
+  
+  if (!modalElement) {
+    console.error('Modal modalReabrirTicket no encontrado');
+    alert('Error: No se pudo encontrar el modal de reapertura');
+    return;
+  }
+  
+  // Establecer el ID del ticket en el formulario
+  ticketIdElement.value = ticketId;
+  
+  // Limpiar formulario
+  comentarioElement.value = '';
+  esInternoElement.checked = false;
+  
+  // Mostrar modal
+  if (typeof bootstrap !== 'undefined') {
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+  } else {
+    console.error('Bootstrap no está disponible');
+    alert('Error: Bootstrap no está disponible');
+  }
+}
+
+// Función para confirmar resolución
+function confirmarResolucion() {
+  const form = document.getElementById('formResolverTicket');
+  const formData = new FormData(form);
+  
+  // Validar que se haya proporcionado un comentario
+  const comentario = formData.get('comentario_resolucion');
+  if (!comentario || comentario.trim() === '') {
+    alert('Debes proporcionar un comentario de resolución');
+    return;
+  }
+  
+  // Obtener el token CSRF
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  
+  fetch('{% url "resolver_ticket" %}', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': csrfToken
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Error en la respuesta del servidor');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Cerrar modal
+      if (typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalResolverTicket'));
+        if (modal) {
+          modal.hide();
+        }
+      }
+      
+      // Mostrar mensaje de éxito
+      
+      // Recargar la página para mostrar los cambios
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error al resolver el ticket: ' + error.message);
+  });
+}
+
+// Función para confirmar reapertura
+function confirmarReapertura() {
+  const form = document.getElementById('formReabrirTicket');
+  const formData = new FormData(form);
+  
+  // Validar que se haya proporcionado un comentario
+  const comentario = formData.get('comentario_reapertura');
+  if (!comentario || comentario.trim() === '') {
+    alert('Debes proporcionar un comentario de reapertura');
+    return;
+  }
+  
+  // Obtener el token CSRF
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  
+  fetch('{% url "reabrir_ticket" %}', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': csrfToken
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Error en la respuesta del servidor');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Cerrar modal
+      if (typeof bootstrap !== 'undefined') {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalReabrirTicket'));
+        if (modal) {
+          modal.hide();
+        }
+      }
+      
+      // Recargar la página para mostrar los cambios
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error al reabrir el ticket: ' + error.message);
+  });
+}
+
+// Función para inicializar formularios del ticket
+function inicializarFormulariosTicket() {
+  console.log('Inicializando formularios del ticket...');
+  
+  // Verificar que todos los modales estén disponibles
+  const modales = [
+    'modalReabrirTicket',
+    'modalReasignar', 
+    'modalResolverTicket',
+    'modalCambiarPrioridad'
+  ];
+  
+  const elementos = [
+    'ticketIdReabrir',
+    'comentarioReapertura',
+    'esInternoReapertura',
+    'ticketIdReasignar',
+    'usuarioAsignar',
+    'comentarioReasignacion',
+    'ticketIdResolver',
+    'comentarioResolucion',
+    'esInternoResolucion',
+    'ticketIdPrioridad',
+    'nuevaPrioridad',
+    'comentarioPrioridad'
+  ];
+  
+  console.log('Verificando modales...');
+  modales.forEach(modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      console.log(`✓ Modal ${modalId} encontrado`);
+    } else {
+      console.log(`✗ Modal ${modalId} NO encontrado`);
+    }
+  });
+  
+  console.log('Verificando elementos...');
+  elementos.forEach(elementId => {
+    const elemento = document.getElementById(elementId);
+    if (elemento) {
+      console.log(`✓ Elemento ${elementId} encontrado`);
+    } else {
+      console.log(`✗ Elemento ${elementId} NO encontrado`);
+    }
+  });
 }
 
 // Event listeners para admin
@@ -2070,6 +2713,13 @@ document.addEventListener('DOMContentLoaded', function() {
         buscarTickets();
       }
     });
+  }
+  
+  // Inicializar formularios si estamos en una página de ticket
+  if (window.location.search.includes('action=ver_ticket')) {
+    setTimeout(() => {
+      inicializarFormulariosTicket();
+    }, 200);
   }
 });
 </script>

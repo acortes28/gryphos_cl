@@ -1,243 +1,710 @@
 {% load static %}
 
-<div class="container-fluid" data-ticket-id="{{ ticket.id }}">
+<div class="container-fluid">
   <div class="row">
     <div class="col-12">
       <!-- Header -->
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h4 class="mb-1">
-            <i class="fas fa-ticket-alt me-2"></i>Ticket #{{ ticket.id }}
+            <i class="fas fa-ticket-alt me-2"></i>Ticket #{{ ticket.id }} - {{ ticket.titulo }}
           </h4>
-          <p class="text-muted mb-0">{{ ticket.titulo }}</p>
+          <p class="text-muted mb-0">Detalle del ticket de soporte</p>
         </div>
         
-        <button class="btn btn-outline-secondary" onclick="volverASoporte()">
-          <i class="fas fa-arrow-left me-2"></i>Volver
-        </button>
+        <div class="d-flex align-items-center">
+          <button class="btn btn-outline-secondary me-2" onclick="volverASoporte()">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+          </button>
+          {% if user.is_staff or user.is_superuser %}
+            {% if ticket.estado == 'resuelto' %}
+              <button class="btn btn-warning me-2" onclick="reabrirTicket({{ ticket.id }})">
+                <i class="fas fa-undo me-2"></i>Reabrir
+              </button>
+            {% else %}
+              <button class="btn btn-warning me-2" onclick="reasignarTicket({{ ticket.id }})">
+                <i class="fas fa-user-plus me-2"></i>Reasignar
+              </button>
+              <button class="btn btn-info me-2" onclick="cambiarPrioridad({{ ticket.id }})">
+                <i class="fas fa-exclamation-triangle me-2"></i>Cambiar Prioridad
+              </button>
+              <button class="btn btn-success me-2" onclick="resolverTicket({{ ticket.id }})">
+                <i class="fas fa-check-circle me-2"></i>Resolver
+              </button>
+            {% endif %}
+          {% endif %}
+        </div>
       </div>
       
-      <div class="row">
-        <!-- Información del ticket -->
-        <div class="col-lg-8">
-          <div class="card mb-4">
+      <!-- Información del Ticket -->
+      <div class="row mb-4">
+        <div class="col-md-8">
+          <div class="card">
             <div class="card-header">
-              <div class="d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">Información del Ticket</h6>
-                <div>
-                  <span class="badge bg-{{ ticket.estado|yesno:'success,warning,info,secondary' }} me-2">{{ ticket.get_estado_display }}</span>
-                  {% if ticket.prioridad == 'urgente' %}
-                    <span class="badge bg-danger">Urgente</span>
-                  {% elif ticket.prioridad == 'alta' %}
-                    <span class="badge bg-warning">Alta</span>
+              <h6 class="card-title mb-0">
+                <i class="fas fa-info-circle me-2"></i>Información del Ticket
+              </h6>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Título:</strong> {{ ticket.titulo }}</p>
+                  <p><strong>Descripción:</strong></p>
+                  <div class="bg-light p-3 rounded">
+                    {{ ticket.descripcion|linebreaks }}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Estado:</strong> 
+                    {% if ticket.estado == 'abierto' %}
+                      <span class="badge bg-warning">Abierto</span>
+                    {% elif ticket.estado == 'en_proceso' %}
+                      <span class="badge bg-info">En Proceso</span>
+                    {% elif ticket.estado == 'resuelto' %}
+                      <span class="badge bg-success">Resuelto</span>
+                    {% elif ticket.estado == 'cerrado' %}
+                      <span class="badge bg-secondary">Cerrado</span>
+                    {% endif %}
+                  </p>
+                  <p><strong>Prioridad:</strong> 
+                    {% if ticket.prioridad == 'urgente' %}
+                      <span class="badge bg-danger">Urgente</span>
+                    {% elif ticket.prioridad == 'alta' %}
+                      <span class="badge bg-warning">Alta</span>
+                    {% elif ticket.prioridad == 'media' %}
+                      <span class="badge bg-info">Media</span>
+                    {% elif ticket.prioridad == 'baja' %}
+                      <span class="badge bg-success">Baja</span>
+                    {% endif %}
+                  </p>
+                  <p><strong>Clasificación:</strong> {{ ticket.clasificacion }}</p>
+                  {% if ticket.subclasificacion %}
+                    <p><strong>Subclasificación:</strong> {{ ticket.subclasificacion }}</p>
+                  {% endif %}
+                  <p><strong>Fecha de creación:</strong> {{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                  {% if ticket.fecha_actualizacion != ticket.fecha_creacion %}
+                    <p><strong>Última actualización:</strong> {{ ticket.fecha_actualizacion|date:"d/m/Y H:i" }}</p>
                   {% endif %}
                 </div>
               </div>
             </div>
-            <div class="card-body">
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <strong>Clasificación:</strong>
-                  <p class="text-muted mb-0">{{ ticket.clasificacion }} - {{ ticket.subclasificacion }}</p>
-                </div>
-                <div class="col-md-6">
-                  <strong>Prioridad:</strong>
-                  <p class="text-muted mb-0">{{ ticket.get_prioridad_display }}</p>
-                </div>
-              </div>
-              
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <strong>Creado por:</strong>
-                  <p class="text-muted mb-0">{{ ticket.usuario.get_full_name|default:ticket.usuario.username }}</p>
-                </div>
-                <div class="col-md-6">
-                  <strong>Fecha de creación:</strong>
-                  <p class="text-muted mb-0">{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</p>
-                </div>
-              </div>
-              
-              {% if ticket.asignado_a %}
-                <div class="row mb-3">
-                  <div class="col-md-6">
-                    <strong>Asignado a:</strong>
-                    <p class="text-muted mb-0">{{ ticket.asignado_a.get_full_name|default:ticket.asignado_a.username }}</p>
-                  </div>
-                </div>
-              {% endif %}
-              
-              <div class="row">
-                <div class="col-12">
-                  <strong>Descripción:</strong>
-                  <div class="mt-2 p-3 bg-light rounded">
-                    {{ ticket.descripcion|linebreaks }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Comentarios -->
-          <div class="card">
-            <div class="card-header">
-              <h6 class="mb-0">
-                <i class="fas fa-comments me-2"></i>Comentarios ({{ comentarios.count }})
-              </h6>
-            </div>
-            <div class="card-body">
-              {% if comentarios %}
-                <div class="comentarios-container">
-                  {% for comentario in comentarios %}
-                    <div class="comentario mb-3 p-3 border rounded {% if comentario.es_interno %}bg-warning bg-opacity-10{% endif %}">
-                      <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                          <strong>{{ comentario.autor.get_full_name|default:comentario.autor.username }}</strong>
-                          {% if comentario.es_interno %}
-                            <span class="badge bg-warning ms-2">Interno</span>
-                          {% endif %}
-                        </div>
-                        <small class="text-muted">{{ comentario.fecha_creacion|date:"d/m/Y H:i" }}</small>
-                      </div>
-                      <div class="comentario-contenido">
-                        {{ comentario.contenido|linebreaks }}
-                      </div>
-                    </div>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <p class="text-muted text-center py-3">No hay comentarios aún.</p>
-              {% endif %}
-              
-              <!-- Formulario para nuevo comentario -->
-              {% if ticket.puede_comentar %}
-                <div class="mt-4">
-                  <h6>Agregar Comentario</h6>
-                  <form id="form-comentario" method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                      {{ comentario_form.contenido }}
-                      {% if comentario_form.contenido.errors %}
-                        <div class="text-danger mt-1">
-                          {% for error in comentario_form.contenido.errors %}
-                            <small>{{ error }}</small>
-                          {% endfor %}
-                        </div>
-                      {% endif %}
-                    </div>
-                    
-                    {% if user.is_staff or user.is_superuser %}
-                      <div class="mb-3">
-                        <div class="form-check">
-                          {{ comentario_form.es_interno }}
-                          <label class="form-check-label" for="{{ comentario_form.es_interno.id_for_label }}">
-                            {{ comentario_form.es_interno.label }}
-                          </label>
-                        </div>
-                      </div>
-                    {% endif %}
-                    
-                    <div id="mensaje-comentario" class="mb-3"></div>
-                    
-                    <button type="submit" class="btn btn-primary" id="btn-agregar-comentario">
-                      <i class="fas fa-paper-plane me-2"></i>Agregar Comentario
-                    </button>
-                  </form>
-                </div>
-              {% endif %}
-            </div>
           </div>
         </div>
         
-        <!-- Panel lateral para administradores -->
-        {% if user.is_staff or user.is_superuser %}
-          <div class="col-lg-4">
-            <div class="card">
-              <div class="card-header">
-                <h6 class="mb-0">
-                  <i class="fas fa-cog me-2"></i>Gestión del Ticket
-                </h6>
+        <div class="col-md-4">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="card-title mb-0">
+                <i class="fas fa-users me-2"></i>Usuarios
+              </h6>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <strong>Creado por:</strong>
+                <div class="d-flex align-items-center mt-2">
+                  {% if ticket.usuario.profile_photo %}
+                    <img src="{{ ticket.usuario.profile_photo.url }}" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
+                  {% else %}
+                    <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                      <i class="fas fa-user text-white"></i>
+                    </div>
+                  {% endif %}
+                  <div>
+                    <div class="fw-bold">{{ ticket.usuario.get_full_name|default:ticket.usuario.username }}</div>
+                    <small class="text-muted">{{ ticket.usuario.email }}</small>
+                  </div>
+                </div>
               </div>
-              <div class="card-body">
-                <form id="form-admin-ticket" method="post">
-                  {% csrf_token %}
-                  
-                  <div class="mb-3">
-                    <label for="{{ admin_form.estado.id_for_label }}" class="form-label">
-                      {{ admin_form.estado.label }}
-                    </label>
-                    {{ admin_form.estado }}
+              
+              <div>
+                <strong>Asignado a:</strong>
+                {% if ticket.asignado_a %}
+                  <div class="d-flex align-items-center mt-2">
+                    {% if ticket.asignado_a.profile_photo %}
+                      <img src="{{ ticket.asignado_a.profile_photo.url }}" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
+                    {% else %}
+                      <div class="bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="fas fa-user text-white"></i>
+                      </div>
+                    {% endif %}
+                    <div>
+                      <div class="fw-bold">{{ ticket.asignado_a.get_full_name|default:ticket.asignado_a.username }}</div>
+                      <small class="text-muted">{{ ticket.asignado_a.email }}</small>
+                    </div>
                   </div>
-                  
-                  <div class="mb-3">
-                    <label for="{{ admin_form.prioridad.id_for_label }}" class="form-label">
-                      {{ admin_form.prioridad.label }}
-                    </label>
-                    {{ admin_form.prioridad }}
+                {% else %}
+                  <div class="text-muted mt-2">
+                    <i class="fas fa-user-slash me-1"></i>Sin asignar
                   </div>
-                  
-                  <div class="mb-3">
-                    <label for="{{ admin_form.asignado_a.id_for_label }}" class="form-label">
-                      {{ admin_form.asignado_a.label }}
-                    </label>
-                    {{ admin_form.asignado_a }}
-                  </div>
-                  
-                  <div id="mensaje-admin" class="mb-3"></div>
-                  
-                  <button type="submit" class="btn btn-success w-100" id="btn-actualizar-admin">
-                    <i class="fas fa-save me-2"></i>Actualizar Ticket
-                  </button>
-                </form>
+                {% endif %}
               </div>
             </div>
           </div>
-        {% endif %}
+        </div>
+      </div>
+      
+      <!-- Comentarios -->
+      <div class="card">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-comments me-2"></i>Comentarios ({{ comentarios.count }})
+          </h6>
+        </div>
+        <div class="card-body">
+          {% if comentarios %}
+            <div class="comentarios-container">
+              {% for comentario in comentarios %}
+                <div class="comentario mb-3 p-3 border rounded {% if comentario.es_interno %}bg-light bg-opacity-10{% endif %}">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="d-flex align-items-center">
+                      {% if comentario.autor.profile_photo %}
+                        <img src="{{ comentario.autor.profile_photo.url }}" alt="Avatar" class="rounded-circle me-2" width="32" height="32">
+                      {% else %}
+                        <div class="bg-secondary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                          <i class="fas fa-user text-white"></i>
+                        </div>
+                      {% endif %}
+                      <div>
+                        <div class="fw-bold">{{ comentario.autor.get_full_name|default:comentario.autor.username }}</div>
+                        <small class="text-muted">{{ comentario.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                      </div>
+                    </div>
+                    {% if comentario.es_interno %}
+                      <span class="badge bg-warning">
+                        <i class="fas fa-eye-slash me-1"></i>Interno
+                      </span>
+                    {% endif %}
+                    {% if '[RESUELTO]' in comentario.contenido %}
+                      <span class="badge bg-success">
+                        <i class="fas fa-check-circle me-1"></i>Resuelto
+                      </span>
+                    {% endif %}
+                    {% if '[REAPERTURA]' in comentario.contenido %}
+                      <span class="badge bg-warning">
+                        <i class="fas fa-undo me-1"></i>Reapertura
+                      </span>
+                    {% endif %}
+                  </div>
+                  <div class="comentario-contenido">
+                    {% if '[RESUELTO]' in comentario.contenido %}
+                      {{ comentario.contenido|slice:"10:"|linebreaks }}
+                    {% elif '[REAPERTURA]' in comentario.contenido %}
+                      {{ comentario.contenido|slice:"12:"|linebreaks }}
+                    {% else %}
+                      {{ comentario.contenido|linebreaks }}
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-4">
+              <i class="fas fa-comments fa-2x text-muted mb-3"></i>
+              <p class="text-muted">No hay comentarios aún</p>
+            </div>
+          {% endif %}
+          
+          <!-- Formulario para agregar comentario -->
+          {% if ticket.estado == 'resuelto' %}
+            {% if user.is_superuser %}
+              <div class="mt-4">
+                <h6>Agregar comentario (solo administradores)</h6>
+                <div class="alert alert-info">
+                  <i class="fas fa-info-circle me-2"></i>
+                  <strong>Nota:</strong> Este ticket está resuelto. Solo los administradores pueden agregar comentarios.
+                </div>
+                <form id="formComentario" onsubmit="agregarComentario(event)">
+                  {% csrf_token %}
+                  <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
+                  
+                  <div class="mb-3">
+                    <textarea class="form-control" name="contenido" rows="4" placeholder="Escribe tu comentario..." required></textarea>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="es_interno" id="esInterno">
+                      <label class="form-check-label" for="esInterno">
+                        <i class="fas fa-eye-slash me-1"></i>Comentario interno (solo visible para admin/staff)
+                      </label>
+                    </div>
+                  </div>
+                  
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-paper-plane me-2"></i>Enviar comentario
+                  </button>
+                </form>
+              </div>
+            {% else %}
+              <div class="mt-4">
+                <div class="alert alert-warning">
+                  <i class="fas fa-lock me-2"></i>
+                  <strong>Ticket Resuelto:</strong> Este ticket está resuelto y no se pueden agregar más comentarios.
+                </div>
+              </div>
+            {% endif %}
+          {% else %}
+            <div class="mt-4">
+              <h6>Agregar comentario</h6>
+              <form id="formComentario" onsubmit="agregarComentario(event)">
+                {% csrf_token %}
+                <input type="hidden" name="ticket_id" value="{{ ticket.id }}">
+                
+                <div class="mb-3">
+                  <textarea class="form-control" name="contenido" rows="4" placeholder="Escribe tu comentario..." required></textarea>
+                </div>
+                
+                {% if user.is_staff or user.is_superuser %}
+                  <div class="mb-3">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="es_interno" id="esInterno">
+                      <label class="form-check-label" for="esInterno">
+                        <i class="fas fa-eye-slash me-1"></i>Comentario interno (solo visible para admin/staff)
+                      </label>
+                    </div>
+                  </div>
+                {% else %}
+                  <!-- Campo oculto para usuarios no staff - siempre False -->
+                  <input type="hidden" name="es_interno" value="false">
+                {% endif %}
+                
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-paper-plane me-2"></i>Enviar comentario
+                </button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Reasignación -->
+<div class="modal fade" id="modalReasignar" tabindex="-1" aria-labelledby="modalReasignarLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalReasignarLabel">
+          <i class="fas fa-user-plus me-2"></i>Reasignar Ticket
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formReasignar">
+          {% csrf_token %}
+          <input type="hidden" id="ticketIdReasignar" name="ticket_id">
+          
+          <div class="mb-3">
+            <label for="usuarioAsignar" class="form-label">Asignar a:</label>
+            <select class="form-select" id="usuarioAsignar" name="usuario_asignar" required>
+              <option value="">Seleccionar usuario...</option>
+              {% for usuario in usuarios_staff %}
+                <option value="{{ usuario.id }}">{{ usuario.get_full_name|default:usuario.username }} ({{ usuario.email }})</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Selecciona el usuario admin/staff que se encargará del ticket.</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="comentarioReasignacion" class="form-label">Comentario interno (opcional):</label>
+            <textarea class="form-control" id="comentarioReasignacion" name="comentario_interno" rows="3" placeholder="Comentario interno sobre la reasignación..."></textarea>
+            <div class="form-text">Este comentario solo será visible para usuarios admin/staff.</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" onclick="confirmarReasignacion()">
+          <i class="fas fa-check me-2"></i>Confirmar Reasignación
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Cambiar Prioridad -->
+<div class="modal fade" id="modalCambiarPrioridad" tabindex="-1" aria-labelledby="modalCambiarPrioridadLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalCambiarPrioridadLabel">
+          <i class="fas fa-exclamation-triangle me-2"></i>Cambiar Prioridad
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formCambiarPrioridad">
+          {% csrf_token %}
+          <input type="hidden" id="ticketIdPrioridad" name="ticket_id">
+          
+          <div class="mb-3">
+            <label for="nuevaPrioridad" class="form-label">Nueva prioridad:</label>
+            <select class="form-select" id="nuevaPrioridad" name="nueva_prioridad" required>
+              <option value="">Seleccionar prioridad...</option>
+              <option value="baja">Baja</option>
+              <option value="media">Media</option>
+              <option value="alta">Alta</option>
+              <option value="urgente">Urgente</option>
+            </select>
+            <div class="form-text">Selecciona la nueva prioridad para el ticket.</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="comentarioPrioridad" class="form-label">Comentario (opcional):</label>
+            <textarea class="form-control" id="comentarioPrioridad" name="comentario_prioridad" rows="3" placeholder="Comentario sobre el cambio de prioridad..."></textarea>
+            <div class="form-text">Este comentario será visible para todos los usuarios del ticket.</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" onclick="confirmarCambioPrioridad()">
+          <i class="fas fa-check me-2"></i>Confirmar Cambio
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Resolver Ticket -->
+<div class="modal fade" id="modalResolverTicket" tabindex="-1" aria-labelledby="modalResolverTicketLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalResolverTicketLabel">
+          <i class="fas fa-check-circle me-2"></i>Resolver Ticket
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formResolverTicket">
+          {% csrf_token %}
+          <input type="hidden" id="ticketIdResolver" name="ticket_id">
+          
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Importante:</strong> Para resolver el ticket, debes proporcionar un comentario explicando la solución.
+          </div>
+          
+          <div class="mb-3">
+            <label for="comentarioResolucion" class="form-label">Comentario de resolución:</label>
+            <textarea class="form-control" id="comentarioResolucion" name="comentario_resolucion" rows="4" placeholder="Explica cómo se resolvió el problema..." required></textarea>
+            <div class="form-text">Este comentario será visible para el usuario que creó el ticket.</div>
+          </div>
+          
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="esInternoResolucion" name="es_interno_resolucion">
+              <label class="form-check-label" for="esInternoResolucion">
+                <i class="fas fa-eye-slash me-1"></i>Comentario interno (solo visible para admin/staff)
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-success" onclick="confirmarResolucion()">
+          <i class="fas fa-check me-2"></i>Resolver Ticket
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Reabrir Ticket -->
+<div class="modal fade" id="modalReabrirTicket" tabindex="-1" aria-labelledby="modalReabrirTicketLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalReabrirTicketLabel">
+          <i class="fas fa-undo me-2"></i>Reabrir Ticket
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formReabrirTicket">
+          {% csrf_token %}
+          <input type="hidden" id="ticketIdReabrir" name="ticket_id">
+          
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Importante:</strong> Para reabrir el ticket, debes proporcionar un comentario explicando por qué se reabre.
+          </div>
+          
+          <div class="mb-3">
+            <label for="comentarioReapertura" class="form-label">Comentario de reapertura:</label>
+            <textarea class="form-control" id="comentarioReapertura" name="comentario_reapertura" rows="4" placeholder="Explica por qué se reabre el ticket..." required></textarea>
+            <div class="form-text">Este comentario será visible para el usuario que creó el ticket.</div>
+          </div>
+          
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="esInternoReapertura" name="es_interno_reapertura">
+              <label class="form-check-label" for="esInternoReapertura">
+                <i class="fas fa-eye-slash me-1"></i>Comentario interno (solo visible para admin/staff)
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-2"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-warning" onclick="confirmarReapertura()">
+          <i class="fas fa-undo me-2"></i>Reabrir Ticket
+        </button>
       </div>
     </div>
   </div>
 </div>
 
 <style>
+/* Estilos generales para cards */
+.card {
+  border: 1px solid #e3e6f0;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: 0.375rem;
+}
+
+.card-header {
+  background-color: #f8f9fc;
+  border-bottom: 1px solid #e3e6f0;
+  border-radius: 0.375rem 0.375rem 0 0 !important;
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+/* Estilos para comentarios */
 .comentario {
-  transition: all 0.3s ease;
+  background-color: #f8f9fa;
+  border: 1px solid #e3e6f0;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
 }
 
-.comentario:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+.comentario.es-interno {
+  background-color: #fff3cd;
+  border-color: #ffeaa7;
 }
 
-.comentario-contenido {
-  line-height: 1.6;
-}
-
+/* Estilos para badges */
 .badge {
   font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Estilos para contenido de comentarios */
+.comentario-contenido {
+  line-height: 1.6;
+  margin-top: 0.5rem;
+}
+
+/* Estilos para formularios */
+.form-control {
+  border: 1px solid #d1d3e2;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
 .form-control:focus {
   border-color: #667eea;
   box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  outline: 0;
 }
 
+.form-select {
+  border: 1px solid #d1d3e2;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  outline: 0;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #5a5c69;
+  margin-bottom: 0.5rem;
+}
+
+.form-text {
+  font-size: 0.875rem;
+  color: #858796;
+  margin-top: 0.25rem;
+}
+
+/* Estilos para botones */
 .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary {
+  border-radius: 0.375rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+}
+
+/* Estilos para el modal */
+.modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.modal-header .btn-close {
+  filter: invert(1);
+}
+
+.modal-title {
+  color: white !important;
+  font-weight: 600;
+}
+
+.modal-content {
+  border-radius: 0.375rem;
+  border: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-footer {
+  border-top: 1px solid #e3e6f0;
+  padding: 1rem 1.5rem;
+}
+
+/* Estilos para la descripción del ticket */
+.bg-light {
+  background-color: #f8f9fc !important;
+  border: 1px solid #e3e6f0;
+  border-radius: 0.375rem;
+  padding: 1rem;
+}
+
+/* Estilos para avatares */
+.rounded-circle {
+  border: 2px solid #e3e6f0;
+}
+
+/* Estilos para el área de comentarios */
+.comentarios-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* Estilos para el formulario de comentarios */
+#formComentario {
+  background-color: #f8f9fc;
+  border: 1px solid #e3e6f0;
+  border-radius: 0.375rem;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+/* Estilos para el checkbox */
+.form-check-input {
+  border: 1px solid #d1d3e2;
+  border-radius: 0.25rem;
+}
+
+.form-check-input:checked {
   background-color: #667eea;
   border-color: #667eea;
 }
 
-.btn-primary:hover {
-  background-color: #5a6fd8;
-  border-color: #5a6fd8;
+.form-check-label {
+  font-weight: 500;
+  color: #5a5c69;
+}
+
+/* Estilos para el estado vacío */
+.text-center.py-4 {
+  background-color: #f8f9fc;
+  border: 1px solid #e3e6f0;
+  border-radius: 0.375rem;
+  margin: 1rem 0;
+}
+
+/* Estilos para el header */
+.d-flex.justify-content-between.align-items-center {
+  background-color: #f8f9fc;
+  border: 1px solid #e3e6f0;
+  border-radius: 0.375rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Estilos para los nuevos botones */
+.btn-info {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-info:hover {
+  background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-success {
-  background-color: #28a745;
-  border-color: #28a745;
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.15s ease-in-out;
 }
 
 .btn-success:hover {
-  background-color: #218838;
-  border-color: #1e7e34;
+  background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Estilos para alertas en modales */
+.alert-info {
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+  color: #0c5460;
+  border-radius: 0.375rem;
+}
+
+.alert-info i {
+  color: #17a2b8;
 }
 </style>
 
-<!-- Las funciones JavaScript están definidas en el archivo principal plataforma_aprendizaje.html --> 
+<!-- Las funciones JavaScript están definidas en plataforma_aprendizaje.html --> 
