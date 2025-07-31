@@ -567,6 +567,9 @@
       <!-- Contenido de la sección Inicio -->
     </div>
     
+    <!-- Bloque para contenido personalizado -->
+    {% block section_content %}{% endblock %}
+    
     <div id="seccion-foro" class="section-content">
       <div class="text-center py-5">
         <i class="fas fa-comments fa-3x text-muted mb-3"></i>
@@ -1128,35 +1131,24 @@ function showArchivoPreview(file) {
   console.log('Mostrando vista previa del archivo:', file.name);
   
   const archivoPreview = document.getElementById('archivoPreview');
-  const nombreArchivo = document.getElementById('nombreArchivo');
-  const archivoStatus = document.getElementById('archivoStatus');
+  const archivoInfo = document.getElementById('archivoInfo');
   const btnSubirEntrega = document.getElementById('btnSubirEntrega');
   
   console.log('Elementos encontrados:', {
     archivoPreview: !!archivoPreview,
-    nombreArchivo: !!nombreArchivo,
-    archivoStatus: !!archivoStatus,
+    archivoInfo: !!archivoInfo,
     btnSubirEntrega: !!btnSubirEntrega
   });
   
-  // Mostrar nombre del archivo
-  if (nombreArchivo) {
-    nombreArchivo.textContent = file.name;
+  // Mostrar información del archivo
+  if (archivoInfo) {
+    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    archivoInfo.textContent = `Nombre: ${file.name} | Tamaño: ${fileSizeMB} MB`;
   }
   
   // Mostrar vista previa
   if (archivoPreview) {
     archivoPreview.style.display = 'block';
-  }
-  
-  // Mostrar mensaje de éxito con información del archivo
-  const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
-  if (archivoStatus) {
-    archivoStatus.innerHTML = `<div class="alert alert-success alert-sm">
-      <i class="fas fa-check-circle me-2"></i>
-      <strong>Archivo seleccionado correctamente</strong><br>
-      <small>Nombre: ${file.name} | Tamaño: ${fileSizeMB} MB</small>
-    </div>`;
   }
   
   // Habilitar botón de subir entrega
@@ -1174,7 +1166,6 @@ function showArchivoPreview(file) {
 function removeArchivo() {
   const archivoInput = document.getElementById('archivo_entrega');
   const archivoPreview = document.getElementById('archivoPreview');
-  const archivoStatus = document.getElementById('archivoStatus');
   const btnSubirEntrega = document.getElementById('btnSubirEntrega');
   
   // Limpiar input de archivo
@@ -1182,9 +1173,6 @@ function removeArchivo() {
   
   // Ocultar vista previa
   archivoPreview.style.display = 'none';
-  
-  // Limpiar mensaje de estado
-  archivoStatus.innerHTML = '';
   
   // Deshabilitar botón de subir entrega
   if (btnSubirEntrega) {

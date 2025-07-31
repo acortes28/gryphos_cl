@@ -2,12 +2,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 import time
 import re
+import json
 from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm, EntregaForm, TicketSoporteForm, ComentarioTicketForm, TicketSoporteAdminForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -24,7 +25,7 @@ import logging
 import traceback
 from datetime import datetime, timedelta
 import jwt
-from django.db.models import Avg, Min, Max, Count
+from django.db.models import Avg, Min, Max, Count, Sum
 from decimal import Decimal
 from django.db.models import Prefetch
 import os
@@ -2267,7 +2268,8 @@ def crear_evaluacion(request, curso_id):
 def calificar_estudiante(request, curso_id, evaluacion_id):
     """
     Vista para calificar estudiantes en una evaluación específica (solo staff/admin)
-    Solo permite calificar estudiantes que tienen entregas para esta evaluación
+    Permite calificar estudiantes que tienen entregas para esta evaluación
+    También permite editar calificaciones existentes
     """
     curso = get_object_or_404(Curso, id=curso_id)
     evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
@@ -2285,18 +2287,13 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
         entregas__evaluacion=evaluacion
     ).distinct().order_by('first_name', 'last_name', 'username')
     
-    # Excluir estudiantes que ya están calificados
+    # Para el formulario: solo estudiantes no calificados
     estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
     estudiantes_disponibles_para_calificar = estudiantes_con_entregas.exclude(id__in=estudiantes_calificados_ids)
     
     # Si no hay estudiantes con entregas, mostrar mensaje
     if not estudiantes_con_entregas.exists():
         messages.warning(request, f'No hay estudiantes con entregas para la evaluación "{evaluacion.nombre}". Solo se pueden calificar estudiantes que hayan entregado su trabajo.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
-    
-    # Si no hay estudiantes disponibles para calificar (todos ya están calificados)
-    if not estudiantes_disponibles_para_calificar.exists():
-        messages.info(request, f'Todos los estudiantes con entregas para la evaluación "{evaluacion.nombre}" ya han sido calificados.')
         return redirect('plataforma_calificaciones', curso_id=curso_id)
     
     if request.method == 'POST':
@@ -2369,11 +2366,17 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
         is_superuser=False
     ).order_by('first_name', 'last_name', 'username')
     
+    # Obtener estudiantes ya calificados para mostrar estadísticas
+    estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
+    estudiantes_ya_calificados = estudiantes_con_entregas.filter(id__in=estudiantes_calificados_ids)
+    
+
+    
     # Estadísticas para mostrar en el template
     stats = {
         'total_estudiantes_con_entregas': estudiantes_con_entregas.count(),
         'estudiantes_disponibles_para_calificar': estudiantes_disponibles_para_calificar.count(),
-        'estudiantes_ya_calificados': estudiantes_con_entregas.count() - estudiantes_disponibles_para_calificar.count(),
+        'estudiantes_ya_calificados': estudiantes_ya_calificados.count(),
         'total_estudiantes_curso': todos_estudiantes.count(),
     }
     
@@ -2381,8 +2384,9 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
         'curso': curso,
         'evaluacion': evaluacion,
         'form': form,
-        'estudiantes': estudiantes_disponibles_para_calificar,  # Para el formulario
+        'estudiantes': estudiantes_disponibles_para_calificar,  # Para el formulario (solo no calificados)
         'todos_estudiantes': todos_estudiantes,  # Para la lista completa
+        'estudiantes_ya_calificados': estudiantes_ya_calificados,  # Para mostrar cuáles ya están calificados
         'stats': stats,
         'user': request.user,
     }
@@ -3422,59 +3426,51 @@ def obtener_subclasificaciones(request):
 
 def crear_clasificaciones_iniciales():
     """
-    Función para crear clasificaciones iniciales de tickets
+    Función para crear las clasificaciones iniciales de tickets
     """
-    clasificaciones_data = [
+    clasificaciones = [
         {
             'nombre': 'Problemas Técnicos',
-            'descripcion': 'Problemas relacionados con la plataforma, acceso, navegación, etc.',
+            'descripcion': 'Problemas relacionados con la plataforma, acceso, o funcionalidades técnicas',
             'subclasificaciones': [
-                'Acceso a la plataforma',
-                'Problemas de navegación',
-                'Errores del sistema',
+                'Problemas de acceso',
+                'Errores en la plataforma',
                 'Problemas con archivos',
-                'Problemas de video/audio',
-                'Otros problemas técnicos'
+                'Problemas con videollamadas'
             ]
         },
         {
             'nombre': 'Contenido del Curso',
-            'descripcion': 'Consultas sobre el contenido, materiales, evaluaciones, etc.',
+            'descripcion': 'Consultas sobre el contenido, materiales o recursos del curso',
             'subclasificaciones': [
-                'Dudas sobre el contenido',
-                'Materiales de estudio',
-                'Evaluaciones y tareas',
-                'Calificaciones',
+                'Consultas sobre contenido',
+                'Materiales faltantes',
                 'Recursos adicionales',
-                'Otros temas del curso'
+                'Clarificación de conceptos'
             ]
         },
         {
-            'nombre': 'Administrativo',
-            'descripcion': 'Consultas sobre inscripciones, pagos, certificados, etc.',
+            'nombre': 'Evaluaciones',
+            'descripcion': 'Consultas sobre evaluaciones, calificaciones o entregas',
             'subclasificaciones': [
-                'Inscripción al curso',
-                'Pagos y facturación',
-                'Certificados',
-                'Cambios de horario',
-                'Cancelaciones',
-                'Otros temas administrativos'
+                'Consultas sobre evaluaciones',
+                'Problemas con entregas',
+                'Revisión de calificaciones',
+                'Solicitud de retroalimentación'
             ]
         },
         {
-            'nombre': 'Soporte General',
-            'descripcion': 'Otras consultas y solicitudes de soporte',
+            'nombre': 'General',
+            'descripcion': 'Consultas generales sobre el curso o la plataforma',
             'subclasificaciones': [
                 'Información general',
                 'Sugerencias',
-                'Reportes de bugs',
-                'Solicitudes especiales',
                 'Otros'
             ]
         }
     ]
     
-    for clasificacion_data in clasificaciones_data:
+    for clasificacion_data in clasificaciones:
         clasificacion, created = ClasificacionTicket.objects.get_or_create(
             nombre=clasificacion_data['nombre'],
             defaults={
@@ -3484,11 +3480,431 @@ def crear_clasificaciones_iniciales():
         )
         
         if created:
-            for subclasificacion_nombre in clasificacion_data['subclasificaciones']:
-                SubclasificacionTicket.objects.get_or_create(
-                    clasificacion=clasificacion,
-                    nombre=subclasificacion_nombre,
-                    defaults={
-                        'activa': True
-                    }
-                )
+            print(f"Clasificación creada: {clasificacion.nombre}")
+        
+        for subclasificacion_nombre in clasificacion_data['subclasificaciones']:
+            subclasificacion, created = SubclasificacionTicket.objects.get_or_create(
+                clasificacion=clasificacion,
+                nombre=subclasificacion_nombre,
+                defaults={
+                    'descripcion': f'Subclasificación de {clasificacion.nombre}',
+                    'activa': True
+                }
+            )
+            
+            if created:
+                print(f"  Subclasificación creada: {subclasificacion.nombre}")
+
+@login_required
+def crear_rubrica(request, curso_id, evaluacion_id):
+    """
+    Vista para crear una rúbrica para una evaluación específica
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+    
+    # Verificar que el usuario tenga permisos (staff o creador de la evaluación)
+    if not request.user.is_staff and evaluacion.creado_por != request.user:
+        messages.error(request, 'No tienes permisos para crear rúbricas para esta evaluación.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    # Verificar si ya existe una rúbrica para esta evaluación
+    if hasattr(evaluacion, 'rubrica'):
+        messages.warning(request, 'Esta evaluación ya tiene una rúbrica asociada.')
+        return redirect('editar_rubrica', curso_id=curso_id, evaluacion_id=evaluacion_id)
+    
+    if request.method == 'POST':
+        # Procesar el formulario de creación de rúbrica
+        nombre = request.POST.get('nombre')
+        descripcion = request.POST.get('descripcion')
+        objetivo = request.POST.get('objetivo')
+        aprendizaje_esperado = request.POST.get('aprendizaje_esperado')
+        
+        if nombre and objetivo and aprendizaje_esperado:
+            # Crear la rúbrica
+            rubrica = Rubrica.objects.create(
+                evaluacion=evaluacion,
+                nombre=nombre,
+                descripcion=descripcion,
+                objetivo=objetivo,
+                aprendizaje_esperado=aprendizaje_esperado,
+                creado_por=request.user
+            )
+            
+            messages.success(request, 'Rúbrica creada exitosamente. Ahora puedes agregar criterios.')
+            return redirect('editar_rubrica', curso_id=curso_id, evaluacion_id=evaluacion_id)
+        else:
+            messages.error(request, 'Por favor completa todos los campos obligatorios.')
+    
+    # Contexto necesario para el template que hereda de plataforma_aprendizaje.html
+    context = {
+        'curso': curso,
+        'evaluacion': evaluacion,
+        'user': request.user,
+        'current_category': None,  # Para el foro
+    }
+    
+    return render(request, 'pages/crear_rubrica.html', context)
+
+@login_required
+def editar_rubrica(request, curso_id, evaluacion_id):
+    """
+    Vista para editar una rúbrica existente
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+    
+    # Verificar que el usuario tenga permisos
+    if not request.user.is_staff and evaluacion.creado_por != request.user:
+        messages.error(request, 'No tienes permisos para editar rúbricas para esta evaluación.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    # Obtener la rúbrica
+    try:
+        rubrica = evaluacion.rubrica
+    except Rubrica.DoesNotExist:
+        messages.error(request, 'No se encontró una rúbrica para esta evaluación.')
+        return redirect('plataforma_calificaciones', curso_id=curso_id)
+    
+    # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
+    from datetime import date
+    hoy = date.today()
+    puede_editar = True
+    mensaje_restriccion = None
+    
+    if evaluacion.fecha_inicio and hoy >= evaluacion.fecha_inicio:
+        puede_editar = False
+        mensaje_restriccion = f'La evaluación comenzó el {evaluacion.fecha_inicio.strftime("%d/%m/%Y")}. La rúbrica no se puede editar después de esta fecha.'
+    
+    if request.method == 'POST' and puede_editar:
+        # Procesar actualización de la rúbrica
+        nombre = request.POST.get('nombre')
+        descripcion = request.POST.get('descripcion')
+        objetivo = request.POST.get('objetivo')
+        aprendizaje_esperado = request.POST.get('aprendizaje_esperado')
+        
+        if nombre and objetivo and aprendizaje_esperado:
+            rubrica.nombre = nombre
+            rubrica.descripcion = descripcion
+            rubrica.objetivo = objetivo
+            rubrica.aprendizaje_esperado = aprendizaje_esperado
+            rubrica.save()
+            
+            messages.success(request, 'Rúbrica actualizada exitosamente.')
+        else:
+            messages.error(request, 'Por favor completa todos los campos obligatorios.')
+    elif request.method == 'POST' and not puede_editar:
+        messages.error(request, mensaje_restriccion)
+    
+    # Contexto necesario para el template que hereda de plataforma_aprendizaje.html
+    context = {
+        'curso': curso,
+        'evaluacion': evaluacion,
+        'rubrica': rubrica,
+        'user': request.user,
+        'current_category': None,  # Para el foro
+        'puede_editar': puede_editar,
+        'mensaje_restriccion': mensaje_restriccion,
+    }
+    
+    return render(request, 'pages/editar_rubrica.html', context)
+
+@login_required
+def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
+    """
+    Vista AJAX para agregar un criterio a una rúbrica
+    """
+    logger.info(f"Agregando criterio - Curso: {curso_id}, Evaluación: {evaluacion_id}")
+    
+    if request.method != 'POST':
+        logger.error("Método no permitido")
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        curso = get_object_or_404(Curso, id=curso_id)
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+        
+        # Verificar permisos
+        if not request.user.is_staff and evaluacion.creado_por != request.user:
+            logger.error(f"Usuario {request.user.id} no tiene permisos para evaluación {evaluacion_id}")
+            return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+        
+        # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
+        from datetime import date
+        hoy = date.today()
+        if evaluacion.fecha_inicio and hoy >= evaluacion.fecha_inicio:
+            logger.error(f"Evaluación {evaluacion_id} ya comenzó")
+            return JsonResponse({
+                'error': f'La evaluación comenzó el {evaluacion.fecha_inicio.strftime("%d/%m/%Y")}. No se pueden agregar criterios después de esta fecha.'
+            }, status=403)
+        
+        try:
+            rubrica = evaluacion.rubrica
+        except Rubrica.DoesNotExist:
+            logger.error(f"No se encontró rúbrica para evaluación {evaluacion_id}")
+            return JsonResponse({'error': 'No se encontró una rúbrica para esta evaluación'}, status=404)
+        
+        # Obtener datos del formulario
+        nombre = request.POST.get('nombre')
+        objetivo = request.POST.get('objetivo')
+        puntaje = request.POST.get('puntaje')
+        esperables_data = request.POST.getlist('esperables[]')
+        
+        logger.info(f"Datos recibidos - Nombre: {nombre}, Objetivo: {objetivo}, Puntaje: {puntaje}, Esperables: {len(esperables_data)}")
+        
+        if not nombre or not objetivo or not puntaje:
+            logger.error("Campos obligatorios faltantes")
+            return JsonResponse({'error': 'Nombre, objetivo y puntaje son campos obligatorios'}, status=400)
+        
+        try:
+            puntaje_decimal = float(puntaje)
+            if puntaje_decimal < 0:
+                logger.error(f"Puntaje negativo: {puntaje_decimal}")
+                return JsonResponse({'error': 'El puntaje debe ser un número positivo'}, status=400)
+        except ValueError:
+            logger.error(f"Puntaje inválido: {puntaje}")
+            return JsonResponse({'error': 'El puntaje debe ser un número válido'}, status=400)
+        
+        # Crear el criterio
+        criterio = CriterioRubrica.objects.create(
+            rubrica=rubrica,
+            nombre=nombre,
+            objetivo=objetivo,
+            puntaje=puntaje_decimal,
+            orden=rubrica.criterios.count() + 1
+        )
+        
+        logger.info(f"Criterio creado con ID: {criterio.id}")
+        
+        # Crear los esperables
+        esperables_creados = 0
+        for i, esperable_data in enumerate(esperables_data):
+            if esperable_data.strip():  # Solo crear si no está vacío
+                # Parsear el esperable que viene en formato JSON
+                try:
+                    esperable_obj = json.loads(esperable_data)
+                    Esperable.objects.create(
+                        criterio=criterio,
+                        nivel=esperable_obj.get('nivel', f"Nivel {i+1}"),
+                        descripcion=esperable_obj.get('descripcion', ''),
+                        puntaje=esperable_obj.get('puntaje', 0),
+                        orden=i+1
+                    )
+                    esperables_creados += 1
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.warning(f"Error parsing esperable {i}: {e}")
+                    # Fallback para formato antiguo
+                    Esperable.objects.create(
+                        criterio=criterio,
+                        nivel=f"Nivel {i+1}",
+                        descripcion=esperable_data.strip(),
+                        puntaje=0,
+                        orden=i+1
+                    )
+                    esperables_creados += 1
+        
+        logger.info(f"Esperables creados: {esperables_creados}")
+        
+        # Recalcular el puntaje total del criterio basado en los esperables
+        puntaje_total = criterio.esperables.aggregate(total=Max('puntaje'))['total'] or 0
+        criterio.puntaje = puntaje_total
+        criterio.save()
+        
+        logger.info(f"Criterio {criterio.id} guardado exitosamente con puntaje total: {puntaje_total}")
+        
+        response_data = {
+            'success': True,
+            'criterio_id': criterio.id,
+            'criterio_nombre': str(criterio.nombre),
+            'criterio_objetivo': str(criterio.objetivo),
+            'criterio_puntaje': float(criterio.puntaje),
+            'esperables_count': criterio.esperables.count()
+        }
+        
+        logger.info(f"Respuesta exitosa: {response_data}")
+        return JsonResponse(response_data, safe=True)
+        
+    except Exception as e:
+        logger.error(f"Error inesperado en agregar_criterio_rubrica: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return JsonResponse({'error': 'Error interno del servidor. Por favor, intenta nuevamente.'}, status=500)
+
+@login_required
+def obtener_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
+    """
+    Vista AJAX para obtener los datos de un criterio específico
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    curso = get_object_or_404(Curso, id=curso_id)
+    evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+    criterio = get_object_or_404(CriterioRubrica, id=criterio_id, rubrica__evaluacion=evaluacion)
+    
+    # Verificar permisos
+    if not request.user.is_staff and evaluacion.creado_por != request.user:
+        return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+    
+    # Obtener los esperables del criterio
+    esperables = list(criterio.esperables.values('nivel', 'descripcion', 'puntaje'))
+    
+    return JsonResponse({
+        'success': True,
+        'criterio': {
+            'id': criterio.id,
+            'nombre': str(criterio.nombre),
+            'objetivo': str(criterio.objetivo),
+            'puntaje': float(criterio.puntaje),
+            'esperables': [
+                {
+                    'nivel': str(e['nivel']),
+                    'descripcion': str(e['descripcion']),
+                    'puntaje': float(e['puntaje'])
+                } for e in esperables
+            ]
+        }
+    }, safe=True)
+
+@login_required
+def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
+    """
+    Vista AJAX para editar un criterio de una rúbrica
+    """
+    logger.info(f"Editando criterio - Curso: {curso_id}, Evaluación: {evaluacion_id}, Criterio: {criterio_id}")
+    
+    if request.method != 'POST':
+        logger.error("Método no permitido")
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        curso = get_object_or_404(Curso, id=curso_id)
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+        criterio = get_object_or_404(CriterioRubrica, id=criterio_id, rubrica__evaluacion=evaluacion)
+        
+        # Verificar permisos
+        if not request.user.is_staff and evaluacion.creado_por != request.user:
+            logger.error(f"Usuario {request.user.id} no tiene permisos para evaluación {evaluacion_id}")
+            return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+        
+        # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
+        from datetime import date
+        hoy = date.today()
+        if evaluacion.fecha_inicio and hoy >= evaluacion.fecha_inicio:
+            logger.error(f"Evaluación {evaluacion_id} ya comenzó")
+            return JsonResponse({
+                'error': f'La evaluación comenzó el {evaluacion.fecha_inicio.strftime("%d/%m/%Y")}. No se pueden editar criterios después de esta fecha.'
+            }, status=403)
+        
+        # Obtener datos del formulario
+        nombre = request.POST.get('nombre')
+        objetivo = request.POST.get('objetivo')
+        puntaje = request.POST.get('puntaje')
+        esperables_data = request.POST.getlist('esperables[]')
+        
+        logger.info(f"Datos recibidos - Nombre: {nombre}, Objetivo: {objetivo}, Puntaje: {puntaje}, Esperables: {len(esperables_data)}")
+        
+        if not nombre or not objetivo or not puntaje:
+            logger.error("Campos obligatorios faltantes")
+            return JsonResponse({'error': 'Nombre, objetivo y puntaje son campos obligatorios'}, status=400)
+        
+        try:
+            puntaje_decimal = float(puntaje)
+            if puntaje_decimal < 0:
+                logger.error(f"Puntaje negativo: {puntaje_decimal}")
+                return JsonResponse({'error': 'El puntaje debe ser un número positivo'}, status=400)
+        except ValueError:
+            logger.error(f"Puntaje inválido: {puntaje}")
+            return JsonResponse({'error': 'El puntaje debe ser un número válido'}, status=400)
+        
+        # Actualizar el criterio
+        criterio.nombre = nombre
+        criterio.objetivo = objetivo
+        criterio.puntaje = puntaje_decimal
+        criterio.save()
+        
+        logger.info(f"Criterio actualizado con ID: {criterio.id}")
+        
+        # Actualizar los esperables
+        # Primero eliminar los existentes
+        criterio.esperables.all().delete()
+        
+        # Crear los nuevos esperables
+        esperables_creados = 0
+        for i, esperable_data in enumerate(esperables_data):
+            if esperable_data.strip():  # Solo crear si no está vacío
+                # Parsear el esperable que viene en formato JSON
+                try:
+                    esperable_obj = json.loads(esperable_data)
+                    Esperable.objects.create(
+                        criterio=criterio,
+                        nivel=esperable_obj.get('nivel', f"Nivel {i+1}"),
+                        descripcion=esperable_obj.get('descripcion', ''),
+                        puntaje=esperable_obj.get('puntaje', 0),
+                        orden=i+1
+                    )
+                    esperables_creados += 1
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.warning(f"Error parsing esperable {i}: {e}")
+                    # Fallback para formato antiguo
+                    Esperable.objects.create(
+                        criterio=criterio,
+                        nivel=f"Nivel {i+1}",
+                        descripcion=esperable_data.strip(),
+                        puntaje=0,
+                        orden=i+1
+                    )
+                    esperables_creados += 1
+        
+        logger.info(f"Esperables creados: {esperables_creados}")
+        
+        # Recalcular el puntaje total del criterio basado en los esperables
+        puntaje_total = criterio.esperables.aggregate(total=Max('puntaje'))['total'] or 0
+        criterio.puntaje = puntaje_total
+        criterio.save()
+        
+        logger.info(f"Criterio {criterio.id} editado exitosamente con puntaje total: {puntaje_total}")
+        
+        response_data = {
+            'success': True,
+            'criterio_id': criterio.id,
+            'criterio_nombre': str(criterio.nombre),
+            'criterio_objetivo': str(criterio.objetivo),
+            'criterio_puntaje': float(criterio.puntaje),
+            'esperables_count': criterio.esperables.count()
+        }
+        
+        logger.info(f"Respuesta exitosa: {response_data}")
+        return JsonResponse(response_data, safe=True)
+        
+    except Exception as e:
+        logger.error(f"Error inesperado en editar_criterio_rubrica: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return JsonResponse({'error': 'Error interno del servidor. Por favor, intenta nuevamente.'}, status=500)
+
+@login_required
+def eliminar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
+    """
+    Vista AJAX para eliminar un criterio de una rúbrica
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    curso = get_object_or_404(Curso, id=curso_id)
+    evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+    criterio = get_object_or_404(CriterioRubrica, id=criterio_id, rubrica__evaluacion=evaluacion)
+    
+    # Verificar permisos
+    if not request.user.is_staff and evaluacion.creado_por != request.user:
+        return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+    
+    # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
+    from datetime import date
+    hoy = date.today()
+    if evaluacion.fecha_inicio and hoy >= evaluacion.fecha_inicio:
+        return JsonResponse({
+            'error': f'La evaluación comenzó el {evaluacion.fecha_inicio.strftime("%d/%m/%Y")}. No se pueden eliminar criterios después de esta fecha.'
+        }, status=403)
+    
+    criterio.delete()
+    
+    return JsonResponse({'success': True})

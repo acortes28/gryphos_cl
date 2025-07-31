@@ -59,6 +59,14 @@ urlpatterns = [
     path('editar-calificacion/', views.editar_calificacion, name='editar_calificacion'),
     path('limpiar-retroalimentaciones/', views.limpiar_retroalimentaciones, name='limpiar_retroalimentaciones'),
     
+    # Rúbricas URLs
+    path('curso/<int:curso_id>/calificaciones/crear-rubrica/<int:evaluacion_id>/', views.crear_rubrica, name='crear_rubrica'),
+    path('curso/<int:curso_id>/calificaciones/editar-rubrica/<int:evaluacion_id>/', views.editar_rubrica, name='editar_rubrica'),
+    path('curso/<int:curso_id>/calificaciones/agregar-criterio/<int:evaluacion_id>/', views.agregar_criterio_rubrica, name='agregar_criterio_rubrica'),
+    path('curso/<int:curso_id>/calificaciones/obtener-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.obtener_criterio_rubrica, name='obtener_criterio_rubrica'),
+    path('curso/<int:curso_id>/calificaciones/editar-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.editar_criterio_rubrica, name='editar_criterio_rubrica'),
+    path('curso/<int:curso_id>/calificaciones/eliminar-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.eliminar_criterio_rubrica, name='eliminar_criterio_rubrica'),
+    
     path('cursos/', views.cursos_list, name='cursos_list'),
     path('cursos/<int:curso_id>/', views.curso_detail_public, name='curso_detail_public'),
     

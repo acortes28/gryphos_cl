@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django import forms
 from .models import CustomUser
-from .models import Curso, BlogPost, Videollamada, InscripcionCurso
+from .models import Curso, BlogPost, Videollamada, InscripcionCurso, Rubrica, CriterioRubrica, Esperable
 
 class CustomUserAdmin(BaseUserAdmin):
     form = UserChangeForm
@@ -265,3 +265,45 @@ admin.site.register(TicketSoporte, TicketSoporteAdmin)
 admin.site.register(ComentarioTicket, ComentarioTicketAdmin)
 admin.site.register(ClasificacionTicket, ClasificacionTicketAdmin)
 admin.site.register(SubclasificacionTicket, SubclasificacionTicketAdmin)
+
+# Configuraciones para modelos de rúbricas
+class EsperableInline(admin.TabularInline):
+    model = Esperable
+    extra = 1
+    fields = ('nivel', 'descripcion', 'puntaje', 'orden')
+
+class CriterioRubricaAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'rubrica', 'puntaje', 'orden')
+    list_filter = ('rubrica', 'orden')
+    search_fields = ('nombre', 'objetivo', 'rubrica__nombre')
+    ordering = ('rubrica', 'orden')
+    inlines = [EsperableInline]
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('rubrica', 'nombre', 'objetivo', 'puntaje', 'orden')
+        }),
+    )
+
+class RubricaAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'evaluacion', 'creado_por', 'fecha_creacion', 'activa')
+    list_filter = ('activa', 'fecha_creacion', 'evaluacion__curso')
+    search_fields = ('nombre', 'descripcion', 'evaluacion__nombre')
+    readonly_fields = ('fecha_creacion', 'fecha_modificacion')
+    ordering = ('-fecha_creacion',)
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('evaluacion', 'nombre', 'descripcion', 'objetivo', 'aprendizaje_esperado')
+        }),
+        ('Estado', {
+            'fields': ('activa', 'creado_por')
+        }),
+        ('Fechas', {
+            'fields': ('fecha_creacion', 'fecha_modificacion'),
+            'classes': ('collapse',)
+        }),
+    )
+
+admin.site.register(Rubrica, RubricaAdmin)
+admin.site.register(CriterioRubrica, CriterioRubricaAdmin)

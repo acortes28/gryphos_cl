@@ -505,6 +505,126 @@ class Calificacion(models.Model):
             return (self.nota / self.evaluacion.nota_maxima) * self.evaluacion.ponderacion
         return None
 
+class Rubrica(models.Model):
+    """
+    Modelo para rúbricas de evaluación
+    """
+    evaluacion = models.OneToOneField(Evaluacion, on_delete=models.CASCADE, related_name='rubrica')
+    nombre = models.CharField(max_length=200, help_text="Nombre de la rúbrica")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la rúbrica")
+    objetivo = models.TextField(help_text="Objetivo de la rúbrica")
+    aprendizaje_esperado = models.TextField(help_text="Aprendizaje esperado")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    activa = models.BooleanField(default=True, help_text="Indica si la rúbrica está activa")
+    creado_por = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='rubricas_creadas', blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Rúbrica'
+        verbose_name_plural = 'Rúbricas'
+    
+    def __str__(self):
+        return f"{self.nombre} - {self.evaluacion.nombre}"
+    
+    def get_criterios_count(self):
+        """Retorna el número de criterios de la rúbrica"""
+        return self.criterios.count()
+    
+    def get_puntaje_total(self):
+        """Retorna el puntaje total de la rúbrica"""
+        return self.criterios.aggregate(total=models.Sum('puntaje_maximo'))['total'] or 0
+
+class CriterioRubrica(models.Model):
+    """
+    Modelo para criterios de una rúbrica
+    """
+    rubrica = models.ForeignKey(Rubrica, on_delete=models.CASCADE, related_name='criterios')
+    nombre = models.CharField(max_length=200, help_text="Nombre del criterio")
+    objetivo = models.TextField(help_text="Objetivo del criterio")
+    puntaje = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Puntaje máximo para este criterio")
+    orden = models.PositiveIntegerField(default=0, help_text="Orden de aparición del criterio")
+    
+    class Meta:
+        ordering = ['orden', 'nombre']
+        verbose_name = 'Criterio de Rúbrica'
+        verbose_name_plural = 'Criterios de Rúbrica'
+    
+    def __str__(self):
+        return f"{self.nombre} - {self.rubrica.nombre}"
+
+class Esperable(models.Model):
+    """
+    Modelo para esperables (expectativas) de un criterio
+    """
+    criterio = models.ForeignKey(CriterioRubrica, on_delete=models.CASCADE, related_name='esperables')
+    nivel = models.CharField(max_length=100, help_text="Nivel de desempeño (ej: Aceptable, Bueno, Excelente)")
+    descripcion = models.TextField(help_text="Descripción de la expectativa para este nivel")
+    puntaje = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Puntaje asociado a este esperable")
+    orden = models.PositiveIntegerField(default=0, help_text="Orden de aparición del esperable")
+    
+    class Meta:
+        ordering = ['orden', 'nivel']
+        verbose_name = 'Esperable'
+        verbose_name_plural = 'Esperables'
+    
+    def __str__(self):
+        return f"{self.nivel} - {self.criterio.nombre} ({self.puntaje} pts)"
+
+class ResultadoRubrica(models.Model):
+    """
+    Modelo para almacenar los resultados de aplicar una rúbrica a un estudiante
+    """
+    rubrica = models.ForeignKey(Rubrica, on_delete=models.CASCADE, related_name='resultados')
+    estudiante = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='resultados_rubrica')
+    evaluador = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='evaluaciones_realizadas')
+    fecha_evaluacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    comentarios_generales = models.TextField(blank=True, null=True, help_text="Comentarios generales de la evaluación")
+    puntaje_total = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, help_text="Puntaje total obtenido")
+    nota_final = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, help_text="Nota final calculada")
+    
+    class Meta:
+        ordering = ['-fecha_evaluacion']
+        verbose_name = 'Resultado de Rúbrica'
+        verbose_name_plural = 'Resultados de Rúbricas'
+        unique_together = ['rubrica', 'estudiante']
+    
+    def __str__(self):
+        return f"{self.estudiante.get_full_name()} - {self.rubrica.nombre}: {self.puntaje_total}"
+    
+    def calcular_puntaje_total(self):
+        """Calcula el puntaje total basado en los puntajes de cada criterio"""
+        puntajes = self.puntajes_criterios.values_list('puntaje_obtenido', flat=True)
+        return sum(puntajes) if puntajes else 0
+    
+    def calcular_nota_final(self):
+        """Calcula la nota final basada en el puntaje total y la nota máxima de la evaluación"""
+        if self.puntaje_total and self.rubrica.evaluacion.nota_maxima:
+            puntaje_maximo_rubrica = self.rubrica.get_puntaje_total()
+            if puntaje_maximo_rubrica > 0:
+                return (self.puntaje_total / puntaje_maximo_rubrica) * self.rubrica.evaluacion.nota_maxima
+        return None
+
+class PuntajeCriterio(models.Model):
+    """
+    Modelo para almacenar el puntaje obtenido en cada criterio de una evaluación
+    """
+    resultado_rubrica = models.ForeignKey(ResultadoRubrica, on_delete=models.CASCADE, related_name='puntajes_criterios')
+    criterio = models.ForeignKey(CriterioRubrica, on_delete=models.CASCADE, related_name='puntajes')
+    esperable_seleccionado = models.ForeignKey(Esperable, on_delete=models.CASCADE, related_name='puntajes_asignados', blank=True, null=True)
+    puntaje_obtenido = models.DecimalField(max_digits=5, decimal_places=2, help_text="Puntaje obtenido en este criterio")
+    comentarios = models.TextField(blank=True, null=True, help_text="Comentarios específicos para este criterio")
+    
+    class Meta:
+        ordering = ['criterio__orden']
+        verbose_name = 'Puntaje de Criterio'
+        verbose_name_plural = 'Puntajes de Criterios'
+        unique_together = ['resultado_rubrica', 'criterio']
+    
+    def __str__(self):
+        return f"{self.criterio.nombre} - {self.puntaje_obtenido}"
+
 class Entrega(models.Model):
     ESTADO_CHOICES = [
         ('pendiente', 'Pendiente'),

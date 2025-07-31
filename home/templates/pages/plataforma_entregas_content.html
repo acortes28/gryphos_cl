@@ -134,17 +134,17 @@
           
           <!-- Vista previa del archivo seleccionado -->
           <div id="archivoPreview" class="mb-3" style="display: none;">
-            <div class="alert alert-success">
-              <i class="fas fa-file me-2"></i>
-              <strong id="nombreArchivo"></strong>
-              <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="removeArchivoBtn">
+            <div class="alert alert-info d-flex justify-content-between align-items-start">
+              <div>
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Archivo seleccionado correctamente</strong><br>
+                <small id="archivoInfo"></small>
+              </div>
+              <button type="button" class="btn btn-sm btn-danger" id="removeArchivoBtn">
                 <i class="fas fa-times"></i>Descartar
               </button>
             </div>
           </div>
-          
-          <!-- Mensaje de estado -->
-          <div id="archivoStatus" class="mt-2"></div>
           
           {% if form.archivo.errors %}
             <div class="text-danger small mt-1">

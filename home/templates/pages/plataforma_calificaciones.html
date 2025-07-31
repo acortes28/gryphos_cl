@@ -115,6 +115,8 @@
     padding: 20px;
     margin-bottom: 15px;
     transition: all 0.3s ease;
+    position: relative;
+    min-height: 200px;
   }
   
   .evaluacion-card:hover {
@@ -608,7 +610,7 @@
                       <div class="d-flex gap-2">
                         {% if evaluacion.stats_entregas.estudiantes_con_entregas > 0 %}
                           <a href="{% url 'calificar_estudiante' curso.id evaluacion.id %}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-edit me-1"></i>Calificar
+                            <i class="fas fa-edit me-1"></i>{% if evaluacion.stats_entregas.estudiantes_calificados > 0 %}Editar Calificaciones{% else %}Calificar{% endif %}
                           </a>
                         {% else %}
                           <button class="btn btn-sm btn-outline-secondary" disabled title="No hay entregas para calificar">
@@ -620,6 +622,13 @@
                         </a>
                         <a href="{% url 'eliminar_evaluacion' curso.id evaluacion.id %}" class="btn btn-sm btn-outline-danger">
                           <i class="fas fa-trash-alt me-1"></i>Eliminar
+                        </a>
+                      </div>
+                      
+                      <!-- Botón Crear Rubrica en la esquina inferior derecha -->
+                      <div class="position-absolute bottom-0 end-0 p-3">
+                        <a href="{% url 'crear_rubrica' curso.id evaluacion.id %}" class="btn btn-sm btn-success" title="Crear Rúbrica para esta evaluación">
+                          <i class="fas fa-plus-circle me-1"></i>Abrir Rubrica
                         </a>
                       </div>
                     </div>

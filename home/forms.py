@@ -514,7 +514,7 @@ class CalificacionForm(forms.ModelForm):
         if curso:
             if estudiantes_con_entregas is not None:
                 # Usar la lista de estudiantes con entregas proporcionada
-                # Pero excluir los que ya están calificados
+                # Excluir los que ya están calificados para el formulario
                 if evaluacion:
                     estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
                     estudiantes_disponibles = estudiantes_con_entregas.exclude(id__in=estudiantes_calificados_ids)
@@ -535,7 +535,7 @@ class CalificacionForm(forms.ModelForm):
                         entregas__evaluacion=evaluacion
                     ).distinct()
                     
-                    # Excluir estudiantes ya calificados
+                    # Excluir estudiantes ya calificados para el formulario
                     estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
                     estudiantes_disponibles = estudiantes_con_entregas.exclude(id__in=estudiantes_calificados_ids)
                 else:
