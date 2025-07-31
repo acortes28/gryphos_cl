@@ -2182,6 +2182,28 @@ def plataforma_calificaciones(request, curso_id):
         ).order_by('-fecha_calificacion')
         context['calificaciones_usuario'] = calificaciones_usuario
         
+        # Verificar si se solicita ver rúbricas
+        mostrar_rubricas = request.GET.get('seccion') == 'rubricas'
+        context['mostrar_rubricas'] = mostrar_rubricas
+        
+        if mostrar_rubricas:
+            # Obtener todas las evaluaciones del curso que tengan rúbricas
+            evaluaciones_con_rubricas = []
+            evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
+            
+            for evaluacion in evaluaciones:
+                try:
+                    rubrica = evaluacion.rubrica
+                    if rubrica and rubrica.activa:
+                        evaluaciones_con_rubricas.append({
+                            'evaluacion': evaluacion,
+                            'rubrica': rubrica
+                        })
+                except:
+                    continue
+            
+            context['evaluaciones_con_rubricas'] = evaluaciones_con_rubricas
+        
         # Estadísticas personales del estudiante
         calificaciones_con_nota = calificaciones_usuario.filter(nota__isnull=False)
         total_evaluaciones = Evaluacion.objects.filter(curso=curso).count()
@@ -2411,9 +2433,17 @@ def ver_calificacion_detalle(request, curso_id, calificacion_id):
         messages.error(request, 'La calificación no pertenece a este curso.')
         return redirect('plataforma_calificaciones', curso_id=curso_id)
     
+    # Obtener la rúbrica asociada a la evaluación si existe
+    rubrica = None
+    try:
+        rubrica = calificacion.evaluacion.rubrica
+    except:
+        pass
+    
     context = {
         'curso': curso,
         'calificacion': calificacion,
+        'rubrica': rubrica,
         'user': request.user,
     }
     return render(request, 'pages/calificacion_detalle.html', context)

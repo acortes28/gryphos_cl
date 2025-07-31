@@ -271,6 +271,49 @@
       animation: subtlePulse 2s ease-in-out infinite;
   }
   
+  /* Estilos para la sección de rúbrica */
+  .criterios-container .card {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+  }
+  
+  .criterios-container .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+    border-left-color: #667eea;
+  }
+  
+  .esperables-container .card {
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+  }
+  
+  .esperables-container .card:hover {
+    border-left-color: #28a745;
+    background-color: #f8f9fa !important;
+  }
+  
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+  }
+  
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .card-header.bg-gradient-primary {
+    border-bottom: none;
+  }
+  
+  .esperables-container .badge.bg-secondary {
+    background-color: #6c757d !important;
+  }
+  
+  .esperables-container .badge.bg-success {
+    background-color: #28a745 !important;
+  }
+  
   .user-card {
     display: flex;
     align-items: center;
@@ -579,6 +622,8 @@
               </div>
             </div>
           {% endif %}
+          
+
           
           <!-- El botón "Volver a Calificaciones" ahora está en la parte superior derecha del componente -->
         </div>

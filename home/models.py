@@ -533,7 +533,7 @@ class Rubrica(models.Model):
     
     def get_puntaje_total(self):
         """Retorna el puntaje total de la rúbrica"""
-        return self.criterios.aggregate(total=models.Sum('puntaje_maximo'))['total'] or 0
+        return self.criterios.aggregate(total=models.Sum('puntaje'))['total'] or 0
 
 class CriterioRubrica(models.Model):
     """
