@@ -670,12 +670,36 @@
     <div class="row justify-content-center">
       <div class="col-lg-8">
         <div class="form-card">
-          <h4 class="mb-4">
-            <i class="fas fa-user-graduate me-2"></i>Calificar Estudiante
-          </h4>
+          <div class="d-flex justify-content-between align-items-start mb-4">
+            <h4 class="mb-0">
+              <i class="fas fa-user-graduate me-2"></i>Calificar Estudiante
+            </h4>
+            <div class="text-end">
+              <div class="nota-calculada-container">
+                <div class="nota-calculada-card">
+                  <div class="nota-calculada-header">
+                    <i class="fas fa-star text-warning me-2"></i>
+                    <span class="nota-calculada-title">Nota Calculada</span>
+                  </div>
+                  <div class="nota-calculada-value">
+                    {{ form.nota }}
+                  </div>
+                  <div class="nota-calculada-footer">
+                    <small class="text-muted">
+                      <i class="fas fa-calculator me-1"></i>
+                      Se calcula automáticamente
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           
           <form method="post">
             {% csrf_token %}
+            
+            <!-- Campo de nota oculto para enviar con el formulario -->
+            <input type="hidden" name="nota" id="nota_hidden" value="">
             
             <div class="form-group">
               <label for="{{ form.estudiante.id_for_label }}" class="form-label">
@@ -768,7 +792,7 @@
               <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-secondary">
                 <i class="fas fa-times me-2"></i>Cancelar
               </a>
-              <button type="submit" class="btn btn-primary">
+              <button type="submit" class="btn btn-primary" id="calcular-nota" onclick="calcularNota()">
                 <i class="fas fa-save me-2"></i>Guardar Calificación
               </button>
             </div>
@@ -1006,7 +1030,405 @@ document.addEventListener('keydown', function(event) {
   }
 });
 
+// Función para calcular la nota automáticamente
+function calcularNota() {
+  // Mostrar indicador de cálculo
+  let notaField = document.getElementById('id_nota_calculada');
+  if (notaField) {
+    notaField.placeholder = 'Calculando...';
+  }
+  
+  const evaluacionNotaMaxima = parseFloat('{{ evaluacion.nota_maxima|default:7.0 }}');
+  let sumaPuntajesObtenidos = 0;
+  let sumaPuntajesMaximos = 0;
+  
+  // Obtener todos los campos de criterio
+  const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
+  
+  criterioFields.forEach(function(field) {
+    const selectedOption = field.options[field.selectedIndex];
+    if (selectedOption && selectedOption.value !== '') {
+      // Extraer el puntaje del texto de la opción (formato: "25.00 pts - Logrado - Descripción")
+      const optionText = selectedOption.text;
+      const puntajeMatch = optionText.match(/(\d+\.?\d*)\s+pts/);
+      if (puntajeMatch) {
+        sumaPuntajesObtenidos += parseFloat(puntajeMatch[1]);
+      }
+    }
+    
+    // Obtener el puntaje máximo del criterio desde el atributo data
+    const puntajeMaximo = parseFloat(field.getAttribute('data-criterio-puntaje-maximo') || 0);
+    sumaPuntajesMaximos += puntajeMaximo;
+  });
+  
+  // Calcular la nota según la fórmula
+  let notaCalculada = 0;
+  if (sumaPuntajesMaximos > 0) {
+    notaCalculada = (evaluacionNotaMaxima * sumaPuntajesObtenidos) / sumaPuntajesMaximos;
+  }
+  
+  // Actualizar el campo de nota con animación
+  if (notaField) {
+    // Agregar clase para animación
+    notaField.classList.add('nota-updating');
+    
+    // Actualizar valor
+    notaField.value = notaCalculada.toFixed(1);
+    
+    // Actualizar también el campo oculto para el formulario
+    const notaHidden = document.getElementById('nota_hidden');
+    if (notaHidden) {
+      notaHidden.value = notaCalculada.toFixed(1);
+    }
+    
+    // Remover clase después de la animación
+    setTimeout(() => {
+      notaField.classList.remove('nota-updating');
+    }, 300);
+  }
+  
+  // Mostrar información de debug (opcional)
+  console.log('Puntajes obtenidos:', sumaPuntajesObtenidos);
+  console.log('Puntajes máximos:', sumaPuntajesMaximos);
+  console.log('Nota calculada:', notaCalculada.toFixed(1));
+}
+
+// Agregar event listeners para los campos de criterio
+document.addEventListener('DOMContentLoaded', function() {
+  // Restaurar botón si hay errores de validación
+  const hasValidationErrors = document.querySelectorAll('.text-danger').length > 0;
+  if (hasValidationErrors) {
+    const submitButton = document.getElementById('btn-guardar-calificacion');
+    if (submitButton) {
+      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
+      submitButton.disabled = false;
+    }
+  }
+  
+  // Restaurar botón si hay mensajes de error del servidor
+  const hasServerErrors = document.querySelectorAll('.alert-danger, .alert-warning').length > 0;
+  if (hasServerErrors) {
+    const submitButton = document.getElementById('btn-guardar-calificacion');
+    if (submitButton) {
+      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
+      submitButton.disabled = false;
+    }
+  }
+  
+  // Restaurar botón si la página se cargó con errores de validación (URL con parámetros)
+  if (window.location.search.includes('error') || window.location.search.includes('invalid')) {
+    const submitButton = document.getElementById('btn-guardar-calificacion');
+    if (submitButton) {
+      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
+      submitButton.disabled = false;
+    }
+  }
+  
+  // Recalcular nota si hay valores preservados del formulario
+  recalcularNotaConValoresPreservados();
+  const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
+  
+  criterioFields.forEach(function(field) {
+    field.addEventListener('change', calcularNota);
+    
+    // Verificar si el campo tiene un valor preservado
+    if (field.value && field.value !== '') {
+      // Marcar que hay valores preservados
+      field.setAttribute('data-has-preserved-value', 'true');
+    }
+  });
+  
+  // Calcular nota inicial
+  calcularNota();
+  
+  // Recalcular nota después de un breve delay para asegurar que todos los campos estén cargados
+  setTimeout(() => {
+    recalcularNotaConValoresPreservados();
+  }, 100);
+  
+  // También recalcular cuando la página se carga con errores de validación
+  if (document.querySelectorAll('.text-danger').length > 0) {
+    setTimeout(() => {
+      recalcularNotaConValoresPreservados();
+    }, 200);
+  }
+  
+  // Función para recalcular nota cuando se cargan valores preservados
+  function recalcularNotaConValoresPreservados() {
+    // Verificar si hay valores seleccionados en los campos de criterio
+    const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
+    let hayValoresSeleccionados = false;
+    let valoresSeleccionados = [];
+    
+    criterioFields.forEach(function(field) {
+      if (field.value && field.value !== '') {
+        hayValoresSeleccionados = true;
+        valoresSeleccionados.push({
+          field: field,
+          value: field.value,
+          text: field.options[field.selectedIndex]?.text || ''
+        });
+      }
+    });
+    
+    // Si hay valores seleccionados, recalcular la nota
+    if (hayValoresSeleccionados) {
+      console.log('Valores preservados detectados:', valoresSeleccionados);
+      calcularNota();
+      
+      // También actualizar el campo oculto de nota
+      const notaHidden = document.getElementById('nota_hidden');
+      const notaField = document.getElementById('id_nota_calculada');
+      if (notaHidden && notaField && notaField.value) {
+        notaHidden.value = notaField.value;
+      }
+    }
+  }
+  
+  // Función para restaurar el botón de guardar
+  function restaurarBotonGuardar() {
+    const submitButton = document.getElementById('btn-guardar-calificacion');
+    if (submitButton) {
+      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
+      submitButton.disabled = false;
+    }
+  }
+  
+  // Verificar si hay errores de formulario y restaurar el botón
+  const hasFormErrors = document.querySelectorAll('.text-danger').length > 0;
+  if (hasFormErrors) {
+    restaurarBotonGuardar();
+  }
+  
+  // Verificar si hay mensajes de error del servidor
+  const errorMessages = document.querySelectorAll('.alert-danger, .alert-warning');
+  if (errorMessages.length > 0) {
+    restaurarBotonGuardar();
+  }
+  
+  // Verificar si la página se cargó con errores de validación (URL con parámetros)
+  if (window.location.search.includes('error') || window.location.search.includes('invalid')) {
+    restaurarBotonGuardar();
+  }
+  
+  // Recalcular nota si hay valores preservados del formulario
+  recalcularNotaConValoresPreservados();
+  
+  // Event listener para el botón de guardar
+  const submitButton = document.getElementById('btn-guardar-calificacion');
+  if (submitButton) {
+    submitButton.addEventListener('click', function(event) {
+      // Calcular la nota una vez más antes de enviar
+      calcularNota();
+      
+      // Verificar que la nota se haya calculado correctamente
+      const notaField = document.getElementById('id_nota_calculada');
+      if (notaField && notaField.value === '') {
+        event.preventDefault();
+        alert('Por favor, selecciona al menos un criterio antes de guardar la calificación.');
+        return false;
+      }
+      
+      // Guardar el estado original del botón
+      const originalContent = this.innerHTML;
+      const originalDisabled = this.disabled;
+      
+      // Mostrar indicador de guardado
+      this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+      this.disabled = true;
+      
+      // Crear un timeout para restaurar el botón si no hay respuesta
+      const timeoutId = setTimeout(() => {
+        this.innerHTML = originalContent;
+        this.disabled = originalDisabled;
+        console.log('Timeout: Restaurando botón después de 10 segundos');
+      }, 10000);
+      
+      // Interceptar el envío del formulario para manejar errores
+      const form = this.closest('form');
+      if (form) {
+        const originalSubmit = form.onsubmit;
+        form.onsubmit = function(e) {
+          // Limpiar el timeout si el formulario se envía correctamente
+          clearTimeout(timeoutId);
+          
+          // Restaurar el botón después de un breve delay para permitir la redirección
+          setTimeout(() => {
+            submitButton.innerHTML = originalContent;
+            submitButton.disabled = originalDisabled;
+          }, 1000);
+          
+          return true;
+        };
+        
+        // También interceptar el evento submit del formulario
+        form.addEventListener('submit', function(e) {
+          // Limpiar el timeout
+          clearTimeout(timeoutId);
+          
+          // Restaurar el botón después de un breve delay
+          setTimeout(() => {
+            submitButton.innerHTML = originalContent;
+            submitButton.disabled = originalDisabled;
+          }, 1000);
+        });
+      }
+      
+      // El formulario se enviará automáticamente
+    });
+  }
+});
+
 
 </script>
+
+<style>
+/* Estilos para la nota calculada */
+.nota-calculada-container {
+  min-width: 200px;
+}
+
+.nota-calculada-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.nota-calculada-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+}
+
+.nota-calculada-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.nota-calculada-title {
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nota-calculada-value {
+  margin: 12px 0;
+}
+
+.nota-calculada-value input {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  color: #2c3e50 !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+}
+
+.nota-calculada-value input:focus {
+  outline: none !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(255, 255, 255, 0.3) !important;
+  transform: scale(1.02) !important;
+}
+
+/* Animación cuando se actualiza la nota */
+.nota-calculada-value input.nota-updating {
+  animation: notaUpdate 0.3s ease-in-out;
+}
+
+/* Estilo para el placeholder de cálculo */
+.nota-calculada-value input::placeholder {
+  color: #6c757d !important;
+  font-style: italic;
+  font-size: 1rem !important;
+}
+
+@keyframes notaUpdate {
+  0% {
+    transform: scale(1);
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+  50% {
+    transform: scale(1.05);
+    background: rgba(255, 255, 255, 1) !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(255, 193, 7, 0.5) !important;
+  }
+  100% {
+    transform: scale(1);
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+}
+
+.nota-calculada-footer {
+  text-align: center;
+}
+
+.nota-calculada-footer small {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Animación de entrada */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.nota-calculada-container {
+  animation: slideInFromRight 0.6s ease-out;
+}
+
+/* Efecto de brillo en hover */
+.nota-calculada-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.nota-calculada-card:hover::before {
+  left: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nota-calculada-container {
+    min-width: 150px;
+  }
+  
+  .nota-calculada-card {
+    padding: 12px;
+  }
+  
+  .nota-calculada-value input {
+    font-size: 1.2rem !important;
+    padding: 8px 12px !important;
+  }
+  
+  .nota-calculada-title {
+    font-size: 0.8rem;
+  }
+}
+</style>
 
 {% endblock content %} 

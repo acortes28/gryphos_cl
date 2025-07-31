@@ -472,7 +472,7 @@ class EntregaForm(forms.ModelForm):
 class CalificacionForm(forms.ModelForm):
     class Meta:
         model = Calificacion
-        fields = ['estudiante', 'retroalimentacion']
+        fields = ['estudiante', 'retroalimentacion', 'nota']
         widgets = {
             'estudiante': forms.Select(attrs={
                 'class': 'form-control',
@@ -482,15 +482,24 @@ class CalificacionForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 4,
                 'placeholder': 'Recuerda que nuestro sello de calidad es la retroalimentación al estudiante para su aprendizaje personalizado.'
+            }),
+            'nota': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'id': 'id_nota_calculada',
+                'readonly': 'readonly',
+                'step': '0.1',
+                'min': '0'
             })
         }
         labels = {
             'estudiante': 'Estudiante',
-            'retroalimentacion': 'Retroalimentación'
+            'retroalimentacion': 'Retroalimentación',
+            'nota': 'Nota Calculada'
         }
         help_texts = {
             'estudiante': 'Selecciona el estudiante a calificar',
-            'retroalimentacion': 'Comentarios y sugerencias para el estudiante'
+            'retroalimentacion': 'Comentarios y sugerencias para el estudiante',
+            'nota': 'Nota calculada automáticamente basada en los criterios seleccionados'
         }
     
     def __init__(self, *args, **kwargs):
@@ -546,7 +555,7 @@ class CalificacionForm(forms.ModelForm):
                     # Crear opciones para este criterio basadas en sus esperables
                     choices = [('', 'Selecciona un nivel...')]
                     for esperable in criterio.esperables.all():
-                        choices.append((esperable.id, f"{esperable.nivel} - {esperable.puntaje} pts"))
+                        choices.append((esperable.id, f"{esperable.puntaje} pts - {esperable.nivel} - {esperable.descripcion}"))
                     
                     # Crear el campo para este criterio
                     field_name = f'criterio_{criterio.id}'

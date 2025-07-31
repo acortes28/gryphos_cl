@@ -2397,6 +2397,18 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                             
                             puntaje_total += esperable.puntaje
                     
+                    # Calcular la nota según la fórmula
+                    suma_puntajes_maximos = sum(criterio.puntaje for criterio in evaluacion.rubrica.criterios.all())
+                    if suma_puntajes_maximos > 0:
+                        nota_calculada = (evaluacion.nota_maxima * puntaje_total) / suma_puntajes_maximos
+                        # Usar la nota del formulario si está disponible, sino usar la calculada
+                        nota_final = form.cleaned_data.get('nota')
+                        if nota_final is not None and nota_final != '':
+                            calificacion_existente.nota = round(float(nota_final), 1)
+                        else:
+                            calificacion_existente.nota = round(nota_calculada, 1)
+                        calificacion_existente.save()
+                    
                     # Actualizar puntaje total
                     resultado_rubrica.puntaje_total = puntaje_total
                     resultado_rubrica.save()
@@ -2430,6 +2442,18 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                                 puntaje_obtenido=esperable.puntaje
                             )
                             puntaje_total += esperable.puntaje
+                    
+                    # Calcular la nota según la fórmula
+                    suma_puntajes_maximos = sum(criterio.puntaje for criterio in evaluacion.rubrica.criterios.all())
+                    if suma_puntajes_maximos > 0:
+                        nota_calculada = (evaluacion.nota_maxima * puntaje_total) / suma_puntajes_maximos
+                        # Usar la nota del formulario si está disponible, sino usar la calculada
+                        nota_final = form.cleaned_data.get('nota')
+                        if nota_final is not None and nota_final != '':
+                            calificacion.nota = round(float(nota_final), 1)
+                        else:
+                            calificacion.nota = round(nota_calculada, 1)
+                        calificacion.save()
                     
                     # Actualizar puntaje total
                     resultado_rubrica.puntaje_total = puntaje_total
