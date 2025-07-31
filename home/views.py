@@ -2418,7 +2418,7 @@ def exportar_calificaciones_excel(request, curso_id):
     )
     
     # Crear nombre de archivo seguro
-    nombre_archivo = f"calificaciones_{curso.nombre.replace(' ', '_').replace('/', '_').replace('\\', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    nombre_archivo = f"calificaciones_{curso.nombre.replace(' ', '_').replace('/', '_').replace(chr(92), '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
     
     # Guardar el archivo en memoria
