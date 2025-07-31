@@ -144,53 +144,26 @@
         </div>
         {% endif %}
 
-        <!-- Material introductorio -->
-        {% if curso.material_introductorio or curso.archivo_introductorio %}
+        <!-- Contenido del curso -->
+        {% if curso.contenido or curso.archivo_introductorio %}
         <div class="card mb-4">
           <div class="card-header">
             <h4 class="mb-0">
               <i class="fas fa-book-open me-2"></i>
-              Material Introductorio
+              Contenido del Curso
             </h4>
           </div>
           <div class="card-body">
-            {% if curso.material_introductorio %}
+            {% if curso.contenido %}
             <div class="mb-3">
-              {{ curso.material_introductorio|linebreaks }}
+              {{ curso.contenido|linebreaks }}
             </div>
             {% endif %}
             {% if curso.archivo_introductorio %}
             <div class="mt-3">
               <a href="{{ curso.archivo_introductorio.url }}" class="btn btn-outline-primary" target="_blank">
                 <i class="fas fa-download me-2"></i>
-                Ver material introductorio
-              </a>
-            </div>
-            {% endif %}
-          </div>
-        </div>
-        {% endif %}
-
-        <!-- Material del curso -->
-        {% if curso.material_curso or curso.archivo_curso %}
-        <div class="card mb-4">
-          <div class="card-header">
-            <h4 class="mb-0">
-              <i class="fas fa-file-alt me-2"></i>
-              Material del Curso
-            </h4>
-          </div>
-          <div class="card-body">
-            {% if curso.material_curso %}
-            <div class="mb-3">
-              {{ curso.material_curso|linebreaks }}
-            </div>
-            {% endif %}
-            {% if curso.archivo_curso %}
-            <div class="mt-3">
-              <a href="{{ curso.archivo_curso.url }}" class="btn btn-outline-primary" target="_blank">
-                <i class="fas fa-download me-2"></i>
-                Descargar Material del Curso
+                Ver material del curso
               </a>
             </div>
             {% endif %}

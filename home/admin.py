@@ -71,7 +71,7 @@ class CursoAdmin(admin.ModelAdmin):
             'fields': ('duracion', 'modalidad', 'nivel', 'requisitos')
         }),
         ('Material del Curso', {
-            'fields': ('material_introductorio', 'material_curso', 'archivo_introductorio', 'archivo_curso')
+            'fields': ('contenido', 'archivo_introductorio')
         }),
     )
 

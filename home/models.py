@@ -134,8 +134,7 @@ class Curso(models.Model):
     docente_foto = models.ImageField(upload_to='docentes/', blank=True, null=True)
     
     requisitos = models.TextField(blank=True, null=True, help_text="Requisitos previos para el curso")
-    material_introductorio = models.TextField(blank=True, null=True, help_text="Material introductorio del curso")
-    material_curso = models.TextField(blank=True, null=True, help_text="Material principal del curso")
+    contenido = models.TextField(blank=True, null=True, help_text="Contenido del curso")
     
     # Información adicional del curso
     duracion = models.CharField(max_length=50, blank=True, null=True, help_text="Duración del curso (ej: 8 semanas)")
@@ -144,7 +143,6 @@ class Curso(models.Model):
     
     # Archivos del curso
     archivo_introductorio = models.FileField(upload_to='cursos/material_introductorio/', blank=True, null=True)
-    archivo_curso = models.FileField(upload_to='cursos/material_curso/', blank=True, null=True)
 
     def __str__(self):
         return self.nombre
