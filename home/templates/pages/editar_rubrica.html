@@ -91,7 +91,7 @@
                   <p class="text-muted small mb-2">{{ criterio.objetivo|truncatewords:20 }}</p>
                   <div class="d-flex justify-content-between align-items-center mb-2">
                     <small class="text-muted">{{ criterio.esperables.count }} esperables</small>
-                    <span class="badge bg-primary">{% if criterio.puntaje %}{{ criterio.puntaje }}{% else %}0{% endif %} puntos</span>
+                    <span class="badge bg-primary">{% if criterio.puntaje %}{{ criterio.puntaje|puntaje_entero }}{% else %}0{% endif %} puntos</span>
                   </div>
                   <div class="d-flex justify-content-between align-items-center">
                     <small class="text-muted">Puntaje máximo</small>
@@ -766,7 +766,7 @@ function actualizarListaEsperables() {
           <div class="d-flex align-items-center mb-1">
             <span class="badge bg-secondary me-2">#${index + 1}</span>
             <strong class="text-primary">${esperable.nivel}</strong>
-            <span class="badge bg-success ms-2">${esperable.puntaje} puntos</span>
+            <span class="badge bg-success ms-2">${Math.round(esperable.puntaje)} puntos</span>
           </div>
           <small class="text-muted">${esperable.descripcion}</small>
         </div>
@@ -808,7 +808,7 @@ function actualizarListaEsperablesEditar() {
           <div class="d-flex align-items-center mb-1">
             <span class="badge bg-secondary me-2">#${index + 1}</span>
             <strong class="text-primary">${esperable.nivel}</strong>
-            <span class="badge bg-success ms-2">${esperable.puntaje} puntos</span>
+            <span class="badge bg-success ms-2">${Math.round(esperable.puntaje)} puntos</span>
           </div>
           <small class="text-muted">${esperable.descripcion}</small>
         </div>

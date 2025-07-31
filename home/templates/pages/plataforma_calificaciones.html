@@ -978,7 +978,7 @@
                               </h6>
                               <span class="badge bg-primary">
                                 <i class="fas fa-star me-1"></i>
-                                {{ criterio.puntaje }} pts
+                                {{ criterio.puntaje|puntaje_entero }} pts
                               </span>
                             </div>
                           </div>
@@ -1002,7 +1002,7 @@
                                           <div class="flex-grow-1">
                                             <div class="d-flex align-items-center mb-1">
                                               <span class="badge bg-secondary me-2">{{ esperable.nivel }}</span>
-                                              <span class="badge bg-success">{{ esperable.puntaje }} pts</span>
+                                              <span class="badge bg-success">{{ esperable.puntaje|puntaje_entero }} pts</span>
                                             </div>
                                             <p class="mb-0 small text-muted">{{ esperable.descripcion }}</p>
                                           </div>

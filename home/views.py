@@ -2365,11 +2365,11 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                     
                     # Actualizar o crear ResultadoRubrica
                     resultado_rubrica, created = ResultadoRubrica.objects.get_or_create(
-                        calificacion=calificacion_existente,
+                        rubrica=evaluacion.rubrica,
+                        estudiante=calificacion_existente.estudiante,
                         defaults={
-                            'rubrica': evaluacion.rubrica,
-                            'puntaje_total': 0,
-                            'calificado_por': request.user
+                            'evaluador': request.user,
+                            'puntaje_total': 0
                         }
                     )
                     
@@ -2413,6 +2413,9 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                     resultado_rubrica.puntaje_total = puntaje_total
                     resultado_rubrica.save()
                     
+                    # Recalcular puntaje total usando el método del modelo
+                    resultado_rubrica.calcular_puntaje_total()
+                    
                     messages.success(request, f'Calificación actualizada para {calificacion.estudiante.get_full_name()}.')
                 else:
                     # Crear nueva calificación
@@ -2421,10 +2424,10 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                     
                     # Crear ResultadoRubrica
                     resultado_rubrica = ResultadoRubrica.objects.create(
-                        calificacion=calificacion,
                         rubrica=evaluacion.rubrica,
-                        puntaje_total=0,
-                        calificado_por=request.user
+                        estudiante=calificacion.estudiante,
+                        evaluador=request.user,
+                        puntaje_total=0
                     )
                     
                     # Crear puntajes de criterios
@@ -2458,6 +2461,9 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                     # Actualizar puntaje total
                     resultado_rubrica.puntaje_total = puntaje_total
                     resultado_rubrica.save()
+                    
+                    # Recalcular puntaje total usando el método del modelo
+                    resultado_rubrica.calcular_puntaje_total()
                     
                     messages.success(request, f'Calificación registrada para {calificacion.estudiante.get_full_name()}.')
                 
@@ -2542,8 +2548,70 @@ def ver_calificacion_detalle(request, curso_id, calificacion_id):
     
     # Obtener la rúbrica asociada a la evaluación si existe
     rubrica = None
+    resultado_rubrica = None
+    criterios_con_puntajes = []
+    
     try:
         rubrica = calificacion.evaluacion.rubrica
+        if rubrica:
+            # Obtener el resultado de la rúbrica para este estudiante
+            try:
+                resultado_rubrica = ResultadoRubrica.objects.get(
+                    rubrica=rubrica,
+                    estudiante=calificacion.estudiante
+                )
+                
+                # Obtener los criterios con sus puntajes
+                for criterio in rubrica.criterios.all():
+                    try:
+                        puntaje_criterio = PuntajeCriterio.objects.get(
+                            resultado_rubrica=resultado_rubrica,
+                            criterio=criterio
+                        )
+                        
+                        # Determinar el esperable correcto basado en el puntaje obtenido
+                        esperable_correcto = None
+                        puntaje_obtenido = puntaje_criterio.puntaje_obtenido
+                        
+                        # Buscar coincidencia exacta primero
+                        for esperable in criterio.esperables.all():
+                            if esperable.puntaje == puntaje_obtenido:
+                                esperable_correcto = esperable
+                                break
+                        
+                        # Si no hay coincidencia exacta, buscar el esperable más cercano
+                        if esperable_correcto is None:
+                            esperables_ordenados = list(criterio.esperables.all().order_by('puntaje'))
+                            for i, esperable in enumerate(esperables_ordenados):
+                                if esperable.puntaje >= puntaje_obtenido:
+                                    esperable_correcto = esperable
+                                    break
+                            # Si no se encontró ninguno mayor o igual, usar el último
+                            if esperable_correcto is None and esperables_ordenados:
+                                esperable_correcto = esperables_ordenados[-1]
+                        
+                        criterios_con_puntajes.append({
+                            'criterio': criterio,
+                            'puntaje_obtenido': puntaje_criterio.puntaje_obtenido,
+                            'esperable_seleccionado': esperable_correcto,
+                            'comentarios': puntaje_criterio.comentarios,
+                        })
+                    except PuntajeCriterio.DoesNotExist:
+                        criterios_con_puntajes.append({
+                            'criterio': criterio,
+                            'puntaje_obtenido': 0,
+                            'esperable_seleccionado': None,
+                            'comentarios': '',
+                        })
+            except ResultadoRubrica.DoesNotExist:
+                # Si no hay resultado de rúbrica, mostrar solo los criterios sin puntajes
+                for criterio in rubrica.criterios.all():
+                    criterios_con_puntajes.append({
+                        'criterio': criterio,
+                        'puntaje_obtenido': 0,
+                        'esperable_seleccionado': None,
+                        'comentarios': '',
+                    })
     except:
         pass
     
@@ -2551,6 +2619,8 @@ def ver_calificacion_detalle(request, curso_id, calificacion_id):
         'curso': curso,
         'calificacion': calificacion,
         'rubrica': rubrica,
+        'resultado_rubrica': resultado_rubrica,
+        'criterios_con_puntajes': criterios_con_puntajes,
         'user': request.user,
     }
     return render(request, 'pages/calificacion_detalle.html', context)
@@ -2627,6 +2697,7 @@ def estadisticas_curso(request, curso_id):
 def exportar_calificaciones_excel(request, curso_id):
     """
     Vista para exportar todas las calificaciones del curso a un archivo Excel
+    con información detallada de rúbricas, criterios y esperables
     """
     
     curso = get_object_or_404(Curso, id=curso_id)
@@ -2643,20 +2714,24 @@ def exportar_calificaciones_excel(request, curso_id):
         'estudiante', 
         'evaluacion', 
         'calificado_por'
+    ).prefetch_related(
+        'evaluacion__rubrica__criterios__esperables'
     ).order_by('estudiante__first_name', 'estudiante__last_name', 'evaluacion__fecha_inicio')
     
     # Crear un nuevo libro de trabajo
     wb = Workbook()
-    ws = wb.active
-    ws.title = "Calificaciones"
+    
+    # Hoja 1: Resumen de calificaciones
+    ws_resumen = wb.active
+    ws_resumen.title = "Resumen Calificaciones"
     
     # Definir estilos
     header_font = Font(bold=True, color="FFFFFF")
     header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
     header_alignment = Alignment(horizontal="center", vertical="center")
     
-    # Definir encabezados
-    headers = [
+    # Definir encabezados para el resumen
+    headers_resumen = [
         'ID Estudiante',
         'Nombre Completo',
         'Email',
@@ -2676,57 +2751,57 @@ def exportar_calificaciones_excel(request, curso_id):
         'Fecha Modificación'
     ]
     
-    # Escribir encabezados
-    for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col, value=header)
+    # Escribir encabezados del resumen
+    for col, header in enumerate(headers_resumen, 1):
+        cell = ws_resumen.cell(row=1, column=col, value=header)
         cell.font = header_font
         cell.fill = header_fill
         cell.alignment = header_alignment
     
-    # Escribir datos
+    # Escribir datos del resumen
     row = 2
     for calificacion in calificaciones:
         # Información del estudiante
-        ws.cell(row=row, column=1, value=calificacion.estudiante.id)
-        ws.cell(row=row, column=2, value=calificacion.estudiante.get_full_name() or calificacion.estudiante.username)
-        ws.cell(row=row, column=3, value=calificacion.estudiante.email)
+        ws_resumen.cell(row=row, column=1, value=calificacion.estudiante.id)
+        ws_resumen.cell(row=row, column=2, value=calificacion.estudiante.get_full_name() or calificacion.estudiante.username)
+        ws_resumen.cell(row=row, column=3, value=calificacion.estudiante.email)
         
         # Información de la evaluación
-        ws.cell(row=row, column=4, value=calificacion.evaluacion.id)
-        ws.cell(row=row, column=5, value=calificacion.evaluacion.nombre)
-        ws.cell(row=row, column=6, value=calificacion.evaluacion.get_tipo_display())
-        ws.cell(row=row, column=7, value=calificacion.evaluacion.fecha_inicio.strftime('%d/%m/%Y') if calificacion.evaluacion.fecha_inicio else '')
-        ws.cell(row=row, column=8, value=calificacion.evaluacion.fecha_fin.strftime('%d/%m/%Y') if calificacion.evaluacion.fecha_fin else '')
-        ws.cell(row=row, column=9, value=float(calificacion.evaluacion.nota_maxima))
-        ws.cell(row=row, column=10, value=float(calificacion.evaluacion.ponderacion))
+        ws_resumen.cell(row=row, column=4, value=calificacion.evaluacion.id)
+        ws_resumen.cell(row=row, column=5, value=calificacion.evaluacion.nombre)
+        ws_resumen.cell(row=row, column=6, value=calificacion.evaluacion.get_tipo_display())
+        ws_resumen.cell(row=row, column=7, value=calificacion.evaluacion.fecha_inicio.strftime('%d/%m/%Y') if calificacion.evaluacion.fecha_inicio else '')
+        ws_resumen.cell(row=row, column=8, value=calificacion.evaluacion.fecha_fin.strftime('%d/%m/%Y') if calificacion.evaluacion.fecha_fin else '')
+        ws_resumen.cell(row=row, column=9, value=float(calificacion.evaluacion.nota_maxima))
+        ws_resumen.cell(row=row, column=10, value=float(calificacion.evaluacion.ponderacion))
         
         # Información de la calificación
-        ws.cell(row=row, column=11, value=float(calificacion.nota) if calificacion.nota else '')
+        ws_resumen.cell(row=row, column=11, value=float(calificacion.nota) if calificacion.nota else '')
         
         # Calcular porcentaje obtenido
         if calificacion.nota and calificacion.evaluacion.nota_maxima:
             porcentaje = (calificacion.nota / calificacion.evaluacion.nota_maxima) * 100
-            ws.cell(row=row, column=12, value=round(porcentaje, 2))
+            ws_resumen.cell(row=row, column=12, value=round(porcentaje, 2))
         else:
-            ws.cell(row=row, column=12, value='')
+            ws_resumen.cell(row=row, column=12, value='')
         
         # Calcular nota ponderada
         if calificacion.nota and calificacion.evaluacion.ponderacion:
             nota_ponderada = (calificacion.nota / calificacion.evaluacion.nota_maxima) * calificacion.evaluacion.ponderacion
-            ws.cell(row=row, column=13, value=round(nota_ponderada, 2))
+            ws_resumen.cell(row=row, column=13, value=round(nota_ponderada, 2))
         else:
-            ws.cell(row=row, column=13, value='')
+            ws_resumen.cell(row=row, column=13, value='')
         
         # Información adicional
-        ws.cell(row=row, column=14, value=calificacion.retroalimentacion or '')
-        ws.cell(row=row, column=15, value=calificacion.calificado_por.get_full_name() or calificacion.calificado_por.username)
-        ws.cell(row=row, column=16, value=calificacion.fecha_calificacion.strftime('%d/%m/%Y %H:%M'))
-        ws.cell(row=row, column=17, value=calificacion.fecha_modificacion.strftime('%d/%m/%Y %H:%M'))
+        ws_resumen.cell(row=row, column=14, value=calificacion.retroalimentacion or '')
+        ws_resumen.cell(row=row, column=15, value=calificacion.calificado_por.get_full_name() or calificacion.calificado_por.username)
+        ws_resumen.cell(row=row, column=16, value=calificacion.fecha_calificacion.strftime('%d/%m/%Y %H:%M'))
+        ws_resumen.cell(row=row, column=17, value=calificacion.fecha_modificacion.strftime('%d/%m/%Y %H:%M'))
         
         row += 1
     
-    # Ajustar ancho de columnas
-    for column in ws.columns:
+    # Ajustar ancho de columnas del resumen
+    for column in ws_resumen.columns:
         max_length = 0
         column_letter = column[0].column_letter
         for cell in column:
@@ -2736,7 +2811,173 @@ def exportar_calificaciones_excel(request, curso_id):
             except:
                 pass
         adjusted_width = min(max_length + 2, 50)
-        ws.column_dimensions[column_letter].width = adjusted_width
+        ws_resumen.column_dimensions[column_letter].width = adjusted_width
+    
+    # Hoja 2: Detalle de rúbricas y criterios
+    ws_detalle = wb.create_sheet("Detalle Rúbricas")
+    
+    # Encabezados para el detalle de rúbricas
+    headers_detalle = [
+        'ID Estudiante',
+        'Nombre Estudiante',
+        'Email Estudiante',
+        'ID Evaluación',
+        'Nombre Evaluación',
+        'ID Rúbrica',
+        'Nombre Rúbrica',
+        'Objetivo Rúbrica',
+        'Aprendizaje Esperado',
+        'ID Criterio',
+        'Nombre Criterio',
+        'Objetivo Criterio',
+        'Puntaje Máximo Criterio',
+        'ID Esperable',
+        'Nivel Esperable',
+        'Descripción Esperable',
+        'Puntaje Esperable',
+        'Esperable Seleccionado',
+        'Puntaje Obtenido',
+        'Comentarios Criterio',
+        'Evaluador',
+        'Fecha Evaluación'
+    ]
+    
+    # Escribir encabezados del detalle
+    for col, header in enumerate(headers_detalle, 1):
+        cell = ws_detalle.cell(row=1, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+    
+    # Escribir datos del detalle
+    row_detalle = 2
+    
+    for calificacion in calificaciones:
+        evaluacion = calificacion.evaluacion
+        
+        # Verificar si la evaluación tiene rúbrica
+        if hasattr(evaluacion, 'rubrica') and evaluacion.rubrica:
+            rubrica = evaluacion.rubrica
+            
+            # Obtener resultado de rúbrica para este estudiante
+            try:
+                resultado_rubrica = ResultadoRubrica.objects.get(
+                    rubrica=rubrica,
+                    estudiante=calificacion.estudiante
+                )
+                
+                # Para cada criterio en la rúbrica
+                for criterio in rubrica.criterios.all():
+                    # Obtener puntaje del criterio para este estudiante
+                    try:
+                        puntaje_criterio = PuntajeCriterio.objects.get(
+                            resultado_rubrica=resultado_rubrica,
+                            criterio=criterio
+                        )
+                        esperable_seleccionado = puntaje_criterio.esperable_seleccionado
+                        puntaje_obtenido = puntaje_criterio.puntaje_obtenido
+                        comentarios = puntaje_criterio.comentarios
+                    except PuntajeCriterio.DoesNotExist:
+                        esperable_seleccionado = None
+                        puntaje_obtenido = 0
+                        comentarios = ''
+                    
+                    # Para cada esperable del criterio
+                    for esperable in criterio.esperables.all():
+                        # Información del estudiante
+                        ws_detalle.cell(row=row_detalle, column=1, value=calificacion.estudiante.id)
+                        ws_detalle.cell(row=row_detalle, column=2, value=calificacion.estudiante.get_full_name() or calificacion.estudiante.username)
+                        ws_detalle.cell(row=row_detalle, column=3, value=calificacion.estudiante.email)
+                        
+                        # Información de la evaluación
+                        ws_detalle.cell(row=row_detalle, column=4, value=evaluacion.id)
+                        ws_detalle.cell(row=row_detalle, column=5, value=evaluacion.nombre)
+                        
+                        # Información de la rúbrica
+                        ws_detalle.cell(row=row_detalle, column=6, value=rubrica.id)
+                        ws_detalle.cell(row=row_detalle, column=7, value=rubrica.nombre)
+                        ws_detalle.cell(row=row_detalle, column=8, value=rubrica.objetivo)
+                        ws_detalle.cell(row=row_detalle, column=9, value=rubrica.aprendizaje_esperado)
+                        
+                        # Información del criterio
+                        ws_detalle.cell(row=row_detalle, column=10, value=criterio.id)
+                        ws_detalle.cell(row=row_detalle, column=11, value=criterio.nombre)
+                        ws_detalle.cell(row=row_detalle, column=12, value=criterio.objetivo)
+                        ws_detalle.cell(row=row_detalle, column=13, value=float(criterio.puntaje))
+                        
+                        # Información del esperable
+                        ws_detalle.cell(row=row_detalle, column=14, value=esperable.id)
+                        ws_detalle.cell(row=row_detalle, column=15, value=esperable.nivel)
+                        ws_detalle.cell(row=row_detalle, column=16, value=esperable.descripcion)
+                        ws_detalle.cell(row=row_detalle, column=17, value=float(esperable.puntaje))
+                        
+                        # Información del esperable seleccionado
+                        if esperable_seleccionado:
+                            ws_detalle.cell(row=row_detalle, column=18, value=f"{esperable_seleccionado.nivel} - {esperable_seleccionado.descripcion}")
+                        else:
+                            ws_detalle.cell(row=row_detalle, column=18, value='No seleccionado')
+                        
+                        ws_detalle.cell(row=row_detalle, column=19, value=float(puntaje_obtenido))
+                        ws_detalle.cell(row=row_detalle, column=20, value=comentarios or '')
+                        
+                        # Información del evaluador
+                        ws_detalle.cell(row=row_detalle, column=21, value=resultado_rubrica.evaluador.get_full_name() or resultado_rubrica.evaluador.username)
+                        ws_detalle.cell(row=row_detalle, column=22, value=resultado_rubrica.fecha_evaluacion.strftime('%d/%m/%Y %H:%M'))
+                        
+                        row_detalle += 1
+                        
+            except ResultadoRubrica.DoesNotExist:
+                # Si no hay resultado de rúbrica, crear filas con información básica
+                for criterio in rubrica.criterios.all():
+                    for esperable in criterio.esperables.all():
+                        # Información del estudiante
+                        ws_detalle.cell(row=row_detalle, column=1, value=calificacion.estudiante.id)
+                        ws_detalle.cell(row=row_detalle, column=2, value=calificacion.estudiante.get_full_name() or calificacion.estudiante.username)
+                        ws_detalle.cell(row=row_detalle, column=3, value=calificacion.estudiante.email)
+                        
+                        # Información de la evaluación
+                        ws_detalle.cell(row=row_detalle, column=4, value=evaluacion.id)
+                        ws_detalle.cell(row=row_detalle, column=5, value=evaluacion.nombre)
+                        
+                        # Información de la rúbrica
+                        ws_detalle.cell(row=row_detalle, column=6, value=rubrica.id)
+                        ws_detalle.cell(row=row_detalle, column=7, value=rubrica.nombre)
+                        ws_detalle.cell(row=row_detalle, column=8, value=rubrica.objetivo)
+                        ws_detalle.cell(row=row_detalle, column=9, value=rubrica.aprendizaje_esperado)
+                        
+                        # Información del criterio
+                        ws_detalle.cell(row=row_detalle, column=10, value=criterio.id)
+                        ws_detalle.cell(row=row_detalle, column=11, value=criterio.nombre)
+                        ws_detalle.cell(row=row_detalle, column=12, value=criterio.objetivo)
+                        ws_detalle.cell(row=row_detalle, column=13, value=float(criterio.puntaje))
+                        
+                        # Información del esperable
+                        ws_detalle.cell(row=row_detalle, column=14, value=esperable.id)
+                        ws_detalle.cell(row=row_detalle, column=15, value=esperable.nivel)
+                        ws_detalle.cell(row=row_detalle, column=16, value=esperable.descripcion)
+                        ws_detalle.cell(row=row_detalle, column=17, value=float(esperable.puntaje))
+                        
+                        # Sin esperable seleccionado
+                        ws_detalle.cell(row=row_detalle, column=18, value='No evaluado')
+                        ws_detalle.cell(row=row_detalle, column=19, value=0)
+                        ws_detalle.cell(row=row_detalle, column=20, value='')
+                        ws_detalle.cell(row=row_detalle, column=21, value='')
+                        ws_detalle.cell(row=row_detalle, column=22, value='')
+                        
+                        row_detalle += 1
+    
+    # Ajustar ancho de columnas del detalle
+    for column in ws_detalle.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)
+        ws_detalle.column_dimensions[column_letter].width = adjusted_width
     
     # Crear respuesta HTTP con encoding correcto
     response = HttpResponse(
@@ -2744,7 +2985,7 @@ def exportar_calificaciones_excel(request, curso_id):
     )
     
     # Crear nombre de archivo seguro
-    nombre_archivo = f"calificaciones_{curso.nombre.replace(' ', '_').replace('/', '_').replace(chr(92), '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    nombre_archivo = f"calificaciones_detalladas_{curso.nombre.replace(' ', '_').replace('/', '_').replace(chr(92), '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{nombre_archivo}"'
     
     # Guardar el archivo en memoria
@@ -2899,11 +3140,70 @@ def editar_calificacion(request):
         else:
             retroalimentacion_limpia = retroalimentacion
         
+        # Verificar que la evaluación tenga rúbrica
+        if not hasattr(evaluacion, 'rubrica') or not evaluacion.rubrica:
+            messages.error(request, f'La evaluación "{evaluacion.nombre}" no tiene una rúbrica asociada.')
+            return redirect('calificar_estudiante', curso_id=evaluacion.curso.id, evaluacion_id=evaluacion.id)
+        
+        # Obtener o crear ResultadoRubrica
+        resultado_rubrica, created = ResultadoRubrica.objects.get_or_create(
+            rubrica=evaluacion.rubrica,
+            estudiante=estudiante,
+            defaults={
+                'evaluador': request.user,
+                'puntaje_total': 0
+            }
+        )
+        
+        if not created:
+            resultado_rubrica.evaluador = request.user
+            resultado_rubrica.save()
+        
+        # Actualizar puntajes de criterios
+        puntaje_total = 0
+        for criterio in evaluacion.rubrica.criterios.all():
+            field_name = f'criterio_{criterio.id}'
+            esperable_id = request.POST.get(field_name)
+            
+            if esperable_id:
+                esperable = Esperable.objects.get(id=esperable_id)
+                puntaje_criterio, created = PuntajeCriterio.objects.get_or_create(
+                    resultado_rubrica=resultado_rubrica,
+                    criterio=criterio,
+                    defaults={
+                        'esperable_seleccionado': esperable,
+                        'puntaje_obtenido': esperable.puntaje
+                    }
+                )
+                
+                if not created:
+                    puntaje_criterio.esperable_seleccionado = esperable
+                    puntaje_criterio.puntaje_obtenido = esperable.puntaje
+                    puntaje_criterio.save()
+                
+                puntaje_total += esperable.puntaje
+        
+        # Calcular la nota según la fórmula
+        suma_puntajes_maximos = sum(criterio.puntaje for criterio in evaluacion.rubrica.criterios.all())
+        if suma_puntajes_maximos > 0:
+            nota_calculada = (evaluacion.nota_maxima * puntaje_total) / suma_puntajes_maximos
+            # Usar la nota calculada automáticamente
+            calificacion.nota = round(nota_calculada, 1)
+        else:
+            calificacion.nota = nueva_nota
+        
         # Actualizar la calificación
-        calificacion.nota = nueva_nota
         calificacion.retroalimentacion = retroalimentacion_limpia
         calificacion.calificado_por = request.user
         calificacion.save()
+        
+        # Actualizar puntaje total en ResultadoRubrica
+        resultado_rubrica.puntaje_total = puntaje_total
+        resultado_rubrica.nota_final = calificacion.nota
+        resultado_rubrica.save()
+        
+        # Recalcular puntaje total usando el método del modelo
+        resultado_rubrica.calcular_puntaje_total()
         
         messages.success(request, f'Calificación actualizada exitosamente para {estudiante.get_full_name()}.')
         return redirect('calificar_estudiante', curso_id=evaluacion.curso.id, evaluacion_id=evaluacion.id)
@@ -4407,3 +4707,307 @@ def reabrir_ticket(request):
     except Exception as e:
         print(f"Error reabriendo ticket: {e}")
         return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+
+@login_required
+def obtener_datos_calificacion(request, calificacion_id):
+    """
+    Vista para obtener los datos de criterios de una calificación existente
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    # Verificar permisos
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'No tienes permisos para acceder a estos datos'}, status=403)
+    
+    try:
+        calificacion = get_object_or_404(Calificacion, id=calificacion_id)
+        evaluacion = calificacion.evaluacion
+        
+        print(f"Obteniendo datos para calificación {calificacion_id}, evaluación: {evaluacion.nombre}")
+        
+        # Verificar que la evaluación tenga rúbrica
+        if not hasattr(evaluacion, 'rubrica') or not evaluacion.rubrica:
+            print(f"Evaluación {evaluacion.id} no tiene rúbrica asociada")
+            return JsonResponse({'error': 'Esta evaluación no tiene rúbrica asociada'}, status=400)
+        
+        # Obtener el resultado de rúbrica para este estudiante
+        try:
+            resultado_rubrica = ResultadoRubrica.objects.get(
+                rubrica=evaluacion.rubrica,
+                estudiante=calificacion.estudiante
+            )
+
+            print(f"ResultadoRubrica encontrado: {resultado_rubrica}")
+            logger.info(f"Resultado de rúbrica: {resultado_rubrica}")
+            
+            # Obtener los puntajes de criterios
+            puntajes_criterios = resultado_rubrica.puntajes_criterios.all()
+
+            print(f"Puntajes de criterios encontrados: {puntajes_criterios.count()}")
+            logger.debug(f"Puntajes de criterios: {puntajes_criterios}")
+            logger.debug(f"Número de puntajes de criterios: {puntajes_criterios.count()}")
+            
+            for puntaje in puntajes_criterios:
+                print(f"Puntaje criterio {puntaje.criterio.id}: esperable_id={puntaje.esperable_seleccionado.id if puntaje.esperable_seleccionado else None}, puntaje_obtenido={puntaje.puntaje_obtenido}")
+                logger.debug(f"Puntaje criterio {puntaje.criterio.id}: esperable_id={puntaje.esperable_seleccionado.id if puntaje.esperable_seleccionado else None}, puntaje_obtenido={puntaje.puntaje_obtenido}")
+            
+            criterios_data = []
+            for puntaje in puntajes_criterios:
+                criterio_data = {
+                    'criterio_id': puntaje.criterio.id,
+                    'criterio_nombre': puntaje.criterio.nombre,
+                    'esperable_id': puntaje.esperable_seleccionado.id if puntaje.esperable_seleccionado else None,
+                    'esperable_nivel': puntaje.esperable_seleccionado.nivel if puntaje.esperable_seleccionado else None,
+                    'esperable_descripcion': puntaje.esperable_seleccionado.descripcion if puntaje.esperable_seleccionado else None,
+                    'esperable_puntaje': float(puntaje.esperable_seleccionado.puntaje) if puntaje.esperable_seleccionado else 0,
+                    'puntaje_obtenido': float(puntaje.puntaje_obtenido),
+                    'comentarios': puntaje.comentarios or ''
+                }
+                criterios_data.append(criterio_data)
+                print(f"Criterio {puntaje.criterio.id}: esperable_id={criterio_data['esperable_id']}, puntaje={criterio_data['puntaje_obtenido']}")
+            
+            print(f"Criterios data final: {criterios_data}")
+            logger.debug(f"Criterios data: {criterios_data}")
+            
+            return JsonResponse({
+                'success': True,
+                'criterios': criterios_data,
+                'puntaje_total': float(resultado_rubrica.puntaje_total) if resultado_rubrica.puntaje_total else 0,
+                'nota_final': float(resultado_rubrica.nota_final) if resultado_rubrica.nota_final else 0
+            })
+            
+        except ResultadoRubrica.DoesNotExist:
+            print(f"No existe ResultadoRubrica para estudiante {calificacion.estudiante.id}")
+            # Si no existe ResultadoRubrica, devolver criterios vacíos para permitir edición
+            criterios_data = []
+            for criterio in evaluacion.rubrica.criterios.all():
+                criterios_data.append({
+                    'criterio_id': criterio.id,
+                    'criterio_nombre': criterio.nombre,
+                    'esperable_id': None,
+                    'puntaje_obtenido': 0,
+                    'comentarios': ''
+                })
+            
+            print(f"Criterios data vacíos: {criterios_data}")
+            
+            return JsonResponse({
+                'success': True,
+                'criterios': criterios_data,
+                'puntaje_total': 0,
+                'nota_final': 0
+            })
+            
+    except Exception as e:
+        print(f"Error en obtener_datos_calificacion: {str(e)}")
+        return JsonResponse({'error': f'Error al obtener datos: {str(e)}'}, status=500)
+
+@login_required
+def obtener_esperables_criterio_por_estudiante(request, criterio_id, estudiante_id):
+    """
+    Vista para obtener los esperables específicos aplicados a un estudiante para un criterio
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    # Verificar permisos
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'No tienes permisos para acceder a estos datos'}, status=403)
+    
+    try:
+        criterio = get_object_or_404(CriterioRubrica, id=criterio_id)
+        estudiante = get_object_or_404(CustomUser, id=estudiante_id)
+        
+        print(f"Buscando esperables para criterio {criterio_id} y estudiante {estudiante_id}")
+        
+        # Obtener el resultado de rúbrica para este estudiante
+        try:
+            resultado_rubrica = ResultadoRubrica.objects.get(
+                rubrica=criterio.rubrica,
+                estudiante=estudiante
+            )
+
+            print(f"ResultadoRubrica encontrado: {resultado_rubrica}")
+            
+            # Obtener el puntaje específico para este criterio
+            puntaje_criterio = PuntajeCriterio.objects.filter(
+                resultado_rubrica=resultado_rubrica,
+                criterio=criterio
+            ).first()
+            
+            print(f"PuntajeCriterio encontrado: {puntaje_criterio}")
+            
+            if puntaje_criterio and puntaje_criterio.esperable_seleccionado:
+                # Devolver todos los esperables disponibles, marcando el seleccionado
+                esperable_aplicado = puntaje_criterio.esperable_seleccionado
+                esperables = criterio.esperables.all()
+                esperables_data = []
+                
+                print(f"Esperable aplicado: {esperable_aplicado}")
+                print(f"Total esperables disponibles: {esperables.count()}")
+                
+                for esperable in esperables:
+                    esperables_data.append({
+                        'id': esperable.id,
+                        'nivel': esperable.nivel,
+                        'descripcion': esperable.descripcion,
+                        'puntaje': float(esperable.puntaje),
+                        'es_seleccionado': esperable.id == esperable_aplicado.id
+                    })
+                
+                print(f"Esperables data: {esperables_data}")
+                
+                return JsonResponse({
+                    'success': True,
+                    'esperables': esperables_data,
+                    'esperable_seleccionado': esperable_aplicado.id
+                })
+            else:
+                # Si no hay esperable seleccionado, devolver todos los esperables disponibles
+                esperables = criterio.esperables.all()
+                esperables_data = []
+                for esperable in esperables:
+                    esperables_data.append({
+                        'id': esperable.id,
+                        'nivel': esperable.nivel,
+                        'descripcion': esperable.descripcion,
+                        'puntaje': float(esperable.puntaje),
+                        'es_seleccionado': False
+                    })
+                
+                print(f"No hay esperable seleccionado, devolviendo todos los esperables: {esperables_data}")
+                
+                return JsonResponse({
+                    'success': True,
+                    'esperables': esperables_data,
+                    'esperable_seleccionado': None
+                })
+                
+        except ResultadoRubrica.DoesNotExist:
+            # Si no existe resultado de rúbrica, devolver todos los esperables disponibles
+            print(f"No existe ResultadoRubrica para estudiante {estudiante_id}")
+            esperables = criterio.esperables.all()
+            esperables_data = []
+            for esperable in esperables:
+                esperables_data.append({
+                    'id': esperable.id,
+                    'nivel': esperable.nivel,
+                    'descripcion': esperable.descripcion,
+                    'puntaje': float(esperable.puntaje),
+                    'es_seleccionado': False
+                })
+            
+            return JsonResponse({
+                'success': True,
+                'esperables': esperables_data,
+                'esperable_seleccionado': None
+            })
+        
+    except Exception as e:
+        print(f"Error en obtener_esperables_criterio_por_estudiante: {str(e)}")
+        return JsonResponse({'error': f'Error al obtener esperables: {str(e)}'}, status=500)
+
+@login_required
+def obtener_esperables_criterio(request, criterio_id):
+    """
+    Vista para obtener todos los esperables disponibles para un criterio
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    # Verificar permisos
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'No tienes permisos para acceder a estos datos'}, status=403)
+    
+    try:
+        criterio = get_object_or_404(CriterioRubrica, id=criterio_id)
+        esperables = criterio.esperables.all()
+        
+        esperables_data = []
+        for esperable in esperables:
+            esperables_data.append({
+                'id': esperable.id,
+                'nivel': esperable.nivel,
+                'descripcion': esperable.descripcion,
+                'puntaje': float(esperable.puntaje),
+                'es_seleccionado': False
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'esperables': esperables_data,
+            'esperable_seleccionado': None
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': f'Error al obtener esperables: {str(e)}'}, status=500)
+
+@login_required
+def debug_calificaciones(request, curso_id):
+    """
+    Vista de debug para verificar el estado del sistema de calificaciones
+    """
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'No tienes permisos para acceder a estos datos'}, status=403)
+    
+    try:
+        curso = get_object_or_404(Curso, id=curso_id)
+        evaluaciones = curso.evaluaciones.all()
+        
+        debug_data = {
+            'curso': {
+                'id': curso.id,
+                'nombre': curso.nombre,
+                'evaluaciones_count': evaluaciones.count()
+            },
+            'evaluaciones': []
+        }
+        
+        for evaluacion in evaluaciones:
+            eval_data = {
+                'id': evaluacion.id,
+                'nombre': evaluacion.nombre,
+                'nota_maxima': float(evaluacion.nota_maxima),
+                'tiene_rubrica': hasattr(evaluacion, 'rubrica') and evaluacion.rubrica is not None
+            }
+            
+            if eval_data['tiene_rubrica']:
+                rubrica = evaluacion.rubrica
+                eval_data['rubrica'] = {
+                    'id': rubrica.id,
+                    'nombre': rubrica.nombre,
+                    'criterios_count': rubrica.criterios.count(),
+                    'puntaje_total': float(rubrica.get_puntaje_total()),
+                    'criterios': []
+                }
+                
+                for criterio in rubrica.criterios.all():
+                    criterio_data = {
+                        'id': criterio.id,
+                        'nombre': criterio.nombre,
+                        'puntaje': float(criterio.puntaje),
+                        'esperables_count': criterio.esperables.count(),
+                        'esperables': []
+                    }
+                    
+                    for esperable in criterio.esperables.all():
+                        esperable_data = {
+                            'id': esperable.id,
+                            'nivel': esperable.nivel,
+                            'puntaje': float(esperable.puntaje),
+                            'descripcion': esperable.descripcion
+                        }
+                        criterio_data['esperables'].append(esperable_data)
+                    
+                    eval_data['rubrica']['criterios'].append(criterio_data)
+            
+            debug_data['evaluaciones'].append(eval_data)
+        
+        return JsonResponse({
+            'success': True,
+            'debug_data': debug_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({'error': f'Error en debug: {str(e)}'}, status=500)

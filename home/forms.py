@@ -555,7 +555,9 @@ class CalificacionForm(forms.ModelForm):
                     # Crear opciones para este criterio basadas en sus esperables
                     choices = [('', 'Selecciona un nivel...')]
                     for esperable in criterio.esperables.all():
-                        choices.append((esperable.id, f"{esperable.puntaje} pts - {esperable.nivel} - {esperable.descripcion}"))
+                        # Asegurar que el puntaje se muestre con punto decimal
+                        puntaje_str = str(esperable.puntaje).replace(',', '.')
+                        choices.append((esperable.id, f"{puntaje_str} pts - {esperable.nivel} - {esperable.descripcion}"))
                     
                     # Crear el campo para este criterio
                     field_name = f'criterio_{criterio.id}'

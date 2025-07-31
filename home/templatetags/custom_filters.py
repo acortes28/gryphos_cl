@@ -32,4 +32,15 @@ def get_criterio_field(form, criterio_id):
     try:
         return form[field_name]
     except KeyError:
-        return None 
+        return None
+
+@register.filter
+def puntaje_entero(value):
+    """Filtro para mostrar puntajes como enteros sin decimales"""
+    try:
+        if value is None:
+            return 0
+        # Convertir a float y luego a int para eliminar decimales
+        return int(float(value))
+    except (ValueError, TypeError):
+        return 0 

@@ -596,7 +596,11 @@ class ResultadoRubrica(models.Model):
     def calcular_puntaje_total(self):
         """Calcula el puntaje total basado en los puntajes de cada criterio"""
         puntajes = self.puntajes_criterios.values_list('puntaje_obtenido', flat=True)
-        return sum(puntajes) if puntajes else 0
+        total = sum(puntajes) if puntajes else 0
+        # Actualizar el campo puntaje_total
+        self.puntaje_total = total
+        self.save(update_fields=['puntaje_total'])
+        return total
     
     def calcular_nota_final(self):
         """Calcula la nota final basada en el puntaje total y la nota máxima de la evaluación"""
@@ -624,7 +628,11 @@ class PuntajeCriterio(models.Model):
     
     def __str__(self):
         return f"{self.criterio.nombre} - {self.puntaje_obtenido}"
-
+    
+    def get_puntajes_esperables(self, resultado_rubrica, criterio):
+        return self.resultado_rubrica.puntajes_criterios.filter(resultado_rubrica=resultado_rubrica, criterio=criterio)
+    
+    
 class Entrega(models.Model):
     ESTADO_CHOICES = [
         ('pendiente', 'Pendiente'),

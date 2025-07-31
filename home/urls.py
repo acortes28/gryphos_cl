@@ -57,7 +57,11 @@ urlpatterns = [
     path('curso/<int:curso_id>/calificaciones/editar/<int:evaluacion_id>/', views.editar_evaluacion, name='editar_evaluacion'),
     path('curso/<int:curso_id>/calificaciones/eliminar/<int:evaluacion_id>/', views.eliminar_evaluacion, name='eliminar_evaluacion'),
     path('editar-calificacion/', views.editar_calificacion, name='editar_calificacion'),
+    path('obtener-datos-calificacion/<int:calificacion_id>/', views.obtener_datos_calificacion, name='obtener_datos_calificacion'),
+    path('obtener-esperables-criterio-por-estudiante/<int:criterio_id>/<int:estudiante_id>/', views.obtener_esperables_criterio_por_estudiante, name='obtener_esperables_criterio_por_estudiante'),
+    path('obtener-esperables-criterio/<int:criterio_id>/', views.obtener_esperables_criterio, name='obtener_esperables_criterio'),
     path('limpiar-retroalimentaciones/', views.limpiar_retroalimentaciones, name='limpiar_retroalimentaciones'),
+    path('debug-calificaciones/<int:curso_id>/', views.debug_calificaciones, name='debug_calificaciones'),
     
     # Rúbricas URLs
     path('curso/<int:curso_id>/calificaciones/crear-rubrica/<int:evaluacion_id>/', views.crear_rubrica, name='crear_rubrica'),

@@ -552,20 +552,137 @@
             {% endif %}
           </div>
           
-          <!-- Información del Estudiante -->
-          <div class="mt-4">
-            <h5 class="mb-3">
-              <i class="fas fa-user me-2"></i>Información del Estudiante
-            </h5>
-            <div class="info-item">
-              <div class="info-label">Nombre</div>
-              <div class="info-value">{{ calificacion.estudiante.get_full_name|default:calificacion.estudiante.username }}</div>
+          <!-- Resultados de la Rúbrica -->
+          {% if rubrica and criterios_con_puntajes %}
+            <div class="mt-4">
+              <h5 class="mb-3">
+                <i class="fas fa-chart-bar me-2"></i>Resultados de la Rúbrica
+              </h5>
+              
+              <!-- Información general de la rúbrica -->
+              <div class="card mb-4">
+                <div class="card-header bg-gradient-primary text-white">
+                  <h6 class="mb-0">
+                    <i class="fas fa-clipboard-check me-2"></i>{{ rubrica.nombre }}
+                  </h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <p><strong>Objetivo:</strong> {{ rubrica.objetivo }}</p>
+                    </div>
+                    <div class="col-md-6">
+                      <p><strong>Aprendizaje Esperado:</strong> {{ rubrica.aprendizaje_esperado }}</p>
+                    </div>
+                  </div>
+                  {% if resultado_rubrica %}
+                    <div class="row mt-3">
+                      <div class="col-md-4">
+                        <div class="text-center">
+                          <h6 class="text-muted">Puntaje Total</h6>
+                          <h4 class="text-primary">{{ resultado_rubrica.puntaje_total|default:"0" }}</h4>
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="text-center">
+                          <h6 class="text-muted">Nota Final</h6>
+                          <h4 class="text-success">{{ resultado_rubrica.nota_final|default:"0" }}</h4>
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="text-center">
+                          <h6 class="text-muted">Evaluado por</h6>
+                          <h6 class="text-info">{{ resultado_rubrica.evaluador.get_full_name|default:resultado_rubrica.evaluador.username }}</h6>
+                        </div>
+                      </div>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+              
+              <!-- Criterios con puntajes -->
+              <div class="criterios-container">
+                {% for criterio_data in criterios_con_puntajes %}
+                  <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <h6 class="mb-0">{{ criterio_data.criterio.nombre }}</h6>
+                      <div class="d-flex align-items-center">
+                        <span class="badge bg-primary me-2">{{ criterio_data.puntaje_obtenido|puntaje_entero }}/{{ criterio_data.criterio.puntaje|puntaje_entero }}</span>
+                        {% if criterio_data.esperable_seleccionado %}
+                          <span class="badge bg-success">{{ criterio_data.esperable_seleccionado.nivel }}</span>
+                        {% else %}
+                          <span class="badge bg-secondary">No evaluado</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="card-body">
+                      <p class="text-muted mb-3">{{ criterio_data.criterio.objetivo }}</p>
+                      
+                      <!-- Esperable seleccionado -->
+                      {% if criterio_data.esperable_seleccionado %}
+                        <div class="alert {% if criterio_data.puntaje_obtenido == criterio_data.esperable_seleccionado.puntaje %}alert-info{% else %}alert-warning{% endif %}">
+                          <strong>Nivel alcanzado:</strong> {{ criterio_data.esperable_seleccionado.nivel }}
+                          <br>
+                          <strong>Descripción:</strong> {{ criterio_data.esperable_seleccionado.descripcion }}
+                          {% if criterio_data.puntaje_obtenido != criterio_data.esperable_seleccionado.puntaje %}
+                            <br>
+                            <small class="text-muted">
+                              <i class="fas fa-info-circle"></i> 
+                              Puntaje obtenido ({{ criterio_data.puntaje_obtenido|puntaje_entero }}) no coincide exactamente con este nivel ({{ criterio_data.esperable_seleccionado.puntaje|puntaje_entero }})
+                            </small>
+                          {% endif %}
+                        </div>
+                      {% endif %}
+                      
+                      <!-- Comentarios del criterio -->
+                      {% if criterio_data.comentarios %}
+                        <div class="mt-3">
+                          <h6 class="text-muted">Comentarios:</h6>
+                          <div class="p-3 bg-light rounded">
+                            {{ criterio_data.comentarios|linebreaksbr }}
+                          </div>
+                        </div>
+                      {% endif %}
+                      
+                      <!-- Todos los esperables del criterio -->
+                      <div class="esperables-container mt-3">
+                        <h6 class="text-muted mb-2">Todos los niveles:</h6>
+                        {% for esperable in criterio_data.criterio.esperables.all %}
+                          <div class="card mb-2 {% if esperable == criterio_data.esperable_seleccionado %}border-success{% endif %}">
+                            <div class="card-body py-2">
+                              <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                  <strong>{{ esperable.nivel }}</strong>
+                                  <p class="mb-1 text-muted">{{ esperable.descripcion }}</p>
+                                </div>
+                                <div class="text-end">
+                                  <span class="badge {% if esperable == criterio_data.esperable_seleccionado %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ esperable.puntaje|puntaje_entero }} pts
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+              
+              <!-- Comentarios generales de la rúbrica -->
+              {% if resultado_rubrica and resultado_rubrica.comentarios_generales %}
+                <div class="mt-4">
+                  <h6 class="text-muted">Comentarios Generales:</h6>
+                  <div class="p-3 bg-light rounded">
+                    {{ resultado_rubrica.comentarios_generales|linebreaksbr }}
+                  </div>
+                </div>
+              {% endif %}
             </div>
-            <div class="info-item">
-              <div class="info-label">Email</div>
-              <div class="info-value">{{ calificacion.estudiante.email }}</div>
-            </div>
-          </div>
+          {% endif %}
+          
+
           
           <!-- Información de la Calificación -->
           <div class="mt-4">

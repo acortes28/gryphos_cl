@@ -382,17 +382,21 @@
     height: 100%;
     background-color: rgba(0,0,0,0.5);
     backdrop-filter: blur(5px);
+    overflow-y: auto;
   }
   
   .modal-content-edit {
     background-color: white;
-    margin: 5% auto;
+    margin: 2% auto;
     padding: 0;
     border-radius: 15px;
     width: 90%;
     max-width: 500px;
+    max-height: 90vh;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     animation: modalSlideIn 0.3s ease-out;
+    display: flex;
+    flex-direction: column;
   }
   
   @keyframes modalSlideIn {
@@ -436,6 +440,8 @@
   
   .modal-body-edit {
     padding: 25px;
+    overflow-y: auto;
+    flex: 1;
   }
   
   .modal-footer-edit {
@@ -850,7 +856,8 @@
                                   data-calificacion-id="{{ calificacion.id }}"
                                   data-nota-actual="{{ calificacion.nota|default:"" }}"
                                   data-nota-maxima="{{ evaluacion.nota_maxima }}"
-                                  data-retroalimentacion="{{ calificacion.retroalimentacion|default:""|escapejs }}">
+                                  data-retroalimentacion="{{ calificacion.retroalimentacion|default:""|escapejs }}"
+                                  onclick="cargarDatosCalificacion('{{ calificacion.id }}', this)">
                             <i class="fas fa-edit me-1"></i>Editar
                           </button>
                         {% endif %}
@@ -910,9 +917,45 @@
         <input type="hidden" id="editEstudianteId" name="estudiante_id">
         <input type="hidden" id="editEvaluacionId" name="evaluacion_id" value="{{ evaluacion.id }}">
         
+        <!-- Criterios de la rúbrica -->
+        {% if evaluacion.rubrica %}
+          <div class="alert alert-info mb-3">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-list-check me-2"></i>
+              <div>
+                <strong>Rúbrica: {{ evaluacion.rubrica.nombre }}</strong>
+                <br>
+                <small class="text-muted">
+                  Edita los criterios para recalcular la nota automáticamente.
+                </small>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Campos dinámicos para criterios -->
+          {% for criterio in criterios_rubrica %}
+            <div class="form-group-edit">
+              <label for="editCriterio_{{ criterio.id }}" class="form-label-edit">
+                <i class="fas fa-check-circle me-1"></i>{{ criterio.nombre }} *
+              </label>
+              <select id="editCriterio_{{ criterio.id }}" 
+                      name="criterio_{{ criterio.id }}" 
+                      class="form-control-edit edit-criterio-field"
+                      data-criterio-id="{{ criterio.id }}"
+                      data-criterio-puntaje-maximo="{{ criterio.puntaje|puntaje_entero }}"
+                      onfocus="cargarEsperablesDisponibles('{{ criterio.id }}', null, null, null)"
+                      required>
+                <option value="">Selecciona un nivel...</option>
+                <!-- Los esperables se cargarán dinámicamente desde JavaScript -->
+              </select>
+              <small class="text-muted">Puntaje máximo: {{ criterio.puntaje|puntaje_entero }} puntos</small>
+            </div>
+          {% endfor %}
+        {% endif %}
+        
         <div class="form-group-edit">
           <label for="editNota" class="form-label-edit">
-            <i class="fas fa-star me-1"></i>Nueva Nota *
+            <i class="fas fa-star me-1"></i>Nota Calculada *
           </label>
           <input type="number" 
                  id="editNota" 
@@ -921,7 +964,7 @@
                  step="0.1" 
                  min="0" 
                  max="10" 
-                 required>
+                 readonly>
           <small class="text-muted">Nota máxima: <span id="modalNotaMaxima"></span></small>
         </div>
         
@@ -956,7 +999,11 @@ function toggleSidebar() {
 }
 
 // Funciones para el modal de edición
-function openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion) {
+function openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion, criteriosData) {
+  console.log('Abriendo modal con datos:', {
+    estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, criteriosData
+  });
+  
   document.getElementById('modalEstudianteNombre').textContent = estudianteNombre;
   document.getElementById('modalEstudianteEmail').textContent = estudianteEmail;
   document.getElementById('editCalificacionId').value = calificacionId;
@@ -974,27 +1021,200 @@ function openEditModal(estudianteId, estudianteNombre, estudianteEmail, califica
     .replace(/\\r/g, '\n');             // Carriage return
   document.getElementById('editRetroalimentacion').value = retroalimentacionLimpia;
   
+  // Cargar esperables para todos los criterios sin valores predeterminados
+  const criterioFields = document.querySelectorAll('.edit-criterio-field');
+  let criteriosCargados = 0;
+  const totalCriterios = criterioFields.length;
+  
+  criterioFields.forEach(function(field) {
+    const criterioId = field.getAttribute('data-criterio-id');
+    console.log(`Cargando esperables para criterio ${criterioId} sin valor predeterminado`);
+    
+    // Cargar esperables sin establecer valor predeterminado
+    cargarEsperablesDisponibles(criterioId, null, estudianteId, function() {
+      criteriosCargados++;
+      console.log(`Criterio ${criterioId} cargado (${criteriosCargados}/${totalCriterios})`);
+      
+      // Si todos los criterios están cargados, calcular la nota inicial (será 0)
+      if (criteriosCargados === totalCriterios) {
+        console.log('Todos los criterios cargados, calculando nota inicial...');
+        setTimeout(() => {
+          calcularNotaModal();
+        }, 300);
+      }
+    });
+  });
+  
   document.getElementById('editCalificacionModal').style.display = 'block';
   document.body.style.overflow = 'hidden';
 }
 
-// Event listener para los botones de editar
-document.addEventListener('DOMContentLoaded', function() {
-  const editButtons = document.querySelectorAll('.edit-calificacion-btn');
+// Función para cargar esperables disponibles para un criterio
+function cargarEsperablesDisponibles(criterioId, esperableSeleccionadoId = null, estudianteId = null, callback = null) {
+  const fieldId = `editCriterio_${criterioId}`;
+  const field = document.getElementById(fieldId);
   
-  editButtons.forEach(function(button) {
-    button.addEventListener('click', function() {
-      const estudianteId = this.getAttribute('data-estudiante-id');
-      const estudianteNombre = this.getAttribute('data-estudiante-nombre');
-      const estudianteEmail = this.getAttribute('data-estudiante-email');
-      const calificacionId = this.getAttribute('data-calificacion-id');
-      const notaActual = this.getAttribute('data-nota-actual');
-      const notaMaxima = this.getAttribute('data-nota-maxima');
-      const retroalimentacion = this.getAttribute('data-retroalimentacion');
-      
-      openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion);
+  // Si ya tiene más de una opción (además del placeholder), no cargar de nuevo
+  if (field.options.length > 1 && !esperableSeleccionadoId) {
+    return;
+  }
+  
+  // Mostrar indicador de carga
+  const originalText = field.options[0].text;
+  field.options[0].text = 'Cargando esperables...';
+  
+  // Construir la URL según si tenemos estudianteId o no
+  const url = estudianteId 
+    ? `/obtener-esperables-criterio-por-estudiante/${criterioId}/${estudianteId}/`
+    : `/obtener-esperables-criterio/${criterioId}/`;
+  
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Limpiar opciones existentes
+        field.innerHTML = '<option value="">Selecciona un nivel...</option>';
+        
+        // Agregar esperables disponibles
+        data.esperables.forEach(function(esperable) {
+          const option = document.createElement('option');
+          option.value = esperable.id;
+          option.setAttribute('data-puntaje', esperable.puntaje.toFixed(2));
+          option.textContent = `${Math.round(esperable.puntaje)} pts - ${esperable.nivel} - ${esperable.descripcion}`;
+          field.appendChild(option);
+          console.log(`Esperable agregado: ID=${esperable.id}, Nivel=${esperable.nivel}, Seleccionado: ${esperable.es_seleccionado}`);
+        });
+        
+        // NO establecer valores predeterminados - siempre mantener "Selecciona un nivel"
+        console.log(`Esperables cargados para criterio ${criterioId}:`, data.esperables.length);
+        
+        // Ejecutar callback si se proporcionó
+        if (callback) {
+          callback();
+        }
+      } else {
+        console.error('Error al cargar esperables:', data.error);
+        field.options[0].text = originalText;
+        if (callback) {
+          callback();
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error en la petición:', error);
+      field.options[0].text = originalText;
+      if (callback) {
+        callback();
+      }
     });
-  });
+}
+
+// Función para calcular nota en el modal
+function calcularNotaModal() {
+  try {
+    const evaluacionNotaMaxima = parseFloat('{{ evaluacion.nota_maxima|default:7.0 }}');
+    let sumaPuntajesObtenidos = 0;
+    let sumaPuntajesMaximos = 0;
+    
+    // Obtener todos los campos de criterio del modal
+    const criterioFields = document.querySelectorAll('.edit-criterio-field');
+    
+    console.log('Calculando nota en modal...');
+    console.log('Campos de criterio encontrados:', criterioFields.length);
+    
+    criterioFields.forEach(function(field) {
+      const selectedOption = field.options[field.selectedIndex];
+      console.log('Campo:', field.id, 'Opción seleccionada:', selectedOption ? selectedOption.text : 'Ninguna', 'Valor:', field.value);
+      
+      if (selectedOption && selectedOption.value !== '') {
+        // Usar el ID del esperable para obtener el puntaje desde el atributo data-puntaje
+        const esperableId = selectedOption.value;
+        const dataPuntaje = selectedOption.getAttribute('data-puntaje');
+        const puntajeObtenido = parseFloat(dataPuntaje || '0');
+        
+        console.log('Campo:', field.id);
+        console.log('Esperable ID:', esperableId);
+        console.log('Data-puntaje raw:', dataPuntaje);
+        console.log('Puntaje obtenido:', puntajeObtenido);
+        
+        sumaPuntajesObtenidos += puntajeObtenido;
+      }
+      
+      // Obtener el puntaje máximo del criterio desde el atributo data
+      const puntajeMaximoStr = field.getAttribute('data-criterio-puntaje-maximo') || '0';
+      const puntajeMaximo = parseFloat(puntajeMaximoStr.replace(',', '.'));
+      sumaPuntajesMaximos += puntajeMaximo;
+      console.log('Puntaje máximo del criterio:', puntajeMaximo);
+    });
+    
+    // Calcular la nota según la fórmula
+    let notaCalculada = 0;
+    if (sumaPuntajesMaximos > 0) {
+      notaCalculada = (evaluacionNotaMaxima * sumaPuntajesObtenidos) / sumaPuntajesMaximos;
+    }
+    
+    // Actualizar el campo de nota en el modal
+    const notaField = document.getElementById('editNota');
+    if (notaField) {
+      notaField.value = notaCalculada.toFixed(1);
+      console.log('Nota actualizada en modal:', notaField.value);
+    }
+    
+    console.log('Modal - Puntajes obtenidos:', sumaPuntajesObtenidos);
+    console.log('Modal - Puntajes máximos:', sumaPuntajesMaximos);
+    console.log('Modal - Nota calculada:', notaCalculada.toFixed(1));
+  } catch (error) {
+    console.error('Error al calcular nota en modal:', error);
+  }
+}
+
+// Función para cargar datos de calificación
+function cargarDatosCalificacion(calificacionId, button) {
+  // Mostrar indicador de carga
+  button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cargando...';
+  button.disabled = true;
+  
+  // Realizar petición AJAX para obtener los datos
+  fetch(`/obtener-datos-calificacion/${calificacionId}/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Obtener datos del botón
+        const estudianteId = button.getAttribute('data-estudiante-id');
+        const estudianteNombre = button.getAttribute('data-estudiante-nombre');
+        const estudianteEmail = button.getAttribute('data-estudiante-email');
+        const notaActual = button.getAttribute('data-nota-actual');
+        const notaMaxima = button.getAttribute('data-nota-maxima');
+        const retroalimentacion = button.getAttribute('data-retroalimentacion');
+        
+        // Abrir modal con los datos (sin criterios para no establecer valores predeterminados)
+        openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion, null);
+      } else {
+        alert('Error al cargar los datos de la calificación: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error al cargar los datos de la calificación. Verifica que la calificación tenga una rúbrica asociada.');
+    })
+    .finally(() => {
+      // Restaurar botón
+      button.innerHTML = '<i class="fas fa-edit me-1"></i>Editar';
+      button.disabled = false;
+    });
+}
+
+// Event listeners para los campos de criterio en el modal
+document.addEventListener('change', function(event) {
+  if (event.target.classList.contains('edit-criterio-field')) {
+    console.log('Cambio detectado en criterio:', event.target.id, 'Nuevo valor:', event.target.value);
+    calcularNotaModal();
+  }
 });
 
 function closeEditModal() {
@@ -1078,7 +1298,7 @@ function calcularNota() {
     // Actualizar también el campo oculto para el formulario
     const notaHidden = document.getElementById('nota_hidden');
     if (notaHidden) {
-      notaHidden.value = notaCalculada.toFixed(1);
+      notaHidden.value = notaField.value;
     }
     
     // Remover clase después de la animación
