@@ -17,12 +17,12 @@ User = get_user_model()
 def get_cursos_capacitacion():
     """Función para obtener los cursos de capacitación de forma dinámica"""
     try:
-        return [(curso.id, curso.nombre) for curso in Curso.objects.all()]
+        return [(curso.id, curso.nombre) for curso in Curso.objects.filter(activo=True)]
     except:
         # Si hay problemas con la base de datos, retornar lista vacía
         return []
 
-CURSOS_CAPACITACION = get_cursos_capacitacion()
+# Ya no definimos CURSOS_CAPACITACION aquí, se hará dinámicamente en el formulario
 
 def validate_phone_number(value):
     # Limpiar el número de espacios y caracteres especiales
@@ -177,14 +177,19 @@ class CursoCapacitacionForm(forms.Form):
     )
     
     curso_interes = forms.ChoiceField(
-        choices=CURSOS_CAPACITACION,
+        choices=[],
         widget=forms.Select(attrs={
             'class': 'form-control',
             'placeholder': ''
         }),
-        label="",
+        label="Curso de interés",
         required=True
     )
+    
+    def __init__(self, *args, **kwargs):
+        super(CursoCapacitacionForm, self).__init__(*args, **kwargs)
+        # Obtener las opciones de cursos dinámicamente
+        self.fields['curso_interes'].choices = get_cursos_capacitacion()
 
 
 class PostForm(forms.ModelForm):

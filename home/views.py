@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 import time
 import re
-from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, CURSOS_CAPACITACION, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm, EntregaForm, TicketSoporteForm, ComentarioTicketForm, TicketSoporteAdminForm
+from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm, EntregaForm, TicketSoporteForm, ComentarioTicketForm, TicketSoporteAdminForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
@@ -470,7 +470,11 @@ def enviar_correo_inscripcion(nombre_interesado, nombre_empresa, telefono_contac
     Función para enviar correo de inscripción al curso de capacitación
     """
     # Obtener el nombre legible del curso
-    curso_nombre = dict(CURSOS_CAPACITACION).get(curso_interes, curso_interes)
+    try:
+        curso = Curso.objects.get(id=curso_interes)
+        curso_nombre = curso.nombre
+    except Curso.DoesNotExist:
+        curso_nombre = curso_interes
     
     # Manejar teléfono opcional
     telefono_info = telefono_contacto if telefono_contacto else "No proporcionado"
