@@ -13,4 +13,23 @@ def debug_videollamada(videollamada):
     try:
         return f"Activa: {videollamada.activa}, Enlace: {bool(videollamada.link_videollamada)}, Esta_activa_ahora: {videollamada.esta_activa_ahora()}"
     except Exception as e:
-        return f"Error: {str(e)}" 
+        return f"Error: {str(e)}"
+
+@register.filter
+def get_field(form, field_name):
+    """Filtro para obtener un campo específico del formulario"""
+    if not field_name or field_name == '':
+        return None
+    try:
+        return form[field_name]
+    except KeyError:
+        return None
+
+@register.filter
+def get_criterio_field(form, criterio_id):
+    """Filtro específico para obtener campos de criterio de rúbrica"""
+    field_name = f'criterio_{criterio_id}'
+    try:
+        return form[field_name]
+    except KeyError:
+        return None 

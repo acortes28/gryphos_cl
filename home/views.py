@@ -9,7 +9,7 @@ from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, CustomUser, ComentarioTicket
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -2330,6 +2330,11 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                     messages.error(request, f'El estudiante {estudiante.get_full_name()} no tiene entregas para la evaluación "{evaluacion.nombre}". Solo se pueden calificar estudiantes que hayan entregado su trabajo.')
                     return redirect('calificar_estudiante', curso_id=curso_id, evaluacion_id=evaluacion_id)
             
+            # Verificar que la evaluación tenga una rúbrica
+            if not hasattr(evaluacion, 'rubrica') or not evaluacion.rubrica:
+                messages.error(request, f'La evaluación "{evaluacion.nombre}" no tiene una rúbrica asociada. Debes crear una rúbrica antes de calificar.')
+                return redirect('plataforma_calificaciones', curso_id=curso_id)
+            
             calificacion = form.save(commit=False)
             calificacion.evaluacion = evaluacion
             calificacion.calificado_por = request.user
@@ -2351,20 +2356,92 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
             else:
                 retroalimentacion_limpia = calificacion.retroalimentacion
             
-            if calificacion_existente:
-                # Actualizar calificación existente
-                calificacion_existente.nota = calificacion.nota
-                calificacion_existente.retroalimentacion = retroalimentacion_limpia
-                calificacion_existente.calificado_por = request.user
-                calificacion_existente.save()
-                messages.success(request, f'Calificación actualizada para {calificacion.estudiante.get_full_name()}.')
-            else:
-                # Crear nueva calificación
-                calificacion.retroalimentacion = retroalimentacion_limpia
-                calificacion.save()
-                messages.success(request, f'Calificación registrada para {calificacion.estudiante.get_full_name()}.')
-            
-            return redirect('plataforma_calificaciones', curso_id=curso_id)
+            try:
+                if calificacion_existente:
+                    # Actualizar calificación existente
+                    calificacion_existente.retroalimentacion = retroalimentacion_limpia
+                    calificacion_existente.calificado_por = request.user
+                    calificacion_existente.save()
+                    
+                    # Actualizar o crear ResultadoRubrica
+                    resultado_rubrica, created = ResultadoRubrica.objects.get_or_create(
+                        calificacion=calificacion_existente,
+                        defaults={
+                            'rubrica': evaluacion.rubrica,
+                            'puntaje_total': 0,
+                            'calificado_por': request.user
+                        }
+                    )
+                    
+                    # Actualizar puntajes de criterios
+                    puntaje_total = 0
+                    for criterio in evaluacion.rubrica.criterios.all():
+                        field_name = f'criterio_{criterio.id}'
+                        esperable_id = form.cleaned_data.get(field_name)
+                        
+                        if esperable_id:
+                            esperable = Esperable.objects.get(id=esperable_id)
+                            puntaje_criterio, created = PuntajeCriterio.objects.get_or_create(
+                                resultado_rubrica=resultado_rubrica,
+                                criterio=criterio,
+                                defaults={
+                                    'esperable_seleccionado': esperable,
+                                    'puntaje_obtenido': esperable.puntaje
+                                }
+                            )
+                            
+                            if not created:
+                                puntaje_criterio.esperable_seleccionado = esperable
+                                puntaje_criterio.puntaje_obtenido = esperable.puntaje
+                                puntaje_criterio.save()
+                            
+                            puntaje_total += esperable.puntaje
+                    
+                    # Actualizar puntaje total
+                    resultado_rubrica.puntaje_total = puntaje_total
+                    resultado_rubrica.save()
+                    
+                    messages.success(request, f'Calificación actualizada para {calificacion.estudiante.get_full_name()}.')
+                else:
+                    # Crear nueva calificación
+                    calificacion.retroalimentacion = retroalimentacion_limpia
+                    calificacion.save()
+                    
+                    # Crear ResultadoRubrica
+                    resultado_rubrica = ResultadoRubrica.objects.create(
+                        calificacion=calificacion,
+                        rubrica=evaluacion.rubrica,
+                        puntaje_total=0,
+                        calificado_por=request.user
+                    )
+                    
+                    # Crear puntajes de criterios
+                    puntaje_total = 0
+                    for criterio in evaluacion.rubrica.criterios.all():
+                        field_name = f'criterio_{criterio.id}'
+                        esperable_id = form.cleaned_data.get(field_name)
+                        
+                        if esperable_id:
+                            esperable = Esperable.objects.get(id=esperable_id)
+                            PuntajeCriterio.objects.create(
+                                resultado_rubrica=resultado_rubrica,
+                                criterio=criterio,
+                                esperable_seleccionado=esperable,
+                                puntaje_obtenido=esperable.puntaje
+                            )
+                            puntaje_total += esperable.puntaje
+                    
+                    # Actualizar puntaje total
+                    resultado_rubrica.puntaje_total = puntaje_total
+                    resultado_rubrica.save()
+                    
+                    messages.success(request, f'Calificación registrada para {calificacion.estudiante.get_full_name()}.')
+                
+                return redirect('plataforma_calificaciones', curso_id=curso_id)
+                
+            except Exception as e:
+                messages.error(request, f'Error al guardar la calificación: {str(e)}')
+                return redirect('calificar_estudiante', curso_id=curso_id, evaluacion_id=evaluacion_id)
     else:
         form = CalificacionForm(curso=curso, evaluacion=evaluacion, estudiantes_con_entregas=estudiantes_disponibles_para_calificar)
         
@@ -2413,6 +2490,12 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
         'stats': stats,
         'user': request.user,
     }
+    
+    # Agregar criterios de rúbrica al contexto si existe
+    if evaluacion and hasattr(evaluacion, 'rubrica') and evaluacion.rubrica:
+        context['criterios_rubrica'] = form.criterios_rubrica if hasattr(form, 'criterios_rubrica') else evaluacion.rubrica.criterios.all()
+        if hasattr(form, 'criterios_info'):
+            context['criterios_info'] = form.criterios_info
     return render(request, 'pages/calificar_estudiante.html', context)
 
 @login_required

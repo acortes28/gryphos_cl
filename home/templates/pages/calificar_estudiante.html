@@ -694,22 +694,58 @@
               {% endif %}
             </div>
             
-            <div class="form-group">
-              <label for="{{ form.nota.id_for_label }}" class="form-label">
-                <i class="fas fa-star me-1"></i>Nota *
-              </label>
-              {{ form.nota }}
-              {% if form.nota.errors %}
-                <div class="text-danger small mt-1">
-                  {% for error in form.nota.errors %}
-                    {{ error }}
-                  {% endfor %}
+            <!-- Campos dinámicos para criterios de la rúbrica -->
+            {% if evaluacion.rubrica %}
+              <div class="alert alert-info mb-4">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-list-check me-2"></i>
+                  <div>
+                    <strong>Rúbrica de Evaluación: {{ evaluacion.rubrica.nombre }}</strong>
+                    <br>
+                    <small class="text-muted">
+                      Selecciona el nivel de desempeño para cada criterio según la rúbrica.
+                    </small>
+                  </div>
                 </div>
-              {% endif %}
-              {% if form.nota.help_text %}
-                <small class="form-text text-muted">{{ form.nota.help_text }}</small>
-              {% endif %}
-            </div>
+              </div>
+              
+              <!-- Mostrar campos de criterio dinámicamente -->
+              {% for criterio in criterios_rubrica %}
+                <div class="form-group">
+                  <label for="id_criterio_{{ criterio.id }}" class="form-label">
+                    <i class="fas fa-check-circle me-1"></i>{{ criterio.nombre }} *
+                  </label>
+                  
+                  <!-- Renderizar el campo usando el filtro específico para criterios -->
+                  {% with criterio_field=form|get_criterio_field:criterio.id %}
+                    {% if criterio_field %}
+                      {{ criterio_field }}
+                      {% if criterio_field.errors %}
+                        <div class="text-danger small mt-1">
+                          {% for error in criterio_field.errors %}
+                            {{ error }}
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                      {% if criterio_field.help_text %}
+                        <small class="form-text text-muted">{{ criterio_field.help_text }}</small>
+                      {% endif %}
+                    {% else %}
+                      <div class="alert alert-warning">
+                        Campo no encontrado para criterio {{ criterio.id }}
+                      </div>
+                    {% endif %}
+                  {% endwith %}
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Esta evaluación no tiene una rúbrica asociada.</strong>
+                <br>
+                <small>Debes crear una rúbrica antes de poder calificar estudiantes.</small>
+              </div>
+            {% endif %}
             
             <div class="form-group">
               <label for="{{ form.retroalimentacion.id_for_label }}" class="form-label">

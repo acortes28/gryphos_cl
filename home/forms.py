@@ -472,17 +472,11 @@ class EntregaForm(forms.ModelForm):
 class CalificacionForm(forms.ModelForm):
     class Meta:
         model = Calificacion
-        fields = ['estudiante', 'nota', 'retroalimentacion']
+        fields = ['estudiante', 'retroalimentacion']
         widgets = {
             'estudiante': forms.Select(attrs={
                 'class': 'form-control',
                 'placeholder': 'Selecciona un estudiante'
-            }),
-            'nota': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Ej: 6.5',
-                'step': '0.1',
-                'min': '0'
             }),
             'retroalimentacion': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -492,12 +486,10 @@ class CalificacionForm(forms.ModelForm):
         }
         labels = {
             'estudiante': 'Estudiante',
-            'nota': 'Nota',
             'retroalimentacion': 'Retroalimentación'
         }
         help_texts = {
             'estudiante': 'Selecciona el estudiante a calificar',
-            'nota': 'Nota obtenida por el estudiante',
             'retroalimentacion': 'Comentarios y sugerencias para el estudiante'
         }
     
@@ -542,6 +534,43 @@ class CalificacionForm(forms.ModelForm):
                     estudiantes_disponibles = estudiantes_inscritos
             
             self.fields['estudiante'].queryset = estudiantes_disponibles.order_by('first_name', 'last_name', 'username')
+        
+        # Agregar campos dinámicos para cada criterio de la rúbrica
+        if evaluacion and hasattr(evaluacion, 'rubrica'):
+            rubrica = evaluacion.rubrica
+            if rubrica:
+                # Guardar los criterios para uso posterior en el template
+                self.criterios_rubrica = list(rubrica.criterios.all())
+                
+                for criterio in rubrica.criterios.all():
+                    # Crear opciones para este criterio basadas en sus esperables
+                    choices = [('', 'Selecciona un nivel...')]
+                    for esperable in criterio.esperables.all():
+                        choices.append((esperable.id, f"{esperable.nivel} - {esperable.puntaje} pts"))
+                    
+                    # Crear el campo para este criterio
+                    field_name = f'criterio_{criterio.id}'
+                    self.fields[field_name] = forms.ChoiceField(
+                        choices=choices,
+                        required=True,
+                        widget=forms.Select(attrs={
+                            'class': 'form-control',
+                            'data-criterio-id': criterio.id,
+                            'data-criterio-nombre': criterio.nombre,
+                            'data-criterio-puntaje-maximo': criterio.puntaje
+                        }),
+                        label=f"{criterio.nombre}",
+                        help_text=f"Puntaje máximo: {criterio.puntaje} puntos"
+                    )
+                    
+                    # Guardar información adicional del criterio para uso en el template
+                    if not hasattr(self, 'criterios_info'):
+                        self.criterios_info = {}
+                    self.criterios_info[criterio.id] = {
+                        'nombre': criterio.nombre,
+                        'puntaje_maximo': criterio.puntaje,
+                        'field_name': field_name
+                    }
     
     def clean_estudiante(self):
         """Validar que el estudiante tenga una entrega para esta evaluación"""
@@ -555,6 +584,23 @@ class CalificacionForm(forms.ModelForm):
                 raise ValidationError(f'El estudiante {estudiante.get_full_name()} no tiene entregas para la evaluación "{evaluacion.nombre}". Solo se pueden calificar estudiantes que hayan entregado su trabajo.')
         
         return estudiante
+    
+    def clean(self):
+        """Validar que se hayan seleccionado esperables para todos los criterios"""
+        cleaned_data = super().clean()
+        evaluacion = getattr(self, 'evaluacion', None)
+        
+        if evaluacion and hasattr(evaluacion, 'rubrica'):
+            rubrica = evaluacion.rubrica
+            if rubrica:
+                for criterio in rubrica.criterios.all():
+                    field_name = f'criterio_{criterio.id}'
+                    if field_name in self.fields:
+                        esperable_id = cleaned_data.get(field_name)
+                        if not esperable_id:
+                            self.add_error(field_name, f'Debes seleccionar un nivel para el criterio "{criterio.nombre}".')
+        
+        return cleaned_data
 
 class TicketSoporteForm(forms.ModelForm):
     """
