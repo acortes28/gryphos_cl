@@ -27,6 +27,7 @@ import traceback
 from datetime import datetime, timedelta
 import jwt
 from django.db.models import Avg, Min, Max, Count, Sum
+from django.conf import settings
 from decimal import Decimal
 from django.db.models import Prefetch
 import os
@@ -84,9 +85,18 @@ def registration(request):
         if form.is_valid():
             # Verificar si el email ya está registrado
             email = form.cleaned_data['email']
-            if User.objects.filter(email=email).exists():
-                messages.error(request, 'Ya existe una cuenta registrada con este correo electrónico.')
-                return render(request, 'accounts/sign-up.html', {'form': form})
+            
+            # Verificar si MULTI_ACCOUNT_SIGNIN está habilitado
+            if not getattr(settings, 'MULTI_ACCOUNT_SIGNIN', False):
+                # Si MULTI_ACCOUNT_SIGNIN es False, no permitir múltiples cuentas con el mismo email
+                if User.objects.filter(email=email).exists():
+                    messages.error(request, 'Ya existe una cuenta registrada con este correo electrónico.')
+                    return render(request, 'accounts/sign-up.html', {'form': form})
+            else:
+                # Si MULTI_ACCOUNT_SIGNIN es True, permitir múltiples cuentas pero mostrar advertencia
+                existing_users = User.objects.filter(email=email)
+                if existing_users.exists():
+                    messages.warning(request, f'Ya existe una cuenta registrada con este correo electrónico. Se creará una nueva cuenta.')
             
             user = form.save(commit=False)
             user.is_active = False  # Usuario inactivo hasta confirmar correo
@@ -140,7 +150,8 @@ class UserLoginView(auth_views.LoginView):
         response = super().form_valid(form)
         
         # Log del login exitoso
-        logger.info(f"Login exitoso para usuario: {form.get_user()}")
+        user = form.get_user()
+        logger.info(f"Login exitoso para usuario: {user.username}")
         logger.info(f"Session key después del login: {self.request.session.session_key}")
         logger.info(f"Usuario autenticado: {self.request.user.is_authenticated}")
         
@@ -149,10 +160,26 @@ class UserLoginView(auth_views.LoginView):
         self.request.session.save()
         
         return response
+    
+    def form_invalid(self, form):
+        """Override para agregar logging al login fallido"""
+        username = form.cleaned_data.get('username', 'N/A') if form.cleaned_data else 'N/A'
+        logger.warning(f"Login fallido para usuario: {username}")
+        logger.warning(f"Errores del formulario: {form.errors}")
+        
+        # Intentar identificar el problema específico
+        if 'username' in form.errors:
+            logger.warning("Error en el campo username")
+        if 'password' in form.errors:
+            logger.warning("Error en el campo password")
+        
+        return super().form_invalid(form)
 
 class UserPasswordResetView(auth_views.PasswordResetView):
     template_name = 'accounts/password_reset.html'
     form_class = UserPasswordResetForm
+    email_template_name = 'registration/password_reset_email.html'
+    subject_template_name = 'registration/password_reset_subject.txt'
     
     def form_valid(self, form):
         email = form.cleaned_data['email']
@@ -167,13 +194,94 @@ class UserPasswordResetView(auth_views.PasswordResetView):
             
             # Si el email existe, proceder con el envío
             logger.info(f"Enviando correo de recuperación a: {email}")
-            response = super().form_valid(form)
-            messages.success(self.request, 'Se ha enviado un correo con las instrucciones para restablecer tu contraseña.')
-            logger.info(f"Correo de recuperación enviado exitosamente a: {email}")
-            return response
+            
+            # Obtener el usuario
+            user = User.objects.get(email=email)
+            logger.info(f"Usuario encontrado: {user.username}")
+            
+            # Generar token y URL
+            from django.contrib.auth.tokens import default_token_generator
+            from django.utils.http import urlsafe_base64_encode
+            from django.utils.encoding import force_bytes
+            from django.template.loader import render_to_string
+            from django.core.mail import send_mail
+            import traceback
+            
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            
+            logger.info(f"Token generado: {token}")
+            logger.info(f"UID generado: {uid}")
+            
+            # Construir URL de reset
+            reset_url = f"https://gryphos.cl/accounts/password-reset-confirm/{uid}/{token}/"
+            logger.info(f"URL de reset generada: {reset_url}")
+            
+            # Preparar contexto para las plantillas
+            context = {
+                'user': user,
+                'protocol': 'https',
+                'domain': 'gryphos.cl',
+                'uid': uid,
+                'token': token,
+            }
+            
+            # Renderizar plantilla HTML
+            html_message = render_to_string('registration/password_reset_email.html', context)
+            logger.info("✅ Plantilla HTML renderizada correctamente")
+            
+            # Renderizar asunto
+            subject = render_to_string('registration/password_reset_subject.txt', context).strip()
+            logger.info(f"✅ Asunto renderizado: {subject}")
+            
+            # Mensaje en texto plano (fallback)
+            message = f"""
+            Hola {user.get_full_name() or user.username},
+            
+            Has solicitado restablecer tu contraseña en Gryphos Consulting.
+            
+            Para continuar con el proceso, visita el siguiente enlace:
+            {reset_url}
+            
+            Si no solicitaste este cambio, puedes ignorar este correo.
+            
+            Este enlace es válido por 15 minutos.
+            
+            Saludos,
+            Equipo Gryphos Consulting
+            """
+            
+            logger.info("Enviando correo con send_mail...")
+            
+            try:
+                # Enviar correo usando send_mail directamente
+                result = send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    html_message=html_message,
+                    fail_silently=False,
+                )
+            except Exception as e:
+                logger.error(f"Error al enviar correo de recuperación a {email}: {str(e)}")
+                logger.error(f"Tipo de error: {type(e).__name__}")
+                
+                logger.error(f"Traceback completo: {traceback.format_exc()}")
+                messages.error(self.request, 'Error al enviar el correo de recuperación. Por favor, intenta nuevamente.')
+                return self.form_invalid(form)
+
+            logger.info(f"✅ Correo enviado exitosamente con send_mail. Resultado: {result}")
+            
+            # Redirigir a la página de confirmación
+            from django.shortcuts import redirect
+            return redirect('password_reset_done')
             
         except Exception as e:
             logger.error(f"Error al enviar correo de recuperación a {email}: {str(e)}")
+            logger.error(f"Tipo de error: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
             messages.error(self.request, 'Error al enviar el correo de recuperación. Por favor, intenta nuevamente.')
             return self.form_invalid(form)
     
@@ -185,6 +293,63 @@ class UserPasswordResetView(auth_views.PasswordResetView):
 class UserPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
     template_name = 'accounts/password_reset_confirm.html'
     form_class = UserSetPasswordForm
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Siempre mostrar el formulario, validar en POST
+        context['token_valid'] = True
+        return context
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            # Siempre mostrar el formulario
+            return super().get(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Error en vista de confirmación de contraseña: {str(e)}")
+            messages.error(request, 'Error al procesar la solicitud. Por favor, intenta nuevamente.')
+            return self.render_to_response(self.get_context_data())
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            logger.info(f"Iniciando proceso de restablecimiento de contraseña")
+            logger.info(f"Token válido: {self.validlink}")
+            
+            if not self.validlink:
+                logger.warning("Intento de restablecimiento con token inválido")
+                messages.error(request, 'El enlace de recuperación de contraseña no es válido o ha expirado.')
+                return self.render_to_response(self.get_context_data())
+            
+            # Obtener el usuario
+            user = self.get_user(self.kwargs['uidb64'])
+            if user:
+                logger.info(f"Usuario encontrado para restablecimiento: {user.username}")
+            else:
+                logger.error("Usuario no encontrado para restablecimiento")
+                messages.error(request, 'Usuario no encontrado.')
+                return self.render_to_response(self.get_context_data())
+            
+            # Procesar el formulario
+            form = self.get_form()
+            if form.is_valid():
+                logger.info("Formulario válido, cambiando contraseña")
+                form.save()
+                logger.info(f"Contraseña cambiada exitosamente para usuario: {user.username}")
+                messages.success(request, 'Tu contraseña ha sido restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.')
+                
+                # Redirigir a la página de login
+                from django.shortcuts import redirect
+                return redirect('login')
+            else:
+                logger.warning(f"Formulario inválido: {form.errors}")
+                return self.render_to_response(self.get_context_data())
+                
+        except Exception as e:
+            logger.error(f"Error en POST de confirmación de contraseña: {str(e)}")
+            logger.error(f"Tipo de error: {type(e).__name__}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            messages.error(request, 'Error al restablecer la contraseña. Por favor, intenta nuevamente.')
+            return self.render_to_response(self.get_context_data())
 
 
 class UserPasswordChangeView(auth_views.PasswordChangeView):
@@ -335,6 +500,82 @@ def debug_session(request):
     return JsonResponse(debug_info, json_dumps_params={'indent': 2})
 
 
+@login_required
+def mailcow_sso(request):
+    """
+    Vista para crear sesión SSO en mailcow y redirigir a Soho
+    """
+    try:
+        # Obtener configuración de mailcow
+        mailcow_config = getattr(settings, 'MAILCOW_CONFIG', {})
+        sso_config = getattr(settings, 'MAILCOW_SSO_CONFIG', {})
+        
+        if not mailcow_config.get('API_KEY'):
+            logger.error("API_KEY no configurado en MAILCOW_CONFIG")
+            messages.error(request, "Error de configuración del sistema de correo.")
+            return redirect('user_space')
+        
+        # Verificar que el usuario tenga email
+        if not request.user.email:
+            logger.error(f"Usuario {request.user.username} no tiene email configurado")
+            messages.error(request, "Tu cuenta no tiene un correo electrónico configurado.")
+            return redirect('user_space')
+        
+        # Preparar datos para la API de mailcow (endpoint para usuarios alumnos)
+        sso_data = {
+            'username': request.user.email,
+            'password': 'sso_session',  # Mailcow maneja la autenticación internamente
+            'active': 1,
+            'quota': 1024,  # 1GB para alumnos
+            'domain': request.user.email.split('@')[1] if '@' in request.user.email else 'gryphos.cl',
+            'local_part': request.user.email.split('@')[0] if '@' in request.user.email else request.user.username,
+            'sogo_access': 1,  # Habilitar acceso a SOGo
+            'sogo_admin': 0,   # No es admin (es alumno)
+            'sogo_admin_username': request.user.email,
+            'sogo_admin_password': 'sso_session'
+        }
+        
+        # Construir URL del endpoint SSO
+        api_url = f"{mailcow_config['API_URL']}{mailcow_config['SSO_ENDPOINT']}"
+        
+        # Headers para la API
+        headers = {
+            'X-API-Key': mailcow_config['API_KEY'],
+            'Content-Type': 'application/json'
+        }
+        
+        logger.info(f"Creando sesión SSO para usuario {request.user.username} ({request.user.email})")
+        
+        # Hacer petición a la API de mailcow
+        response = requests.post(
+            api_url,
+            json=sso_data,
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            logger.info(f"Sesión SSO creada exitosamente para {request.user.username}")
+            
+            # Redirigir a Soho
+            soho_url = mailcow_config.get('SOHO_URL', 'https://mail.gryphos.cl/SOGo')
+            return HttpResponseRedirect(soho_url)
+        else:
+            logger.error(f"Error en API de mailcow: {response.status_code} - {response.text}")
+            messages.error(request, "Error al acceder al correo electrónico. Inténtalo de nuevo.")
+            return redirect('user_space')
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error de conexión con mailcow para usuario {request.user.username}: {str(e)}")
+        messages.error(request, "Error de conexión con el servidor de correo. Inténtalo de nuevo.")
+        return redirect('user_space')
+    except Exception as e:
+        logger.error(f"Error en mailcow_sso para usuario {request.user.username}: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        messages.error(request, "Error al acceder al correo electrónico. Inténtalo de nuevo.")
+        return redirect('user_space')
+
+
 def enviar_correo_instrucciones_pago(request, inscripcion):
     """
     Función para enviar correo con instrucciones de pago al interesado
@@ -348,6 +589,13 @@ def enviar_correo_instrucciones_pago(request, inscripcion):
     # Formatear el precio con separación de miles usando punto (formato chileno)
     curso_precio_formateado = f"{inscripcion.curso.precio:,.0f}".replace(",", ".")
     
+    # Verificar si el usuario ya tiene una cuenta activa
+    usuario_existente = User.objects.filter(email=inscripcion.correo_contacto, is_active=True).first()
+    
+    # Generar URLs para recuperación de contraseña y soporte
+    password_reset_url = request.build_absolute_uri('/accounts/password_reset/')
+    support_url = request.build_absolute_uri('/portal-cliente/')
+    
     # Renderizar el template HTML
     html_message = render_to_string('emails/instrucciones_pago.html', {
         'nombre_interesado': inscripcion.nombre_interesado,
@@ -358,6 +606,9 @@ def enviar_correo_instrucciones_pago(request, inscripcion):
         'curso_precio': inscripcion.curso.precio,
         'curso_precio_formateado': curso_precio_formateado,
         'dias_plazo_pago': inscripcion.curso.dias_plazo_pago,
+        'usuario_existente': usuario_existente,
+        'password_reset_url': password_reset_url,
+        'support_url': support_url,
     })
 
     logger.debug(f"HTML message: {html_message}")
@@ -610,7 +861,7 @@ def inscripcion_curso(request):
             except Exception as e:
                 messages.error(request, f'Error al procesar la inscripción: {str(e)}')
         else:
-            messages.error(request, 'Por favor, corrige los errores en el formulario.')
+            logger.error(f"Error al procesar la inscripción: {form.errors}")
     else:
         # Si hay un curso pre-seleccionado, inicializar el formulario con ese curso
         if curso_seleccionado:

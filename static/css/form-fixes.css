@@ -1,0 +1,42 @@
+/* Mantener labels fijos cuando hay errores o valores */
+.input-group.input-group-outline.has-error .form-label,
+.input-group.input-group-outline.has-value .form-label {
+    width: 100%;
+    height: 100%;
+    font-size: 0.6875rem !important;
+    color: #5f6d7a;
+    display: flex;
+    line-height: 1.25 !important;
+}
+
+.input-group.input-group-outline.has-error .form-label:before,
+.input-group.input-group-outline.has-error .form-label:after,
+.input-group.input-group-outline.has-value .form-label:before,
+.input-group.input-group-outline.has-value .form-label:after {
+    opacity: 1;
+    border-top-color: #5f6d7a;
+    box-shadow: inset 0 1px #5f6d7a;
+}
+
+.input-group.input-group-outline.has-error .form-label + .form-control,
+.input-group.input-group-outline.has-value .form-label + .form-control {
+    border-color: #5f6d7a !important;
+    border-top-color: transparent !important;
+    box-shadow: inset 1px 0 #5f6d7a, inset -1px 0 #5f6d7a, inset 0 -1px #5f6d7a;
+}
+
+/* Para campos con errores específicos */
+.input-group.input-group-outline.has-error .form-label {
+    color: #F44335;
+}
+
+.input-group.input-group-outline.has-error .form-label:before,
+.input-group.input-group-outline.has-error .form-label:after {
+    border-top-color: #F44335;
+    box-shadow: inset 0 1px #F44335;
+}
+
+.input-group.input-group-outline.has-error .form-label + .form-control {
+    border-color: #F44335 !important;
+    box-shadow: inset 1px 0 #F44335, inset -1px 0 #F44335, inset 0 -1px #F44335;
+} 

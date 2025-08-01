@@ -103,17 +103,64 @@ class RegistrationForm(UserCreationForm):
 
 
 class LoginForm(AuthenticationForm):
-  username = UsernameField(widget=forms.TextInput(attrs={"class": "form-control"}))
-  password = forms.CharField(
-      label=_("Password"),
-      strip=False,
-      widget=forms.PasswordInput(attrs={"autocomplete": "current-password", "class": "form-control"}),)
+    username = UsernameField(
+        widget=forms.TextInput(attrs={
+            "class": "form-control",
+            "placeholder": ""
+        }),
+        label="Usuario o Correo Electrónico"
+    )
+    password = forms.CharField(
+        label=_("Password"),
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password", "class": "form-control"}),)
+    
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if username:
+            # Verificar si es un email
+            if '@' in username:
+                # Buscar usuario por email
+                try:
+                    user = User.objects.get(email=username)
+                    return user.username
+                except User.DoesNotExist:
+                    raise forms.ValidationError('No existe una cuenta con este correo electrónico.')
+            else:
+                # Es un username, verificar que existe
+                if not User.objects.filter(username=username).exists():
+                    raise forms.ValidationError('No existe una cuenta con este nombre de usuario.')
+        return username
   
 
 class UserPasswordResetForm(PasswordResetForm):
-    email = forms.EmailField(widget=forms.EmailInput(attrs={
-        'class': 'form-control'
-    }))
+    email = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': ''
+        }),
+        label="Usuario o Correo Electrónico"
+    )
+    
+    def clean_email(self):
+        email_or_username = self.cleaned_data.get('email')
+        if email_or_username:
+            # Verificar si es un email
+            if '@' in email_or_username:
+                # Buscar usuario por email
+                try:
+                    user = User.objects.get(email=email_or_username)
+                    return user.email
+                except User.DoesNotExist:
+                    raise forms.ValidationError('No existe una cuenta con este correo electrónico.')
+            else:
+                # Es un username, buscar por username
+                try:
+                    user = User.objects.get(username=email_or_username)
+                    return user.email
+                except User.DoesNotExist:
+                    raise forms.ValidationError('No existe una cuenta con este nombre de usuario.')
+        return email_or_username
     
 
 class UserSetPasswordForm(SetPasswordForm):

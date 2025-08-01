@@ -13,6 +13,7 @@ urlpatterns = [
     # Usuario
     path('portal-cliente/', views.portal_cliente, name='user_space'),
     path('debug-session/', views.debug_session, name='debug_session'),
+    path('mailcow-sso/', views.mailcow_sso, name='mailcow_sso'),
     path('test-auth/', views.test_auth, name='test_auth'),
     path('test-registration/', views.test_registration_form, name='test_registration'),
 

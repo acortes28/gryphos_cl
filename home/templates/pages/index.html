@@ -61,32 +61,16 @@
     </div>
 </section>
 
-<div class="container">
-  <div class="page-header py-6 py-md-5 my-sm-3 mb-3 border-radius-xl" style="background-image: url('{% static 'img/landscape0.jpg' %}');">
-    <span class="mask bg-gradient-dark"></span>
-    <div class="container">
-      <div class="row">
-        <div class="col-lg-6 ms-lg-5">
-          <h1 class="text-white">Quiénes somos</h1>
-          <h4 class="text-white">Fundada por ingenieros civiles industriales...</h4>
-          <p class="lead text-white opacity-8">...de la Universidad de Valparaíso, unidos bajo visiones únicas y métodos innovadores. </p>
-          <p class="text-white opacity-8">Nuestra labor se centra en encontrar el equilibrio perfecto entre desafiar y respetar lo establecido, aprovechando al máximo la diversidad de nuestras habilidades. Creemos firmemente en la sinergia de nuestras diferentes perspectivas para brindar soluciones integrales y efectivas. En cada proyecto, combinamos conocimiento técnico y creatividad para no solo alcanzar, sino superar las expectativas de nuestros clientes.</p>
-          <div class="buttons">
-            <a href="{% url 'quienes-somos' %}" class="btn btn-dark mt-4">Leer más</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Sección de Cursos de Capacitación -->
 {% if cursos_activos %}
 <section class="my-5 py-5">
   <div class="container">
     <div class="row justify-content-center text-center mb-5">
       <div class="col-lg-8">
-        <h2 class="text-dark mb-4">Cursos de Capacitación</h2>
+        <h2 class="text-dark mb-4">
+          <i class="fas fa-graduation-cap me-2"></i>
+          Cursos de Capacitación
+        </h2>
         <p class="lead">Descubre nuestros programas de formación profesional diseñados para potenciar tus habilidades y conocimientos.</p>
       </div>
     </div>
@@ -94,16 +78,16 @@
     <div class="row">
       {% for curso in cursos_activos|slice:":3" %}
       <div class="col-lg-4 col-md-6 mb-4">
-        <div class="card h-100 shadow-sm">
-          <div class="card-header bg-gradient-primary text-white">
+        <div class="card h-100 curso-card">
+          <div class="card-header">
             <h5 class="card-title mb-0">
-              <i class="fas fa-graduation-cap me-2"></i>
+              <i class="fas fa-book me-2"></i>
               {{ curso.nombre }}
             </h5>
           </div>
           <div class="card-body">
             {% if curso.descripcion %}
-            <p class="card-text">{{ curso.descripcion|truncatewords:25 }}</p>
+            <p class="card-text">{{ curso.descripcion|truncatewords:30 }}</p>
             {% endif %}
             
             <div class="row mb-3">
@@ -123,6 +107,16 @@
                 </small>
               </div>
               {% endif %}
+              {% if curso.fecha_inicio %}
+              <div class="col-12">
+                <small class="text-muted">
+                  <i class="fas fa-calendar-alt me-1"></i>
+                  {{ curso.fecha_inicio|date:"d/m/Y" }}
+                  -
+                  {{ curso.fecha_fin|date:"d/m/Y" }}
+                </small>
+              </div>
+              {% endif %}
             </div>
             
             {% if curso.nivel %}
@@ -135,7 +129,7 @@
             <div class="mb-3">
               <h6 class="text-success mb-0">
                 <i class="fas fa-dollar-sign me-1"></i>
-                ${{ curso.precio|floatformat:0 }}
+                {{ curso.precio|floatformat:0 }}
               </h6>
             </div>
             {% endif %}
@@ -146,7 +140,7 @@
                 <i class="fas fa-eye me-1"></i>
                 Ver Detalles
               </a>
-              <a href="{% url 'inscripcion-curso' %}?curso={{ curso.id }}" class="btn btn-outline-success btn-sm">
+              <a href="{% url 'inscripcion-curso' %}?curso={{ curso.id }}" class="btn btn-success btn-sm">
                 <i class="fas fa-user-plus me-1"></i>
                 Inscribirse
               </a>
@@ -168,6 +162,26 @@
 </section>
 {% endif %}
 
+
+<div class="container">
+  <div class="page-header py-6 py-md-5 my-sm-3 mb-3 border-radius-xl" style="background-image: url('{% static 'img/landscape0.jpg' %}');">
+    <span class="mask bg-gradient-dark"></span>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-6 ms-lg-5">
+          <h1 class="text-white">Quiénes somos</h1>
+          <h4 class="text-white">Fundada por ingenieros civiles industriales...</h4>
+          <p class="lead text-white opacity-8">...de la Universidad de Valparaíso, unidos bajo visiones únicas y métodos innovadores. </p>
+          <p class="text-white opacity-8">Nuestra labor se centra en encontrar el equilibrio perfecto entre desafiar y respetar lo establecido, aprovechando al máximo la diversidad de nuestras habilidades. Creemos firmemente en la sinergia de nuestras diferentes perspectivas para brindar soluciones integrales y efectivas. En cada proyecto, combinamos conocimiento técnico y creatividad para no solo alcanzar, sino superar las expectativas de nuestros clientes.</p>
+          <div class="buttons">
+            <a href="{% url 'quienes-somos' %}" class="btn btn-dark mt-4">Leer más</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <section class="my-5 py-5">
   <div class="container">
     <div class="row justify-content-center text-center my-sm-5">
@@ -180,6 +194,192 @@
 </section>
 </div>
 {% endblock content %}
+
+{% block extra_css %}
+<style>
+/* Estilos elegantes para las cards de cursos */
+.curso-card {
+  background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.05),
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.curso-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6c757d, #495057, #343a40);
+  opacity: 0.8;
+}
+
+.curso-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 12px 24px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.curso-card .card-header {
+  background: linear-gradient(135deg, #495057 0%, #6c757d 100%);
+  border: none;
+  border-radius: 16px 16px 0 0;
+  padding: 1.25rem 1.5rem 1rem;
+  position: relative;
+}
+
+.curso-card .card-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+}
+
+.curso-card .card-header h5 {
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+.curso-card .card-body {
+  background: white;
+  padding: 1.5rem;
+  position: relative;
+}
+
+.curso-card .card-text {
+  color: #495057;
+  line-height: 1.6;
+  font-weight: 400;
+  font-size: 0.95rem;
+}
+
+.curso-card .text-muted {
+  color: #6c757d !important;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.curso-card .badge {
+  border-radius: 12px;
+  padding: 0.4rem 0.8rem;
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0.2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.curso-card .card-footer {
+  background: #f8f9fa;
+  border: none;
+  border-radius: 0 0 16px 16px;
+  padding: 1rem 1.5rem 1.25rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.curso-card .btn {
+  border-radius: 8px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.2px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.curso-card .btn-primary {
+  background: linear-gradient(135deg, #1e619e 0%, #1e619e 100%);
+  border: none;
+  color: white;
+}
+
+.curso-card .btn-primary:hover {
+  background: linear-gradient(135deg, #0b5ed7 0%, #0a58ca 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(13, 110, 253, 0.25);
+}
+
+.curso-card .btn-success:hover {
+  background: linear-gradient(135deg, #40ba44 0%, #40ba44 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(25, 135, 84, 0.25);
+}
+
+.curso-card .btn-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+  border: none;
+  color: #212529;
+}
+
+/* Efecto sutil de brillo en hover */
+.curso-card:hover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.6s ease;
+}
+
+.curso-card:hover::after {
+  left: 100%;
+}
+
+/* Animación de entrada elegante */
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.curso-card {
+  animation: cardEntrance 0.5s ease-out;
+}
+
+/* Retraso escalonado sutil */
+.curso-card:nth-child(1) { animation-delay: 0.05s; }
+.curso-card:nth-child(2) { animation-delay: 0.1s; }
+.curso-card:nth-child(3) { animation-delay: 0.15s; }
+.curso-card:nth-child(4) { animation-delay: 0.2s; }
+.curso-card:nth-child(5) { animation-delay: 0.25s; }
+.curso-card:nth-child(6) { animation-delay: 0.3s; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .curso-card {
+    margin-bottom: 1.5rem;
+  }
+  
+  .curso-card:hover {
+    transform: translateY(-2px);
+  }
+}
+</style>
+{% endblock extra_css %}
 
 {% block javascripts %}
 

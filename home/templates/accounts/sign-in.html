@@ -4,9 +4,57 @@
 {% block header %}
 {% include 'includes/navigation_transparent.html' %}
 {% endblock header %}
+
+
+
 {% block content %}
 {% load static %}
 {% load i18n %}
+
+<style>
+/* Mantener labels fijos cuando hay errores o valores */
+.input-group.input-group-outline.has-error .form-label,
+.input-group.input-group-outline.has-value .form-label {
+    width: 100%;
+    height: 100%;
+    font-size: 0.6875rem !important;
+    color: #5f6d7a;
+    display: flex;
+    line-height: 1.25 !important;
+}
+
+.input-group.input-group-outline.has-error .form-label:before,
+.input-group.input-group-outline.has-error .form-label:after,
+.input-group.input-group-outline.has-value .form-label:before,
+.input-group.input-group-outline.has-value .form-label:after {
+    opacity: 1;
+    border-top-color: #5f6d7a;
+    box-shadow: inset 0 1px #5f6d7a;
+}
+
+.input-group.input-group-outline.has-error .form-label + .form-control,
+.input-group.input-group-outline.has-value .form-label + .form-control {
+    border-color: #5f6d7a !important;
+    border-top-color: transparent !important;
+    box-shadow: inset 1px 0 #5f6d7a, inset -1px 0 #5f6d7a, inset 0 -1px #5f6d7a;
+}
+
+/* Para campos con errores específicos */
+.input-group.input-group-outline.has-error .form-label {
+    color: #F44335;
+}
+
+.input-group.input-group-outline.has-error .form-label:before,
+.input-group.input-group-outline.has-error .form-label:after {
+    border-top-color: #F44335;
+    box-shadow: inset 0 1px #F44335;
+}
+
+.input-group.input-group-outline.has-error .form-label + .form-control {
+    border-color: #F44335 !important;
+    box-shadow: inset 1px 0 #F44335, inset -1px 0 #F44335, inset 0 -1px #F44335;
+}
+</style>
 
   <div class="page-header align-items-start min-vh-100" style="background-image: url('{% static 'img/landscape1.jpg' %}');" loading="lazy">
     <span class="mask bg-gradient-dark opacity-6"></span>
@@ -20,6 +68,16 @@
               </div>
             </div>
             <div class="card-body">
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+              
               <form role="form" method="post" action="#" class="text-start">
                 {% if form.non_field_errors %}
                   {% for error in form.non_field_errors %}
@@ -28,11 +86,13 @@
                 {% endif %}
                 {% csrf_token %}
                 {% for field in form %}
-                  <div class="input-group input-group-outline my-3">
+                  <div class="input-group input-group-outline my-3 {% if field.errors %}has-error{% endif %} {% if field.value %}has-value{% endif %}">
                     <label class="form-label">{{ field.label }}</label>
                     {{field}}
                   </div>
-                  <small>{{ field.errors }}</small>
+                  {% if field.errors %}
+                    <small class="text-danger">{{ field.errors }}</small>
+                  {% endif %}
                 {% endfor %}
                 <div class="form-check form-switch d-flex align-items-center mb-3">
                   <input class="form-check-input" type="checkbox" id="rememberMe" checked>

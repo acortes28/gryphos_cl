@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os, random, string
 from pathlib import Path
 from dotenv import load_dotenv
+from datetime import timedelta
 
 load_dotenv()  # take environment variables from .env.
 
@@ -40,6 +41,8 @@ def str2bool(v):
 
 # Enable/Disable DEBUG Mode
 DEBUG = str2bool(os.environ.get('DEBUG', 'False'))
+
+MULTI_ACCOUNT_SIGNIN = str2bool(os.environ.get('MULTI_ACCOUNT_SIGNIN', 'False'))
 
 print("DEBUG -> " + str(DEBUG))
 
@@ -228,6 +231,7 @@ else:
 
 # Configuración de Autenticación
 AUTHENTICATION_BACKENDS = [
+    'home.backends.EmailOrUsernameModelBackend',
     'django.contrib.auth.backends.ModelBackend',
 ]
 
@@ -244,13 +248,17 @@ else:
     # Para producción - configuración SMTP real
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST = 'mail.gryphos.cl'  # o tu servidor SMTP
-    EMAIL_PORT = 2587
-    EMAIL_USE_TLS = True
-    EMAIL_USE_SSL = False
+    EMAIL_PORT = 2465
+    EMAIL_USE_TLS = False
+    EMAIL_USE_SSL = True
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'contacto@gryphos.cl')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')  # Contraseña de aplicación
     DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
     SERVER_EMAIL = EMAIL_HOST_USER
+
+# Configuración de tiempo de expiración para recuperación de contraseña (15 minutos)
+PASSWORD_RESET_TIMEOUT = 900  # 15 minutos en segundos (15 * 60 = 900)
+
 AUTH_USER_MODEL = 'home.CustomUser'
 
 
@@ -341,3 +349,20 @@ LOGGING = {
 
 # Configuración de redirección después del logout
 LOGOUT_REDIRECT_URL = '/'
+
+# Configuraciones para Mailcow SSO
+MAILCOW_CONFIG = {
+    'API_URL': os.environ.get('MAILCOW_API_URL', 'https://mail.gryphos.cl/api/v1'),
+    'API_KEY': os.environ.get('API_KEY_MAILCOW', ''),
+    'SOHO_URL': os.environ.get('MAILCOW_SOHO_URL', 'https://mail.gryphos.cl/SOGo'),
+    'SSO_ENDPOINT': '/add/sso/mailbox',
+    'SSO_EXPIRATION': 3600,  # 1 hora en segundos
+}
+
+# Configuración para Mailcow SSO
+MAILCOW_SSO_CONFIG = {
+    'API_URL': MAILCOW_CONFIG['API_URL'],
+    'API_KEY': MAILCOW_CONFIG['API_KEY'],
+    'SSO_ENDPOINT': MAILCOW_CONFIG['SSO_ENDPOINT'],
+    'SOHO_URL': MAILCOW_CONFIG['SOHO_URL'],
+}

@@ -76,6 +76,18 @@
 
     <p>¡Estamos encantados de que hayas decidido unirte a nuestro <strong>curso de {{ curso_nombre }}</strong>! Para completar tu inscripción y reservar tu cupo, te compartimos los datos de pago.</p>
 
+    {% if usuario_existente %}
+    <div class="highlight" style="background-color: #fff3cd; border-left-color: #ffc107;">
+        <p><strong>📧 Cuenta existente detectada:</strong></p>
+        <p>Hemos detectado que ya tienes una cuenta activa en Gryphos con este correo electrónico. Si necesitas recuperar tu contraseña o acceder a tu cuenta, puedes:</p>
+        <ul>
+            <li><a href="{{ password_reset_url }}" style="color: #3498db;">🔑 Recuperar tu contraseña</a></li>
+            <li>📞 Contactar a nuestro equipo de soporte técnico</li>
+        </ul>
+        <p><em>Una vez que completes el pago, podrás acceder al curso con tu cuenta existente.</em></p>
+    </div>
+    {% endif %}
+
     <div class="highlight">
         <p><strong>Detalles de tu inscripción:</strong></p>
         <ul style="list-style-type: none;">
