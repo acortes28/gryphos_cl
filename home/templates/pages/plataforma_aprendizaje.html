@@ -10,6 +10,9 @@
 
 {% block content %}
 
+<!-- Contenedor principal con clase para estilos específicos de la plataforma -->
+<div class="plataforma-aprendizaje">
+
 <style>
   .sidebar {
     position: fixed;
@@ -600,7 +603,7 @@
     
     <div id="seccion-soporte" class="section-content">
       <div class="text-center py-5">
-        <i class="fas fa-headset fa-3x text-muted mb-3"></i>
+        <i class="fas text-muted mb-3"></i>
         <h4>Soporte al Estudiante</h4>
         <p class="text-muted">Aquí puedes crear tickets de soporte y ver el estado de tus consultas.</p>
         <button class="btn btn-primary" onclick="cargarSoporteContenido();">
@@ -977,13 +980,26 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('click', function(e) {
     const action = e.target.closest('[data-action]')?.getAttribute('data-action');
     
+    console.log('=== DEBUG CLICK EVENT ===');
+    console.log('Action detectada:', action);
+    console.log('Elemento clickeado:', e.target);
+    
     if (action === 'crear-ticket') {
       e.preventDefault();
       cargarFormularioCrearTicket();
     } else if (action === 'filtrar-soporte') {
       e.preventDefault();
-      const estado = e.target.closest('[data-action]').getAttribute('data-estado');
-      cargarSoporteFiltrado(estado);
+      const clickedButton = e.target.closest('[data-action]');
+      const estado = clickedButton.getAttribute('data-estado');
+      console.log('Filtro de soporte clickeado - Estado:', estado);
+      console.log('Botón clickeado:', clickedButton);
+      console.log('Llamando a cargarSoporteFiltrado...');
+      try {
+        cargarSoporteFiltrado(estado, clickedButton);
+        console.log('Función cargarSoporteFiltrado llamada exitosamente');
+      } catch (error) {
+        console.error('Error al llamar cargarSoporteFiltrado:', error);
+      }
     } else if (action === 'ver-ticket') {
       e.preventDefault();
       const ticketId = e.target.closest('[data-action]').getAttribute('data-ticket-id');
@@ -1479,35 +1495,113 @@ function verTicket(ticketId) {
 }
 
 // Función para cargar soporte filtrado
-function cargarSoporteFiltrado(estado) {
+function cargarSoporteFiltrado(estado, clickedButton = null) {
+  console.log('=== FUNCIÓN cargarSoporteFiltrado EJECUTADA ===');
+  console.log('=== DEBUG FILTRO SOPORTE ===');
+  console.log('Estado filtrado:', estado);
+  console.log('Botón clickeado:', clickedButton);
+  
   // Actualizar botones activos
-  document.querySelectorAll('.btn-outline-primary').forEach(btn => {
+  document.querySelectorAll('[data-action="filtrar-soporte"]').forEach(btn => {
     btn.classList.remove('active');
+    console.log('Removiendo clase active de:', btn.textContent.trim());
   });
   
-  // Activar el botón correspondiente
-  const activeBtn = event.target;
-  activeBtn.classList.add('active');
+    // Activar el botón correspondiente si se proporciona
+  if (clickedButton) {
+    clickedButton.classList.add('active');
+    console.log('Agregando clase active a:', clickedButton.textContent.trim());
+    console.log('Clases del botón después de agregar active:', clickedButton.className);
+    
+    // Agregar efecto visual sutil al botón clickeado
+    clickedButton.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      clickedButton.style.transform = '';
+    }, 150);
+  }
+  
+  // Mostrar loading solo si la carga tarda más de 500ms
+  const loadingElement = document.getElementById('loading');
+  let loadingTimeout;
+  if (loadingElement) {
+    loadingTimeout = setTimeout(() => {
+      loadingElement.classList.add('show');
+      console.log('Mostrando loading (carga lenta)...');
+    }, 500);
+  }
   
   // Cargar contenido filtrado
   let url = `{% url 'plataforma_soporte_ajax' curso.id %}`;
   if (estado) {
     url += `?estado=${estado}`;
+  } else {
+    // Si no hay estado, enviar 'abierto' por defecto
+    url += `?estado=abierto`;
   }
+  
+  console.log('URL de fetch:', url);
   
   fetch(url, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     }
   })
-    .then(response => response.json())
+    .then(response => {
+      console.log('Response status:', response.status);
+      return response.json();
+    })
     .then(data => {
+      console.log('Datos recibidos:', data);
       if (data.html) {
         document.getElementById('seccion-soporte').innerHTML = data.html;
+        console.log('HTML actualizado correctamente');
+        
+        // Restaurar el estado visual del botón activo después de cargar el contenido
+        if (clickedButton) {
+          // Buscar el botón correspondiente en el nuevo contenido
+          const estadoABuscar = estado || 'abierto'; // Usar 'abierto' por defecto si no hay estado
+          const nuevoBoton = document.querySelector(`[data-action="filtrar-soporte"][data-estado="${estadoABuscar}"]`);
+          if (nuevoBoton) {
+            // Remover clase active de todos los botones
+            document.querySelectorAll('[data-action="filtrar-soporte"]').forEach(btn => {
+              btn.classList.remove('active');
+            });
+            // Agregar clase active al botón correcto
+            nuevoBoton.classList.add('active');
+            console.log('Estado visual del botón restaurado');
+          }
+        }
+        
+        // Agregar efecto de fade para transición suave
+        const seccionSoporte = document.getElementById('seccion-soporte');
+        if (seccionSoporte) {
+          seccionSoporte.style.opacity = '0.8';
+          setTimeout(() => {
+            seccionSoporte.style.opacity = '1';
+          }, 50);
+        }
+      } else {
+        console.log('No se recibió HTML en la respuesta');
+      }
+      
+      // Ocultar loading y limpiar timeout
+      if (loadingElement) {
+        loadingElement.classList.remove('show');
+        console.log('Ocultando loading...');
+      }
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
       }
     })
     .catch(error => {
       console.error('Error cargando el soporte:', error);
+      // Ocultar loading en caso de error
+      if (loadingElement) {
+        loadingElement.classList.remove('show');
+      }
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
     });
 }
 
@@ -1518,7 +1612,7 @@ function volverASoporte() {
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
   
-  fetch(`{% url 'plataforma_soporte_ajax' curso.id %}`, {
+  fetch(`{% url 'plataforma_soporte_ajax' curso.id %}?estado=abierto`, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     }
@@ -1545,6 +1639,8 @@ function volverASoporte() {
       document.getElementById('loading').classList.remove('show');
     });
 }
+
+
 
 // Función para cargar subclasificaciones
 function cargarSubclasificaciones(clasificacion) {
@@ -1884,7 +1980,11 @@ function inicializarFormulariosTicket() {
 // ============================================================================
 
 // Función para cargar soporte filtrado (admin)
-function cargarSoporteFiltrado(estado) {
+function cargarSoporteFiltradoAdmin(estado, clickedButton = null) {
+  console.log('=== DEBUG FILTRO ADMIN ===');
+  console.log('Estado filtro admin:', estado);
+  console.log('Botón clickeado:', clickedButton);
+  
   // Mostrar loading
   mostrarLoadingAdmin();
   
@@ -1894,8 +1994,10 @@ function cargarSoporteFiltrado(estado) {
   });
   
   // Activar el botón correspondiente
-  const activeBtn = event.target;
-  activeBtn.classList.add('active');
+  if (clickedButton) {
+    clickedButton.classList.add('active');
+    console.log('Botón activado:', clickedButton.textContent.trim());
+  }
   
   // Simular carga de datos filtrados
   setTimeout(() => {
@@ -1910,9 +2012,11 @@ function cargarSoporteFiltrado(estado) {
     if (estado === '') {
       // Mostrar todos los tickets
       mostrarTodosLosTicketsAdmin();
+      console.log('Mostrando todos los tickets');
     } else {
       // Filtrar por estado
       filtrarTicketsPorEstadoAdmin(estado);
+      console.log('Filtrando por estado:', estado);
     }
     
     ocultarLoadingAdmin();
@@ -2021,8 +2125,8 @@ function mostrarMensajeSinTicketsAdmin(estado) {
         <i class="${icono} fa-3x text-muted mb-3"></i>
         <h5 class="text-muted">No hay tickets ${estado !== '' ? `en estado "${estado}"` : ''}</h5>
         <p class="text-muted">${mensaje}</p>
-        <button class="btn btn-outline-primary" onclick="cargarSoporteFiltrado('')">
-          <i class="fas fa-eye me-2"></i>Ver todos los tickets
+        <button class="btn btn-outline-primary" onclick="cargarSoporteFiltradoAdmin('')">
+          <i class="fas me-2"></i>Ver todos los tickets
         </button>
       </div>
     </td>
@@ -2198,10 +2302,19 @@ function resetearFiltrosAdmin() {
     btn.classList.remove('active');
   });
   
-  // Activar botón "Todos"
-  const btnTodos = document.querySelector('.btn-outline-primary[onclick*="cargarSoporteFiltrado(\'\')"]');
+  // Activar botón "Todos" - buscar por múltiples selectores
+  let btnTodos = document.querySelector('.btn-outline-primary[onclick*="cargarSoporteFiltradoAdmin(\'\', this)"]');
+  if (!btnTodos) {
+    // Buscar por texto del botón
+    btnTodos = Array.from(document.querySelectorAll('.btn-outline-primary')).find(btn => 
+      btn.textContent.trim() === 'Todos'
+    );
+  }
   if (btnTodos) {
     btnTodos.classList.add('active');
+    console.log('Botón "Todos" activado en resetearFiltrosAdmin');
+  } else {
+    console.log('No se encontró el botón "Todos" en resetearFiltrosAdmin');
   }
   
   // Mostrar todos los tickets
@@ -2724,4 +2837,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-{% endblock content %} 
+</div> <!-- Cierre del contenedor plataforma-aprendizaje -->
+
+{% endblock content %}
+
+{% block extra_css %}
+<link href="{% static 'css/plataforma-specific-messages.css' %}" rel="stylesheet" />
+{% endblock extra_css %} 

@@ -13,9 +13,7 @@
         </div>
         
         <div class="d-flex align-items-center">
-          <button class="btn btn-outline-secondary me-2" onclick="volverASoporte()">
-            <i class="fas fa-arrow-left me-2"></i>Volver
-          </button>
+
           <button class="btn btn-primary" onclick="cargarFormularioCrearTicket()">
             <i class="fas fa-plus me-2"></i>Crear Ticket
           </button>
@@ -33,11 +31,11 @@
             <div class="col-md-4">
               <label class="form-label">Estado</label>
               <div class="d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-outline-primary active" onclick="cargarSoporteFiltrado('')">
+                <button type="button" class="btn btn-outline-primary active" onclick="cargarSoporteFiltradoAdmin('', this)">
                   Todos
                 </button>
                 {% for estado_choice in estados %}
-                  <button type="button" class="btn btn-outline-primary" onclick="cargarSoporteFiltrado('{{ estado_choice.0 }}')">
+                  <button type="button" class="btn btn-outline-primary" onclick="cargarSoporteFiltradoAdmin('{{ estado_choice.0 }}', this)">
                     {{ estado_choice.1 }}
                   </button>
                 {% endfor %}
@@ -231,7 +229,7 @@
                       <td>
                         <div class="btn-group" role="group">
                           <button class="btn btn-sm btn-outline-primary" onclick="verTicket({{ ticket.id }})" title="Ver detalles">
-                            <i class="fas fa-eye"></i>Ver
+                            <i class="fas "></i>Ver
                           </button>
                           {% if ticket.estado == 'resuelto' %}
                             <button class="btn btn-sm btn-outline-warning" onclick="reabrirTicket({{ ticket.id }})" title="Reabrir">
@@ -239,7 +237,7 @@
                             </button>
                           {% else %}
                             <button class="btn btn-sm btn-outline-warning" onclick="reasignarTicket({{ ticket.id }})" title="Reasignar">
-                              <i class="fas fa-user-plus"></i>Reasignar
+                              <i class="fas "></i>Reasignar
                             </button>
                           {% endif %}
                         </div>
@@ -268,7 +266,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modalReasignarLabel">
-          <i class="fas fa-user-plus me-2"></i>Reasignar Ticket
+          <i class="fas me-2"></i>Reasignar Ticket
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>

@@ -2730,7 +2730,7 @@ progress {
   font-weight: 400;
   line-height: 1.5rem;
   color: #495057;
-  background-color: transparent;
+  background-color: #fff;
   background-clip: padding-box;
   border: 1px solid #d2d6da;
   appearance: none;
@@ -2754,7 +2754,7 @@ progress {
 
 .form-control:focus {
   color: #495057;
-  background-color: transparent;
+  background-color: #fff;
   border-color: transparent;
   outline: 0;
   box-shadow: none;
@@ -2765,7 +2765,7 @@ progress {
 }
 
 .form-control::placeholder {
-  color: #adb5bd;
+  color: #fff;
   opacity: 1;
 }
 

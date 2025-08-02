@@ -1,0 +1,325 @@
+/* ============================================================================
+   ESTILOS ESPECÍFICOS PARA MENSAJES DE LA PLATAFORMA DE APRENDIZAJE
+   ============================================================================ */
+
+/* Estilos específicos para mensajes en la plataforma de aprendizaje */
+.plataforma-aprendizaje .alert {
+  border-radius: 12px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Efecto de borde izquierdo con gradiente */
+.plataforma-aprendizaje .alert::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6px;
+  height: 100%;
+  background: linear-gradient(180deg, currentColor 0%, rgba(255, 255, 255, 0.3) 100%);
+}
+
+/* Mensajes de éxito específicos para la plataforma */
+.plataforma-aprendizaje .alert-success {
+  background: linear-gradient(135deg, #d1f2eb 0%, #a8e6cf 100%);
+  color: #0f5132;
+  border: 1px solid rgba(0, 184, 148, 0.2);
+}
+
+.plataforma-aprendizaje .alert-success::before {
+  background: linear-gradient(180deg, #00b894 0%, #00a085 100%);
+}
+
+/* Mensajes de error específicos para la plataforma */
+.plataforma-aprendizaje .alert-danger {
+  background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+  color: #d63031;
+  border: 1px solid rgba(225, 112, 85, 0.2);
+}
+
+.plataforma-aprendizaje .alert-danger::before {
+  background: linear-gradient(180deg, #e17055 0%, #d63031 100%);
+}
+
+/* Mensajes de advertencia específicos para la plataforma */
+.plataforma-aprendizaje .alert-warning {
+  background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+  color: #b71540;
+  border: 1px solid rgba(253, 203, 110, 0.2);
+}
+
+.plataforma-aprendizaje .alert-warning::before {
+  background: linear-gradient(180deg, #fdcb6e 0%, #e17055 100%);
+}
+
+/* Mensajes de información específicos para la plataforma */
+.plataforma-aprendizaje .alert-info {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  color: #2d3436;
+  border: 1px solid rgba(116, 185, 255, 0.2);
+}
+
+.plataforma-aprendizaje .alert-info::before {
+  background: linear-gradient(180deg, #74b9ff 0%, #0984e3 100%);
+}
+
+/* Efectos hover mejorados */
+.plataforma-aprendizaje .alert:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+}
+
+/* Animaciones de entrada específicas */
+@keyframes plataformaSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-5px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.plataforma-aprendizaje .alert {
+  animation: plataformaSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Estilos para mensajes en el sidebar */
+.plataforma-aprendizaje .sidebar .alert {
+  margin: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  padding: 1rem;
+}
+
+/* Estilos para mensajes en el contenido principal */
+.plataforma-aprendizaje .main-content .alert {
+  margin: 1.5rem 0;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+/* Estilos para mensajes en modales */
+.plataforma-aprendizaje .modal .alert {
+  margin: 0.75rem 0;
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Estilos para mensajes en formularios */
+.plataforma-aprendizaje .form-container .alert {
+  margin: 1rem 0;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+/* Estilos para mensajes en tablas */
+.plataforma-aprendizaje .table-responsive .alert {
+  margin: 0.5rem 0;
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Estilos para mensajes de carga */
+.plataforma-aprendizaje .alert-loading {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  color: white;
+  border: 1px solid rgba(116, 185, 255, 0.3);
+}
+
+.plataforma-aprendizaje .alert-loading::before {
+  background: linear-gradient(180deg, #74b9ff 0%, #0984e3 100%);
+}
+
+/* Estilos para mensajes de confirmación */
+.plataforma-aprendizaje .alert-confirmation {
+  background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+  color: white;
+  border: 1px solid rgba(162, 155, 254, 0.3);
+}
+
+.plataforma-aprendizaje .alert-confirmation::before {
+  background: linear-gradient(180deg, #a29bfe 0%, #6c5ce7 100%);
+}
+
+/* Estilos para mensajes de progreso */
+.plataforma-aprendizaje .alert-progress {
+  background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+  color: white;
+  border: 1px solid rgba(253, 121, 168, 0.3);
+}
+
+.plataforma-aprendizaje .alert-progress::before {
+  background: linear-gradient(180deg, #fd79a8 0%, #e84393 100%);
+}
+
+/* Estilos para mensajes de estado */
+.plataforma-aprendizaje .alert-status {
+  background: linear-gradient(135deg, #00cec9 0%, #00b894 100%);
+  color: white;
+  border: 1px solid rgba(0, 206, 201, 0.3);
+}
+
+.plataforma-aprendizaje .alert-status::before {
+  background: linear-gradient(180deg, #00cec9 0%, #00b894 100%);
+}
+
+/* Botón de cerrar mejorado para la plataforma */
+.plataforma-aprendizaje .alert-dismissible .btn-close {
+  position: absolute;
+  top: 50%;
+  right: 1.25rem;
+  transform: translateY(-50%);
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.8;
+  backdrop-filter: blur(10px);
+}
+
+.plataforma-aprendizaje .alert-dismissible .btn-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.plataforma-aprendizaje .alert-dismissible .btn-close::before {
+  content: '×';
+  font-size: 1.75rem;
+  font-weight: 300;
+  line-height: 1;
+  color: inherit;
+}
+
+/* Estilos para mensajes con iconos en la plataforma */
+.plataforma-aprendizaje .alert-with-icon {
+  padding-left: 3.5rem;
+}
+
+.plataforma-aprendizaje .alert-with-icon::after {
+  content: '';
+  position: absolute;
+  left: 1.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.5rem;
+  height: 1.5rem;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Iconos específicos para la plataforma */
+.plataforma-aprendizaje .alert-success.alert-with-icon::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300b894'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+}
+
+.plataforma-aprendizaje .alert-danger.alert-with-icon::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e17055'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E");
+}
+
+.plataforma-aprendizaje .alert-warning.alert-with-icon::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fdcb6e'%3E%3Cpath d='M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z'/%3E%3C/svg%3E");
+}
+
+.plataforma-aprendizaje .alert-info.alert-with-icon::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2374b9ff'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z'/%3E%3C/svg%3E");
+}
+
+/* Responsive específico para la plataforma */
+@media (max-width: 768px) {
+  .plataforma-aprendizaje .alert {
+    padding: 1.25rem;
+    margin: 1rem 0;
+    font-size: 0.9rem;
+  }
+  
+  .plataforma-aprendizaje .alert-dismissible .btn-close {
+    right: 1rem;
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .plataforma-aprendizaje .alert-with-icon {
+    padding-left: 3rem;
+  }
+  
+  .plataforma-aprendizaje .alert-with-icon::after {
+    left: 1rem;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .plataforma-aprendizaje .alert {
+    padding: 1rem;
+    margin: 0.75rem 0;
+    font-size: 0.85rem;
+  }
+  
+  .plataforma-aprendizaje .alert-dismissible .btn-close {
+    right: 0.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+  
+  .plataforma-aprendizaje .alert-with-icon {
+    padding-left: 2.75rem;
+  }
+  
+  .plataforma-aprendizaje .alert-with-icon::after {
+    left: 0.75rem;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
+/* Estilos para mensajes de éxito específicos de la plataforma */
+.plataforma-aprendizaje .alert-success {
+  background: linear-gradient(135deg, #d1f2eb 0%, #a8e6cf 100%);
+  color: #0f5132;
+  border: 1px solid rgba(0, 184, 148, 0.2);
+}
+
+/* Estilos para mensajes de error específicos de la plataforma */
+.plataforma-aprendizaje .alert-danger {
+  background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+  color: #d63031;
+  border: 1px solid rgba(225, 112, 85, 0.2);
+}
+
+/* Estilos para mensajes de advertencia específicos de la plataforma */
+.plataforma-aprendizaje .alert-warning {
+  background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+  color: #b71540;
+  border: 1px solid rgba(253, 203, 110, 0.2);
+}
+
+/* Estilos para mensajes de información específicos de la plataforma */
+.plataforma-aprendizaje .alert-info {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  color: #2d3436;
+  border: 1px solid rgba(116, 185, 255, 0.2);
+} 

@@ -4001,8 +4001,19 @@ def plataforma_soporte_ajax(request, curso_id):
             
             # Filtros
             estado_filter = request.GET.get('estado')
+            print(f"=== DEBUG FILTRO SOPORTE ===")
+            print(f"Estado filtro recibido: '{estado_filter}'")
+            print(f"Tickets antes del filtro: {tickets.count()}")
+            
+            # Por defecto, mostrar tickets abiertos si no se especifica un estado
             if estado_filter:
                 tickets = tickets.filter(estado=estado_filter)
+                print(f"Tickets después del filtro '{estado_filter}': {tickets.count()}")
+            else:
+                # Filtro por defecto: mostrar solo tickets abiertos
+                tickets = tickets.filter(estado='abierto')
+                estado_filter = 'abierto'  # Establecer el estado por defecto
+                print(f"Tickets después del filtro por defecto 'abierto': {tickets.count()}")
             
             context = {
                 'curso': curso,
@@ -4010,6 +4021,9 @@ def plataforma_soporte_ajax(request, curso_id):
                 'estados': TicketSoporte.ESTADO_CHOICES,
                 'current_estado': estado_filter,
             }
+            
+            print(f"Estados disponibles: {TicketSoporte.ESTADO_CHOICES}")
+            print("=== FIN DEBUG FILTRO SOPORTE ===")
             
             # Renderizar solo el contenido del soporte
             html = render_to_string('pages/plataforma_soporte_content.html', context, request=request)

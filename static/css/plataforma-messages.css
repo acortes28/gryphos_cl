@@ -1,0 +1,360 @@
+/* ============================================================================
+   ESTILOS MEJORADOS PARA MENSAJES DE LA PLATAFORMA DE APRENDIZAJE
+   ============================================================================ */
+
+/* Estilos base para todos los mensajes */
+.alert {
+  position: relative;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.alert::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.alert:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Mensajes de éxito */
+.alert-success {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  color: #155724;
+  border-left: 4px solid #28a745;
+}
+
+.alert-success::before {
+  background: #28a745;
+}
+
+.alert-success .alert-link {
+  color: #0f5132;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.alert-success .alert-link:hover {
+  color: #0a3624;
+  text-decoration: underline;
+}
+
+/* Mensajes de error */
+.alert-danger {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  color: #721c24;
+  border-left: 4px solid #dc3545;
+}
+
+.alert-danger::before {
+  background: #dc3545;
+}
+
+.alert-danger .alert-link {
+  color: #58151c;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.alert-danger .alert-link:hover {
+  color: #3d0f14;
+  text-decoration: underline;
+}
+
+/* Mensajes de advertencia */
+.alert-warning {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  color: #856404;
+  border-left: 4px solid #ffc107;
+}
+
+.alert-warning::before {
+  background: #ffc107;
+}
+
+.alert-warning .alert-link {
+  color: #6b5200;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.alert-warning .alert-link:hover {
+  color: #4a3800;
+  text-decoration: underline;
+}
+
+/* Mensajes de información */
+.alert-info {
+  background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+  color: #0c5460;
+  border-left: 4px solid #17a2b8;
+}
+
+.alert-info::before {
+  background: #17a2b8;
+}
+
+.alert-info .alert-link {
+  color: #0a4147;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.alert-info .alert-link:hover {
+  color: #072e32;
+  text-decoration: underline;
+}
+
+/* Mensajes primarios */
+.alert-primary {
+  background: linear-gradient(135deg, #cce5ff 0%, #b3d9ff 100%);
+  color: #004085;
+  border-left: 4px solid #007bff;
+}
+
+.alert-primary::before {
+  background: #007bff;
+}
+
+.alert-primary .alert-link {
+  color: #002752;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.alert-primary .alert-link:hover {
+  color: #001a35;
+  text-decoration: underline;
+}
+
+/* Botón de cerrar mejorado */
+.alert-dismissible .btn-close {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.alert-dismissible .btn-close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.alert-dismissible .btn-close::before {
+  content: '×';
+  font-size: 1.5rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Animaciones de entrada */
+@keyframes slideInFromTop {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alert {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
+/* Estilos específicos para la plataforma de aprendizaje */
+.plataforma-aprendizaje .alert {
+  margin: 1rem 0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+/* Mensajes de éxito específicos para la plataforma */
+.plataforma-aprendizaje .alert-success {
+  background: linear-gradient(135deg, #d1f2eb 0%, #a8e6cf 100%);
+  color: #0f5132;
+  border-left: 4px solid #00b894;
+}
+
+/* Mensajes de error específicos para la plataforma */
+.plataforma-aprendizaje .alert-danger {
+  background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+  color: #d63031;
+  border-left: 4px solid #e17055;
+}
+
+/* Mensajes de advertencia específicos para la plataforma */
+.plataforma-aprendizaje .alert-warning {
+  background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+  color: #b71540;
+  border-left: 4px solid #fdcb6e;
+}
+
+/* Estilos para mensajes en modales */
+.modal .alert {
+  margin: 0.5rem 0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+/* Estilos para mensajes en formularios */
+.form-container .alert {
+  margin: 1rem 0;
+  border-radius: 8px;
+}
+
+/* Estilos para mensajes en tablas */
+.table-responsive .alert {
+  margin: 0.5rem 0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+/* Estilos para mensajes en sidebar */
+.sidebar .alert {
+  margin: 0.75rem 0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+/* Estilos para mensajes en contenido principal */
+.main-content .alert {
+  margin: 1.5rem 0;
+  border-radius: 10px;
+}
+
+/* Estilos para mensajes de carga */
+.alert-loading {
+  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+  color: white;
+  border-left: 4px solid #74b9ff;
+}
+
+.alert-loading::before {
+  background: #74b9ff;
+}
+
+/* Estilos para mensajes de confirmación */
+.alert-confirmation {
+  background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+  color: white;
+  border-left: 4px solid #a29bfe;
+}
+
+.alert-confirmation::before {
+  background: #a29bfe;
+}
+
+/* Estilos para mensajes de progreso */
+.alert-progress {
+  background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+  color: white;
+  border-left: 4px solid #fd79a8;
+}
+
+.alert-progress::before {
+  background: #fd79a8;
+}
+
+/* Estilos para mensajes de estado */
+.alert-status {
+  background: linear-gradient(135deg, #00cec9 0%, #00b894 100%);
+  color: white;
+  border-left: 4px solid #00cec9;
+}
+
+.alert-status::before {
+  background: #00cec9;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .alert-dismissible .btn-close {
+    right: 0.75rem;
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .alert {
+    padding: 0.875rem;
+    margin-bottom: 0.875rem;
+    font-size: 0.85rem;
+  }
+  
+  .alert-dismissible .btn-close {
+    right: 0.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+}
+
+/* Estilos para mensajes con iconos */
+.alert-with-icon {
+  padding-left: 3rem;
+}
+
+.alert-with-icon::after {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.25rem;
+  height: 1.25rem;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.alert-success.alert-with-icon::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2328a745'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+}
+
+.alert-danger.alert-with-icon::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23dc3545'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E");
+}
+
+.alert-warning.alert-with-icon::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffc107'%3E%3Cpath d='M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z'/%3E%3C/svg%3E");
+}
+
+.alert-info.alert-with-icon::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2317a2b8'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z'/%3E%3C/svg%3E");
+} 
