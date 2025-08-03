@@ -1,0 +1,314 @@
+{% load static %}
+{% load custom_filters %}
+
+<div class="row">
+  <div class="col-12">
+    <div class="section-content">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">
+          <i class="fas fa-list-check me-2"></i>Rúbricas de Evaluación
+        </h4>
+        <button class="btn btn-outline-secondary" onclick="cargarCalificaciones()">
+          <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+        </button>
+      </div>
+      
+      {% if evaluaciones_con_rubricas %}
+        <div class="row">
+          {% for evaluacion_data in evaluaciones_con_rubricas %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+              <div class="evaluacion-card">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                  <div>
+                    <h5 class="mb-1">{{ evaluacion_data.evaluacion.nombre }}</h5>
+                    <p class="text-muted mb-0">{{ evaluacion_data.evaluacion.get_tipo_display }}</p>
+                  </div>
+                  <span class="badge bg-primary">
+                    <i class="fas fa-star me-1"></i>
+                    {{ evaluacion_data.evaluacion.nota_maxima }} pts
+                  </span>
+                </div>
+                
+                <div class="mb-3">
+                  <small class="text-muted">
+                    <i class="fas fa-calendar me-1"></i>
+                    {{ evaluacion_data.evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ evaluacion_data.evaluacion.fecha_fin|date:"d/m/Y" }}
+                  </small>
+                </div>
+                
+                {% if evaluacion_data.evaluacion.descripcion %}
+                  <p class="text-muted small mb-3">{{ evaluacion_data.evaluacion.descripcion|truncatewords:20 }}</p>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="text-muted small">
+                    <i class="fas fa-list-check me-1"></i>
+                    {{ evaluacion_data.rubrica.get_criterios_count }} criterios
+                  </div>
+                  <button class="btn btn-outline-primary btn-sm" 
+                          data-bs-toggle="modal" 
+                          data-bs-target="#rubricaModal{{ evaluacion_data.evaluacion.id }}">
+                    <i class="fas fa-eye me-1"></i>Ver Rúbrica
+                  </button>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-5">
+          <div class="mb-4">
+            <i class="fas fa-list-check fa-3x text-muted"></i>
+          </div>
+          <h4 class="text-muted mb-3">No hay rúbricas disponibles</h4>
+          <p class="text-muted">Aún no se han configurado rúbricas para las evaluaciones de este curso.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modales para cada rúbrica -->
+{% for evaluacion_data in evaluaciones_con_rubricas %}
+  <div class="modal fade" id="rubricaModal{{ evaluacion_data.evaluacion.id }}" tabindex="-1" aria-labelledby="rubricaModalLabel{{ evaluacion_data.evaluacion.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-xl rubrica-modal">
+      <div class="modal-content">
+        <div class="modal-header bg-gradient-primary text-white">
+          <h5 class="modal-title" id="rubricaModalLabel{{ evaluacion_data.evaluacion.id }}">
+            <i class="fas fa-list-check me-2"></i>{{ evaluacion_data.rubrica.nombre }}
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Información General de la Rúbrica -->
+          <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-header bg-light">
+              <h6 class="mb-0">
+                <i class="fas fa-info-circle me-2 text-primary"></i>Información General
+              </h6>
+            </div>
+            <div class="card-body">
+              {% if evaluacion_data.rubrica.descripcion %}
+                <div class="mb-3">
+                  <strong>Descripción:</strong>
+                  <p class="mb-0 text-muted">{{ evaluacion_data.rubrica.descripcion }}</p>
+                </div>
+              {% endif %}
+              
+              <div class="row">
+                <div class="col-md-6">
+                  <strong>Objetivo:</strong>
+                  <p class="mb-0 text-muted">{{ evaluacion_data.rubrica.objetivo }}</p>
+                </div>
+                <div class="col-md-6">
+                  <strong>Aprendizaje Esperado:</strong>
+                  <p class="mb-0 text-muted">{{ evaluacion_data.rubrica.aprendizaje_esperado }}</p>
+                </div>
+              </div>
+              
+              <div class="mt-3">
+                <span class="badge bg-info">
+                  <i class="fas fa-calculator me-1"></i>
+                  Puntaje Total: {{ evaluacion_data.rubrica.get_puntaje_total }} puntos
+                </span>
+                <span class="badge bg-secondary ms-2">
+                  <i class="fas fa-list me-1"></i>
+                  {{ evaluacion_data.rubrica.get_criterios_count }} criterios
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Criterios de la Rúbrica -->
+          <div class="criterios-container">
+            {% for criterio in evaluacion_data.rubrica.criterios.all %}
+              <div class="card mb-3 border-0 shadow-sm">
+                <div class="card-header bg-light">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                      <i class="fas fa-check-circle me-2 text-primary"></i>
+                      {{ criterio.nombre }}
+                    </h6>
+                    <span class="badge bg-primary">
+                      <i class="fas fa-star me-1"></i>
+                      {{ criterio.puntaje|puntaje_entero }} pts
+                    </span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <strong>Objetivo del Criterio:</strong>
+                    <p class="mb-0 text-muted">{{ criterio.objetivo }}</p>
+                  </div>
+                  
+                  <!-- Esperables del Criterio -->
+                  <div class="esperables-container">
+                    <h6 class="text-muted mb-2">
+                      <i class="fas fa-bars me-1"></i>Niveles de Desempeño:
+                    </h6>
+                    <div class="row">
+                      {% for esperable in criterio.esperables.all %}
+                        <div class="col-12 mb-2">
+                          <div class="card border-0 bg-light">
+                            <div class="card-body py-2">
+                              <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                  <div class="d-flex align-items-center mb-1">
+                                    <span class="badge bg-secondary me-2">{{ esperable.nivel }}</span>
+                                    <span class="badge bg-success">{{ esperable.puntaje|puntaje_entero }} pts</span>
+                                  </div>
+                                  <p class="mb-0 small text-muted">{{ esperable.descripcion }}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+          
+          <!-- Resumen de la Rúbrica -->
+          <div class="card mt-4 border-0 bg-light">
+            <div class="card-body text-center">
+              <h6 class="text-muted mb-2">
+                <i class="fas fa-chart-pie me-2"></i>Resumen de la Rúbrica
+              </h6>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="text-center">
+                    <div class="h4 text-primary mb-0">{{ evaluacion_data.rubrica.get_criterios_count }}</div>
+                    <small class="text-muted">Criterios</small>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="text-center">
+                    <div class="h4 text-success mb-0">{{ evaluacion_data.rubrica.get_puntaje_total }}</div>
+                    <small class="text-muted">Puntos Totales</small>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="text-center">
+                    <div class="h4 text-info mb-0">{{ evaluacion_data.evaluacion.nota_maxima }}</div>
+                    <small class="text-muted">Nota Máxima</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+
+<style>
+.evaluacion-card {
+  background: white;
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+  position: relative;
+  min-height: 200px;
+}
+
+.evaluacion-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+  border-left-color: #667eea;
+}
+
+.rubrica-modal {
+  max-width: 90%;
+  width: 1200px;
+}
+
+.criterios-container .card {
+  transition: all 0.3s ease;
+  border-left: 4px solid transparent;
+}
+
+.criterios-container .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+  border-left-color: #667eea;
+}
+
+.esperables-container .card {
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+}
+
+.esperables-container .card:hover {
+  border-left-color: #28a745;
+  background-color: #f8f9fa !important;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+}
+
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.card-header.bg-gradient-primary {
+  border-bottom: none;
+}
+
+.esperables-container .badge.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+.esperables-container .badge.bg-success {
+  background-color: #28a745 !important;
+}
+
+.section-content {
+  background: white;
+  border-radius: 10px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+</style>
+
+<script>
+// Función para volver a calificaciones
+function cargarCalificaciones() {
+  const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+  
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Cargar contenido de calificaciones vía AJAX
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        seccionCalificaciones.innerHTML = data.html;
+      }
+      
+      // Ocultar loading
+      document.getElementById('loading').classList.remove('show');
+    })
+    .catch(error => {
+      console.error('Error cargando calificaciones:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+</script> 

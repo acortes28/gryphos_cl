@@ -5298,3 +5298,202 @@ def debug_calificaciones(request, curso_id):
         
     except Exception as e:
         return JsonResponse({'error': f'Error en debug: {str(e)}'}, status=500)
+
+@login_required
+def plataforma_calificaciones_ajax(request, curso_id):
+    """
+    Vista AJAX para cargar el contenido de calificaciones dinámicamente
+    """
+    try:
+        print(f"DEBUG: Iniciando plataforma_calificaciones_ajax")
+        print(f"DEBUG: curso_id: {curso_id}")
+        print(f"DEBUG: usuario: {request.user.username}")
+        print(f"DEBUG: es_staff: {request.user.is_staff}")
+        
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        print(f"DEBUG: Curso encontrado: {curso.nombre}")
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            return JsonResponse({'error': 'No tienes acceso a este curso'}, status=403)
+        
+        # Verificar si es una acción específica
+        action = request.GET.get('action')
+        
+        if action == 'ver_rubricas':
+            # Cargar vista de rúbricas para estudiantes
+            if not request.user.is_staff:
+                evaluaciones_con_rubricas = []
+                evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
+                
+                for evaluacion in evaluaciones:
+                    try:
+                        rubrica = evaluacion.rubrica
+                        if rubrica and rubrica.activa:
+                            evaluaciones_con_rubricas.append({
+                                'evaluacion': evaluacion,
+                                'rubrica': rubrica
+                            })
+                    except:
+                        continue
+                
+                context = {
+                    'curso': curso,
+                    'evaluaciones_con_rubricas': evaluaciones_con_rubricas,
+                    'mostrar_rubricas': True,
+                }
+                
+                html = render_to_string('pages/plataforma_calificaciones_rubricas_content.html', context, request=request)
+                return JsonResponse({'html': html})
+        
+        # Vista principal de calificaciones
+        context = {
+            'curso': curso,
+            'user': request.user,
+        }
+        
+        if request.user.is_staff:
+            # Vista para Staff/Admin
+            evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('-fecha_creacion')
+            context['evaluaciones'] = evaluaciones
+            
+            # Debug: Imprimir información sobre las evaluaciones
+            print(f"DEBUG: Usuario es staff: {request.user.is_staff}")
+            print(f"DEBUG: Curso ID: {curso.id}")
+            print(f"DEBUG: Evaluaciones encontradas: {evaluaciones.count()}")
+            for eval in evaluaciones:
+                print(f"DEBUG: Evaluación: {eval.nombre} (ID: {eval.id})")
+            
+            # Estadísticas generales del curso
+            calificaciones_curso = Calificacion.objects.filter(evaluacion__curso=curso, nota__isnull=False)
+            if calificaciones_curso.exists():
+                estadisticas = {
+                    'promedio_general': calificaciones_curso.aggregate(Avg('nota'))['nota__avg'],
+                    'nota_minima': calificaciones_curso.aggregate(Min('nota'))['nota__min'],
+                    'nota_maxima': calificaciones_curso.aggregate(Max('nota'))['nota__max'],
+                    'total_estudiantes': curso.usuarios.filter(is_staff=False, is_superuser=False).count(),
+                }
+                context['estadisticas'] = estadisticas
+            
+            # Estadísticas de entregas por evaluación
+            for evaluacion in evaluaciones:
+                total_estudiantes = curso.usuarios.filter(is_staff=False, is_superuser=False).count()
+                estudiantes_con_entregas = evaluacion.entregas.values('estudiante').distinct().count()
+                estudiantes_calificados = evaluacion.calificaciones.count()
+                
+                evaluacion.stats_entregas = {
+                    'total_estudiantes': total_estudiantes,
+                    'estudiantes_con_entregas': estudiantes_con_entregas,
+                    'estudiantes_sin_entregas': total_estudiantes - estudiantes_con_entregas,
+                    'estudiantes_calificados': estudiantes_calificados,
+                    'estudiantes_pendientes_calificacion': estudiantes_con_entregas - estudiantes_calificados
+                }
+            
+            # Agregar información sobre la nueva funcionalidad
+            context['info_entregas'] = {
+                'mensaje': '💡 Solo se pueden calificar estudiantes que hayan entregado su trabajo. Desde la primera entrega se puede acceder a calificar una evaluación.',
+                'total_evaluaciones': evaluaciones.count(),
+                'evaluaciones_con_entregas': sum(1 for e in evaluaciones if e.stats_entregas['estudiantes_con_entregas'] > 0)
+            }
+            
+        else:
+            # Vista para Estudiantes
+            calificaciones_usuario = Calificacion.objects.filter(
+                evaluacion__curso=curso,
+                estudiante=request.user
+            ).order_by('-fecha_calificacion')
+            context['calificaciones_usuario'] = calificaciones_usuario
+            
+            # Estadísticas personales del estudiante
+            calificaciones_con_nota = calificaciones_usuario.filter(nota__isnull=False)
+            total_evaluaciones = Evaluacion.objects.filter(curso=curso).count()
+            
+            if calificaciones_con_nota.exists():
+                # Calcular promedio ponderado
+                suma_ponderada = 0
+                suma_ponderaciones = 0
+                evaluaciones_calificadas = 0
+                
+                for calificacion in calificaciones_con_nota:
+                    # Calcular nota ponderada: nota * ponderacion
+                    nota_ponderada = calificacion.nota * calificacion.evaluacion.ponderacion
+                    suma_ponderada += nota_ponderada
+                    suma_ponderaciones += calificacion.evaluacion.ponderacion
+                    evaluaciones_calificadas += 1
+                
+                # Calcular promedio ponderado
+                if suma_ponderaciones > 0:
+                    promedio_ponderado = suma_ponderada / suma_ponderaciones
+                    context['estadisticas_estudiante'] = {
+                        'promedio_ponderado': promedio_ponderado,
+                        'evaluaciones_calificadas': evaluaciones_calificadas,
+                        'total_evaluaciones': total_evaluaciones,
+                        'suma_ponderaciones': suma_ponderaciones
+                    }
+                else:
+                    context['estadisticas_estudiante'] = {
+                        'evaluaciones_calificadas': evaluaciones_calificadas,
+                        'total_evaluaciones': total_evaluaciones,
+                        'suma_ponderaciones': suma_ponderaciones
+                    }
+            else:
+                context['estadisticas_estudiante'] = {
+                    'evaluaciones_calificadas': 0,
+                    'total_evaluaciones': total_evaluaciones,
+                    'suma_ponderaciones': 0
+                }
+            
+            # Calcular promedios por tipo de evaluación
+            promedios_por_tipo = {}
+            for calificacion in calificaciones_con_nota:
+                tipo = calificacion.evaluacion.get_tipo_display()
+                if tipo not in promedios_por_tipo:
+                    promedios_por_tipo[tipo] = {
+                        'notas': [],
+                        'ponderaciones': []
+                    }
+                promedios_por_tipo[tipo]['notas'].append(calificacion.nota)
+                promedios_por_tipo[tipo]['ponderaciones'].append(calificacion.evaluacion.ponderacion)
+            
+            # Calcular promedios
+            for tipo, datos in promedios_por_tipo.items():
+                if datos['notas']:
+                    promedio = sum(datos['notas']) / len(datos['notas'])
+                    ponderacion_promedio = sum(datos['ponderaciones']) / len(datos['ponderaciones'])
+                    promedios_por_tipo[tipo] = {
+                        'promedio': promedio,
+                        'ponderacion_promedio': ponderacion_promedio
+                    }
+            
+            context['promedios_por_tipo'] = promedios_por_tipo
+        
+        # Renderizar solo el contenido de calificaciones
+        html = render_to_string('pages/plataforma_calificaciones_content.html', context, request=request)
+        
+        # Debug: Verificar el contenido del HTML
+        print(f"DEBUG: Longitud del HTML renderizado: {len(html)}")
+        
+        
+        return JsonResponse({'html': html})
+        
+    except Curso.DoesNotExist:
+        return JsonResponse({'error': 'El curso no existe'}, status=404)
+
+@login_required
+def plataforma_calificaciones_spa(request, curso_id):
+    """
+    Vista SPA para calificaciones que extiende de plataforma_aprendizaje.html
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar que el usuario esté inscrito en el curso
+    if not request.user.cursos.filter(id=curso_id).exists():
+        messages.error(request, 'No tienes acceso a este curso.')
+        return redirect('user_space')
+    
+    context = {
+        'curso': curso,
+        'user': request.user,
+    }
+    
+    return render(request, 'pages/plataforma_calificaciones_spa.html', context)

@@ -878,6 +878,11 @@
         <!-- Aquí irá el botón dinámico para subir entrega -->
       </div>
     </div>
+
+    <!-- Sección de Calificaciones -->
+    <div id="seccion-calificaciones" class="section-content">
+      <!-- El contenido se cargará dinámicamente -->
+    </div>
   </div>
 </div>
 
@@ -961,8 +966,35 @@ function cambiarSeccion(seccion) {
   if (seccion === 'foro') {
     cargarForoContenido();
   } else if (seccion === 'calificaciones') {
-    // Redirigir a la página de calificaciones
-    window.location.href = `{% url 'plataforma_calificaciones' curso.id %}`;
+    // Cargar calificaciones vía AJAX
+    fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}`, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('seccion-calificaciones').innerHTML = data.html;
+        document.getElementById('seccion-calificaciones').classList.add('active');
+        document.getElementById('loading').classList.remove('show');
+        
+        // Hacer scroll hacia las evaluaciones después de cargar
+        setTimeout(() => {
+          const evaluacionCards = document.querySelectorAll('.evaluacion-card');
+          if (evaluacionCards.length > 0) {
+            evaluacionCards[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 500);
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        window.history.pushState({}, '', url);
+      })
+      .catch(error => {
+        console.error('Error cargando calificaciones:', error);
+        document.getElementById('loading').classList.remove('show');
+      });
   } else if (seccion === 'soporte') {
     // Verificar si hay parámetros específicos en la URL
     const urlParams = new URLSearchParams(window.location.search);

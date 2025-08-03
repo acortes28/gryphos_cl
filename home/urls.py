@@ -50,6 +50,8 @@ urlpatterns = [
     
     # Calificaciones URLs
     path('curso/<int:curso_id>/calificaciones/', views.plataforma_calificaciones, name='plataforma_calificaciones'),
+    path('curso/<int:curso_id>/plataforma/calificaciones/ajax/', views.plataforma_calificaciones_ajax, name='plataforma_calificaciones_ajax'),
+    path('curso/<int:curso_id>/plataforma/calificaciones/', views.plataforma_calificaciones_spa, name='plataforma_calificaciones_spa'),
     path('curso/<int:curso_id>/calificaciones/crear-evaluacion/', views.crear_evaluacion, name='crear_evaluacion'),
     path('curso/<int:curso_id>/calificaciones/calificar/<int:evaluacion_id>/', views.calificar_estudiante, name='calificar_estudiante'),
     path('curso/<int:curso_id>/calificaciones/detalle/<int:calificacion_id>/', views.ver_calificacion_detalle, name='ver_calificacion_detalle'),
