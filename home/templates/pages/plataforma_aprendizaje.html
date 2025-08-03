@@ -14,6 +14,12 @@
 <div class="plataforma-aprendizaje">
 
 <style>
+  /* Estilos base para la plataforma */
+  .plataforma-aprendizaje {
+    min-height: 100vh;
+    background: #f8f9fa;
+  }
+  
   .sidebar {
     position: fixed;
     top: 0;
@@ -25,6 +31,9 @@
     overflow-y: auto;
     z-index: 1000;
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
   }
   
   .sidebar-header {
@@ -35,6 +44,7 @@
   
   .sidebar-nav {
     padding: 20px 0;
+    flex: 1;
   }
   
   .sidebar-nav .nav-link {
@@ -65,6 +75,7 @@
     margin-left: 280px;
     min-height: 100vh;
     background: #f8f9fa;
+    transition: margin-left 0.3s ease;
   }
   
   .content-header {
@@ -77,6 +88,7 @@
     border-bottom: 1px solid #e9ecef;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     z-index: 999;
+    transition: left 0.3s ease;
   }
   
   .content-body {
@@ -92,12 +104,47 @@
     margin-bottom: 20px;
   }
   
-
+  /* Mobile Toggle Button */
+  .mobile-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: #667eea;
+    border: none;
+    color: white;
+    padding: 12px 15px;
+    border-radius: 8px;
+    font-size: 18px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+  }
   
+  .mobile-toggle:hover {
+    background: #5a6fd8;
+    transform: scale(1.05);
+  }
+  
+  /* Overlay para móviles */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+  }
+  
+  /* Estilos responsivos para móviles */
   @media (max-width: 768px) {
     .sidebar {
       transform: translateX(-100%);
-      transition: transform 0.3s ease;
+      width: 280px;
+      display: flex;
+      flex-direction: column;
     }
     
     .sidebar.show {
@@ -108,22 +155,175 @@
       margin-left: 0;
     }
     
+    .content-header {
+      display: none; /* Ocultar completamente el header en móviles */
+    }
+    
+    .content-body {
+      margin-top: 0;
+      padding: 20px 15px;
+      padding-top: 80px; /* Espacio para el botón de toggle */
+    }
+    
     .mobile-toggle {
       display: block;
     }
+    
+    .sidebar-overlay.show {
+      display: block;
+    }
+    
+    /* Estilos para los botones en el sidebar móvil */
+    .sidebar-mobile-actions {
+      margin-top: auto;
+      padding: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .sidebar-mobile-actions .btn {
+      width: 100%;
+      margin-bottom: 10px;
+      text-align: left;
+      padding: 12px 15px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    
+    .sidebar-mobile-actions .btn:last-child {
+      margin-bottom: 0;
+    }
+    
+    .sidebar-mobile-actions .btn-portal-nav {
+      background: rgba(255,255,255,0.1) !important;
+      color: white !important;
+      border: 1px solid rgba(255,255,255,0.2) !important;
+    }
+    
+    .sidebar-mobile-actions .btn-portal-nav:hover {
+      background: rgba(255,255,255,0.2) !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+    }
+    
+    .sidebar-mobile-actions .btn-logout-nav {
+      background: rgba(220, 53, 69, 0.2) !important;
+      color: #ff6b6b !important;
+      border: 1px solid rgba(220, 53, 69, 0.3) !important;
+    }
+    
+    .sidebar-mobile-actions .btn-logout-nav:hover {
+      background: rgba(220, 53, 69, 0.3) !important;
+      color: #ff8787 !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3) !important;
+    }
+    
+    /* Ocultar los botones del header en móviles */
+    .action-buttons {
+      display: none !important;
+    }
+    
+    /* Ocultar la tarjeta de usuario en móviles */
+    .user-card {
+      display: none !important;
+    }
+    
+    /* Ajustes para secciones de contenido */
+    .section-content {
+      padding: 20px;
+      margin-bottom: 15px;
+    }
   }
   
-  .mobile-toggle {
-    display: none;
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1001;
-    background: #667eea;
-    border: none;
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
+  /* Estilos para tablets */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .sidebar {
+      width: 250px;
+    }
+    
+    .main-content {
+      margin-left: 250px;
+    }
+    
+    .content-header {
+      left: 250px;
+    }
+    
+    .content-body {
+      padding: 25px;
+    }
+    
+    .section-content {
+      padding: 25px;
+    }
+  }
+  
+  /* Estilos específicos para desktop */
+  @media (min-width: 1025px) {
+    .user-card {
+      display: flex !important;
+      align-items: center !important;
+    }
+    
+    .user-avatar {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-width: 40px !important;
+      min-height: 40px !important;
+    }
+    
+    .user-avatar .avatar {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 40px !important;
+      height: 40px !important;
+    }
+  }
+  
+  /* Estilos para pantallas muy pequeñas */
+  @media (max-width: 480px) {
+    .mobile-toggle {
+      top: 15px;
+      left: 15px;
+      padding: 10px 12px;
+      font-size: 16px;
+    }
+    
+    .content-header {
+      padding: 12px 15px;
+    }
+    
+    .content-body {
+      padding: 15px 10px;
+    }
+    
+    .section-content {
+      padding: 15px;
+    }
+    
+    .action-buttons .btn {
+      font-size: 0.75rem;
+      padding: 6px 10px;
+      min-width: 100px;
+    }
+    
+    .user-card {
+      padding: 10px 12px;
+    }
+    
+    .user-name {
+      font-size: 0.85rem;
+    }
+    
+    .user-email {
+      font-size: 0.7rem;
+    }
   }
   
   /* Estilos para los botones de acción */
@@ -264,19 +464,21 @@
   
   /* Estilos para la card del usuario */
   .user-card {
-    display: flex;
-    align-items: center;
+    display: flex !important;
+    align-items: center !important;
     background: white;
     border-radius: 12px;
     padding: 12px 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     border: 1px solid #e9ecef;
     min-width: 200px;
+    gap: 12px;
+    position: relative;
   }
   
   .user-info {
     flex: 1;
-    margin-right: 12px;
+    order: 1; /* El user-info va primero */
   }
   
   .user-name {
@@ -295,18 +497,48 @@
   
   .user-avatar {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    order: 2; /* El avatar va segundo (a la derecha) */
   }
   
   .user-avatar .avatar {
-    margin: 0;
+    margin: 0 !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 2px solid #e9ecef !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
   }
   
   /* Estilos para la imagen de perfil */
   .user-avatar img.avatar {
-    object-fit: cover;
-    width: 40px;
-    height: 40px;
-    border: 2px solid #e9ecef;
+    object-fit: cover !important;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: block;
+  }
+  
+  /* Estilos para el avatar por defecto (sin imagen) */
+  .user-avatar .avatar.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    font-size: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  /* Asegurar que el avatar sea visible */
+  .user-avatar {
+    min-width: 40px !important;
+    min-height: 40px !important;
   }
   
   /* Estilos para las secciones de contenido */
@@ -395,76 +627,89 @@
     min-height: 200px;
   }
   
-  /* Ajuste para el header en móviles */
+  /* Estilos para mensajes cerrables */
+  .alert-dismissible {
+    position: relative;
+    padding-right: 3rem;
+  }
+  
+  .alert-dismissible .btn-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 2;
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: 0;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #000;
+    text-shadow: 0 1px 0 #fff;
+    opacity: 0.5;
+    transition: opacity 0.15s ease-in-out;
+  }
+  
+  .alert-dismissible .btn-close:hover {
+    opacity: 0.75;
+  }
+  
+  .alert-dismissible .btn-close:focus {
+    outline: 0;
+    box-shadow: none;
+  }
+  
+  /* Animación para cerrar mensajes */
+  .alert.fade-out {
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease-out;
+  }
+  
+  /* Estilos específicos para diferentes tipos de alertas */
+  .alert-success .btn-close {
+    color: #155724;
+  }
+  
+  .alert-danger .btn-close {
+    color: #721c24;
+  }
+  
+  .alert-warning .btn-close {
+    color: #856404;
+  }
+  
+  .alert-info .btn-close {
+    color: #0c5460;
+  }
+  
+  /* Estilos para mensajes pequeños */
+  .alert-sm.alert-dismissible {
+    padding-right: 2.5rem;
+  }
+  
+  .alert-sm .btn-close {
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+  }
+  
+  /* Estilos para mensajes en móviles */
   @media (max-width: 768px) {
-    .content-header {
-      left: 0;
-      margin-top: 60px; /* Compensar el botón de toggle */
+    .alert-dismissible {
+      padding-right: 2.5rem;
     }
     
-    .content-body {
-      margin-top: 180px; /* Ajustar para móviles */
-    }
-    
-    .content-header .d-flex {
-      flex-direction: column;
-      align-items: flex-start !important;
-    }
-    
-    .content-header .d-flex > div:last-child {
-      align-self: flex-end;
-      margin-top: 15px;
-      flex-direction: column;
-      align-items: flex-end !important;
-    }
-    
-    .action-buttons {
-      margin-bottom: 15px;
-      margin-right: 0 !important;
-    }
-    
-    .action-buttons .btn {
-      font-size: 0.8rem;
-      padding: 0.25rem 0.5rem;
-    }
-    
-    .btn-portal-nav {
-      padding: 8px 12px !important;
-      margin: 2px !important;
-      font-size: 0.9rem !important;
-    }
-    
-    .btn-portal-nav i {
-      font-size: 0.8rem;
-    }
-    
-    .btn-logout-nav {
-      padding: 8px 12px !important;
-      margin: 2px !important;
-      font-size: 0.9rem !important;
-    }
-    
-    .btn-logout-nav i {
-      font-size: 0.8rem;
-    }
-    
-    .user-card {
-      min-width: 180px;
-      padding: 10px 12px;
-    }
-    
-    .user-name {
-      font-size: 0.85rem;
-    }
-    
-    .user-email {
-      font-size: 0.75rem;
+    .alert-dismissible .btn-close {
+      padding: 0.5rem 0.75rem;
+      font-size: 1.1rem;
     }
   }
 </style>
 
+<!-- Overlay para móviles -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <!-- Sidebar -->
-<div class="sidebar">
+<div class="sidebar" id="sidebar">
   <div class="sidebar-header">
     <h5 class="mb-0">
       <i class="fas fa-graduation-cap me-2"></i>
@@ -504,10 +749,20 @@
       Soporte al Estudiante
     </a>
   </nav>
+  
+  <!-- Botones móviles en el sidebar -->
+  <div class="sidebar-mobile-actions d-md-none">
+    <a href="{% url 'user_space' %}" class="btn btn-portal-nav">
+      <i class="fas fa-home me-2"></i>Ir a mi Portal
+    </a>
+    <a href="{% url 'logout' %}" class="btn btn-logout-nav">
+      <i class="fas fa-sign-out-alt me-2"></i>Cerrar Sesión
+    </a>
+  </div>
 </div>
 
 <!-- Mobile Toggle Button -->
-<button class="mobile-toggle d-md-none" onclick="toggleSidebar()">
+<button class="mobile-toggle d-md-none" id="mobileToggle" onclick="toggleSidebar()">
   <i class="fas fa-bars"></i>
 </button>
 
@@ -515,8 +770,6 @@
 <div class="main-content">
   <!-- Content Header -->
   <div class="content-header">
-
-    
     <div class="d-flex justify-content-between align-items-start mt-3">
       <div>
         <h2 class="mb-1" id="section-title">
@@ -526,8 +779,8 @@
       </div>
       
       <div class="d-flex align-items-center">
-        <!-- Botones de acción -->
-        <div class="me-3 action-buttons">
+        <!-- Botones de acción (solo visibles en desktop) -->
+        <div class="me-3 action-buttons d-none d-md-block">
           <a href="{% url 'user_space' %}" class="btn btn-portal-nav me-2">
             <i class="fas fa-home me-1"></i>Ir a mi Portal
           </a>
@@ -536,7 +789,8 @@
           </a>
         </div>
         
-        <div class="user-card">
+        <!-- Tarjeta de usuario (solo visible en desktop) -->
+        <div class="user-card d-none d-md-block">
           <div class="user-info">
             <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
             <div class="user-email">{{ user.email }}</div>
@@ -567,6 +821,16 @@
     <div id="seccion-inicio" class="section-content active">
       <h4>Bienvenido a tu curso</h4>
       <p>Esta es la sección de inicio de tu plataforma de aprendizaje.</p>
+      
+      <!-- Mensaje de ejemplo para mostrar la funcionalidad de cerrar -->
+      <div class="alert alert-info alert-dismissible">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Nueva funcionalidad:</strong> Ahora puedes cerrar todos los mensajes haciendo clic en el botón X. ¡Prueba cerrar este mensaje!
+        <button type="button" class="btn-close" aria-label="Cerrar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      
       <!-- Contenido de la sección Inicio -->
     </div>
     
@@ -639,6 +903,45 @@ const PLATAFORMA_CONFIG = {
     entregas: { titulo: 'Entregas', icono: 'fas fa-upload' }
   }
 };
+
+// Función para toggle del sidebar en móvil
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const isVisible = sidebar.classList.contains('show');
+  
+  if (isVisible) {
+    sidebar.classList.remove('show');
+    overlay.classList.remove('show');
+  } else {
+    sidebar.classList.add('show');
+    overlay.classList.add('show');
+  }
+}
+
+// Cerrar sidebar al hacer clic en el overlay
+document.addEventListener('DOMContentLoaded', function() {
+  const overlay = document.getElementById('sidebarOverlay');
+  const sidebar = document.getElementById('sidebar');
+  
+  if (overlay) {
+    overlay.addEventListener('click', function() {
+      sidebar.classList.remove('show');
+      overlay.classList.remove('show');
+    });
+  }
+  
+  // Cerrar sidebar al hacer clic en un enlace del sidebar en móviles
+  const sidebarLinks = document.querySelectorAll('.sidebar-nav .nav-link');
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove('show');
+        overlay.classList.remove('show');
+      }
+    });
+  });
+});
 
 // Función para cambiar sección
 function cambiarSeccion(seccion) {
@@ -1013,31 +1316,6 @@ document.addEventListener('DOMContentLoaded', function() {
   cambiarSeccion(seccionActiva);
 });
 
-// Función para toggle del sidebar en móvil
-function toggleSidebar() {
-  const sidebar = document.querySelector('.sidebar');
-  sidebar.classList.toggle('show');
-}
-
-// Cerrar sidebar en móvil al hacer clic fuera
-document.addEventListener('click', function(event) {
-  const sidebar = document.querySelector('.sidebar');
-  const mobileToggle = document.querySelector('.mobile-toggle');
-  
-  if (window.innerWidth <= 768) {
-    if (!sidebar.contains(event.target) && !mobileToggle.contains(event.target)) {
-      sidebar.classList.remove('show');
-    }
-  }
-});
-
-// Manejar navegación del navegador (botones atrás/adelante)
-window.addEventListener('popstate', function() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const seccionActiva = urlParams.get('seccion') || 'inicio';
-  cambiarSeccion(seccionActiva);
-});
-
 // Función para mostrar el modal de confirmación
 function confirmarEntrega() {
   const form = document.getElementById('form-subir-entrega');
@@ -1099,10 +1377,10 @@ function subirEntrega() {
           const errorElements = newForm.querySelectorAll('.text-danger, .alert-danger');
           if (errorElements.length > 0) {
             // Hay errores, mostrar mensaje de error
-            mensajeDiv.innerHTML = '<div class="alert alert-danger">Por favor, corrige los errores en el formulario.</div>';
+            mensajeDiv.innerHTML = '<div class="alert alert-danger alert-dismissible">Por favor, corrige los errores en el formulario.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
           } else {
             // No hay errores, mostrar mensaje de éxito y ocultar el formulario
-            mensajeDiv.innerHTML = '<div class="alert alert-success">Entrega subida correctamente.</div>';
+            mensajeDiv.innerHTML = '<div class="alert alert-success alert-dismissible">Entrega subida correctamente.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
             // Ocultar el contenedor del formulario
             const contenedorFormulario = document.getElementById('formulario-entrega');
             if (contenedorFormulario) {
@@ -1113,7 +1391,7 @@ function subirEntrega() {
           }
         } else {
           // No hay formulario, probablemente ya no hay evaluaciones activas
-          mensajeDiv.innerHTML = '<div class="alert alert-success">Entrega subida correctamente.</div>';
+          mensajeDiv.innerHTML = '<div class="alert alert-success alert-dismissible">Entrega subida correctamente.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
         }
       
       // Reinicializar el formulario
@@ -1121,7 +1399,7 @@ function subirEntrega() {
     })
     .catch(error => {
       console.error('Error:', error);
-      mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al subir la entrega. Por favor, intenta nuevamente.</div>';
+      mensajeDiv.innerHTML = '<div class="alert alert-danger alert-dismissible">Error al subir la entrega. Por favor, intenta nuevamente.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
     })
     .finally(() => {
       // Restaurar el botón
@@ -1141,7 +1419,7 @@ function validateArchivo(file) {
   // Verificar tamaño (50MB)
   if (file.size > 50 * 1024 * 1024) {
     console.log('Archivo demasiado grande');
-    archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm">❌ El archivo es demasiado grande. Máximo 50MB.</div>';
+    archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm alert-dismissible">❌ El archivo es demasiado grande. Máximo 50MB.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
     if (btnSubirEntrega) btnSubirEntrega.disabled = true;
     return false;
   }
@@ -1155,7 +1433,7 @@ function validateArchivo(file) {
   
   if (!isValidType) {
     console.log('Tipo de archivo no permitido');
-    archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm">❌ Solo se permiten archivos PDF, DOC, DOCX, TXT, ZIP, RAR, JPG, JPEG, PNG, XLSX, XLS, PPT, PPTX, CSV.</div>';
+    archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm alert-dismissible">❌ Solo se permiten archivos PDF, DOC, DOCX, TXT, ZIP, RAR, JPG, JPEG, PNG, XLSX, XLS, PPT, PPTX, CSV.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
     if (btnSubirEntrega) btnSubirEntrega.disabled = true;
     return false;
   }
@@ -1697,7 +1975,7 @@ function enviarTicket() {
     .then(response => response.json())
     .then(data => {
       if (data.success) {
-        mensajeDiv.innerHTML = '<div class="alert alert-success">Ticket creado exitosamente. Recibirás una respuesta pronto.</div>';
+        mensajeDiv.innerHTML = '<div class="alert alert-success alert-dismissible">Ticket creado exitosamente. Recibirás una respuesta pronto.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
         
         // Redirigir a la lista de tickets después de 2 segundos
         setTimeout(() => {
@@ -1705,19 +1983,19 @@ function enviarTicket() {
         }, 2000);
       } else {
         // Mostrar errores
-        let errorHtml = '<div class="alert alert-danger"><ul class="mb-0">';
+        let errorHtml = '<div class="alert alert-danger alert-dismissible"><ul class="mb-0">';
         for (const field in data.errors) {
           data.errors[field].forEach(error => {
             errorHtml += `<li>${error}</li>`;
           });
         }
-        errorHtml += '</ul></div>';
+        errorHtml += '</ul><button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
         mensajeDiv.innerHTML = errorHtml;
       }
     })
     .catch(error => {
       console.error('Error:', error);
-      mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al crear el ticket. Por favor, intenta nuevamente.</div>';
+      mensajeDiv.innerHTML = '<div class="alert alert-danger alert-dismissible">Error al crear el ticket. Por favor, intenta nuevamente.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
     })
     .finally(() => {
       // Restaurar el botón
@@ -1793,8 +2071,8 @@ function agregarComentario(event) {
     if (data.success) {
       // Mostrar mensaje de éxito
       const successDiv = document.createElement('div');
-      successDiv.className = 'alert alert-success mt-3';
-      successDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Comentario agregado exitosamente.';
+      successDiv.className = 'alert alert-success mt-3 alert-dismissible';
+      successDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Comentario agregado exitosamente.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>';
       form.parentNode.insertBefore(successDiv, form.nextSibling);
       
       // Limpiar el formulario
@@ -1806,7 +2084,7 @@ function agregarComentario(event) {
       }, 1500);
     } else {
       // Mostrar errores
-      let errorHtml = '<div class="alert alert-danger mt-3"><ul class="mb-0">';
+      let errorHtml = '<div class="alert alert-danger mt-3 alert-dismissible"><ul class="mb-0">';
       if (data.errors) {
         for (const field in data.errors) {
           data.errors[field].forEach(error => {
@@ -1816,7 +2094,7 @@ function agregarComentario(event) {
       } else if (data.error) {
         errorHtml += `<li>${data.error}</li>`;
       }
-      errorHtml += '</ul></div>';
+      errorHtml += '</ul><button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
       
       const errorDiv = document.createElement('div');
       errorDiv.innerHTML = errorHtml;
@@ -1826,8 +2104,8 @@ function agregarComentario(event) {
   .catch(error => {
     console.error('Error:', error);
     const errorDiv = document.createElement('div');
-    errorDiv.className = 'alert alert-danger mt-3';
-    errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error al agregar el comentario. Por favor, intenta nuevamente.';
+    errorDiv.className = 'alert alert-danger mt-3 alert-dismissible';
+    errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error al agregar el comentario. Por favor, intenta nuevamente.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>';
     form.parentNode.insertBefore(errorDiv, form.nextSibling);
   })
   .finally(() => {
@@ -1871,7 +2149,7 @@ function actualizarTicketAdmin() {
     .then(data => {
       if (data.success) {
         if (mensajeDiv) {
-          mensajeDiv.innerHTML = '<div class="alert alert-success">Ticket actualizado exitosamente.</div>';
+          mensajeDiv.innerHTML = '<div class="alert alert-success alert-dismissible">Ticket actualizado exitosamente.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
         }
         
         // Recargar la página para mostrar los cambios
@@ -1881,13 +2159,13 @@ function actualizarTicketAdmin() {
       } else {
         // Mostrar errores
         if (mensajeDiv) {
-          let errorHtml = '<div class="alert alert-danger"><ul class="mb-0">';
+          let errorHtml = '<div class="alert alert-danger alert-dismissible"><ul class="mb-0">';
           for (const field in data.errors) {
             data.errors[field].forEach(error => {
               errorHtml += `<li>${error}</li>`;
             });
           }
-          errorHtml += '</ul></div>';
+          errorHtml += '</ul><button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
           mensajeDiv.innerHTML = errorHtml;
         }
       }
@@ -1895,7 +2173,7 @@ function actualizarTicketAdmin() {
     .catch(error => {
       console.error('Error:', error);
       if (mensajeDiv) {
-        mensajeDiv.innerHTML = '<div class="alert alert-danger">Error al actualizar el ticket. Por favor, intenta nuevamente.</div>';
+        mensajeDiv.innerHTML = '<div class="alert alert-danger alert-dismissible">Error al actualizar el ticket. Por favor, intenta nuevamente.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
       }
     })
     .finally(() => {
@@ -2382,6 +2660,7 @@ function reasignarTicket(ticketId) {
   const usuarioElement = document.getElementById('usuarioAsignar');
   const comentarioElement = document.getElementById('comentarioReasignacion');
   const modalElement = document.getElementById('modalReasignar');
+  const modalTitle = document.getElementById('modalReasignarLabel');
   
   if (!ticketIdElement) {
     console.error('Elemento ticketIdReasignar no encontrado');
@@ -2409,6 +2688,36 @@ function reasignarTicket(ticketId) {
   
   // Establecer el ID del ticket en el formulario
   ticketIdElement.value = ticketId;
+  
+  // Determinar si el ticket está asignado o no
+  let isAssigned = false;
+  
+  // Intentar encontrar la fila en la tabla (para el panel de administración)
+  const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+  if (ticketRow) {
+    // Buscar la celda de asignación (columna 6)
+    const asignacionCell = ticketRow.querySelector('td:nth-child(6)');
+    if (asignacionCell) {
+      const sinAsignarText = asignacionCell.querySelector('.text-muted');
+      isAssigned = !sinAsignarText || !sinAsignarText.textContent.includes('Sin asignar');
+    }
+  } else {
+    // Si no se encuentra la fila, buscar en el contexto de detalle del ticket
+    const asignacionInfo = document.querySelector('.card-body .mb-3:last-child');
+    if (asignacionInfo) {
+      const sinAsignarText = asignacionInfo.querySelector('.text-muted');
+      isAssigned = !sinAsignarText || !sinAsignarText.textContent.includes('Sin asignar');
+    }
+  }
+  
+  // Actualizar el título del modal según si está asignado o no
+  if (modalTitle) {
+    if (isAssigned) {
+      modalTitle.innerHTML = '<i class="fas fa-user-edit me-2"></i>Reasignar Ticket';
+    } else {
+      modalTitle.innerHTML = '<i class="fas fa-user-plus me-2"></i>Asignar Ticket';
+    }
+  }
   
   // Limpiar formulario
   usuarioElement.value = '';
@@ -2818,6 +3127,9 @@ function inicializarFormulariosTicket() {
 
 // Event listeners para admin
 document.addEventListener('DOMContentLoaded', function() {
+  // Inicializar mensajes cerrables
+  inicializarMensajesCerrables();
+  
   // Event listener para búsqueda en tiempo real (admin)
   const buscarInput = document.getElementById('buscar-tickets');
   if (buscarInput) {
@@ -2835,6 +3147,134 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 200);
   }
 });
+
+// ============================================================================
+// FUNCIONES PARA MANEJAR EL CIERRE DE MENSAJES
+// ============================================================================
+
+// Función para hacer un mensaje cerrable
+function hacerMensajeCerrable(elemento) {
+  if (!elemento || elemento.classList.contains('alert-dismissible')) {
+    return;
+  }
+  
+  // Agregar clase para hacer el mensaje cerrable
+  elemento.classList.add('alert-dismissible');
+  
+  // Crear botón de cerrar
+  const botonCerrar = document.createElement('button');
+  botonCerrar.type = 'button';
+  botonCerrar.className = 'btn-close';
+  botonCerrar.setAttribute('aria-label', 'Cerrar');
+  botonCerrar.innerHTML = '&times;';
+  
+  // Agregar evento para cerrar
+  botonCerrar.addEventListener('click', function() {
+    cerrarMensaje(elemento);
+  });
+  
+  // Insertar el botón al final del mensaje
+  elemento.appendChild(botonCerrar);
+}
+
+// Función para cerrar un mensaje con animación
+function cerrarMensaje(elemento) {
+  if (!elemento) return;
+  
+  // Agregar clase para animación de salida
+  elemento.classList.add('fade-out');
+  
+  // Remover el elemento después de la animación
+  setTimeout(() => {
+    if (elemento.parentNode) {
+      elemento.parentNode.removeChild(elemento);
+    }
+  }, 300);
+}
+
+// Función para crear un mensaje cerrable
+function crearMensajeCerrable(tipo, mensaje, contenedor = null) {
+  const elemento = document.createElement('div');
+  elemento.className = `alert alert-${tipo} alert-dismissible`;
+  elemento.innerHTML = `
+    ${mensaje}
+    <button type="button" class="btn-close" aria-label="Cerrar">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  `;
+  
+  // Agregar evento para cerrar
+  const botonCerrar = elemento.querySelector('.btn-close');
+  botonCerrar.addEventListener('click', function() {
+    cerrarMensaje(elemento);
+  });
+  
+  // Insertar en el contenedor especificado o al final del body
+  if (contenedor) {
+    contenedor.appendChild(elemento);
+  } else {
+    document.body.appendChild(elemento);
+  }
+  
+  return elemento;
+}
+
+// Función para inicializar todos los mensajes cerrables
+function inicializarMensajesCerrables() {
+  // Hacer cerrables todos los mensajes existentes
+  document.querySelectorAll('.alert:not(.alert-dismissible)').forEach(mensaje => {
+    hacerMensajeCerrable(mensaje);
+  });
+  
+  // Agregar event listener global para botones de cerrar
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('btn-close') || e.target.closest('.btn-close')) {
+      e.preventDefault();
+      const mensaje = e.target.closest('.alert');
+      if (mensaje) {
+        cerrarMensaje(mensaje);
+      }
+    }
+  });
+  
+  // Observar cambios en el DOM para nuevos mensajes
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      mutation.addedNodes.forEach(function(node) {
+        if (node.nodeType === 1 && node.classList && node.classList.contains('alert')) {
+          if (!node.classList.contains('alert-dismissible')) {
+            hacerMensajeCerrable(node);
+          }
+        }
+      });
+    });
+  });
+  
+  // Configurar el observer
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
+// Función para reemplazar la creación de mensajes existente
+function crearMensajeExitoso(mensaje, contenedor = null) {
+  return crearMensajeCerrable('success', mensaje, contenedor);
+}
+
+function crearMensajeError(mensaje, contenedor = null) {
+  return crearMensajeCerrable('danger', mensaje, contenedor);
+}
+
+function crearMensajeInfo(mensaje, contenedor = null) {
+  return crearMensajeCerrable('info', mensaje, contenedor);
+}
+
+function crearMensajeWarning(mensaje, contenedor = null) {
+  return crearMensajeCerrable('warning', mensaje, contenedor);
+}
+
+// Event listeners para admin
 </script>
 
 </div> <!-- Cierre del contenedor plataforma-aprendizaje -->

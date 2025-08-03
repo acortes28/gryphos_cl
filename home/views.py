@@ -3972,10 +3972,10 @@ def plataforma_soporte_ajax(request, curso_id):
             tickets_resueltos = tickets.filter(estado='resuelto').count()
             tickets_cerrados = tickets.filter(estado='cerrado').count()
             
-            # Obtener usuarios staff para reasignación
+            # Obtener usuarios staff para reasignación (incluyendo al usuario actual para asignaciones iniciales)
             usuarios_staff = CustomUser.objects.filter(
                 models.Q(is_staff=True) | models.Q(is_superuser=True)
-            ).exclude(id=request.user.id).order_by('first_name', 'last_name', 'username')
+            ).order_by('first_name', 'last_name', 'username')
             
             context = {
                 'curso': curso,
@@ -4726,30 +4726,52 @@ def reasignar_ticket(request):
         # Guardar el usuario anterior para el comentario
         usuario_anterior = ticket.asignado_a
         
+        # Determinar si es una asignación inicial o una reasignación
+        es_asignacion_inicial = usuario_anterior is None
+        
         # Reasignar el ticket
         ticket.asignado_a = usuario_asignar
+        
+        # Si es una asignación inicial y el ticket está abierto, cambiar a "En proceso"
+        if es_asignacion_inicial and ticket.estado == 'abierto':
+            ticket.estado = 'en_proceso'
+        
         ticket.save()
         
         # Crear comentario interno si se proporcionó
         if comentario_interno.strip():
+            if es_asignacion_inicial:
+                contenido = f"Ticket asignado a {usuario_asignar.get_full_name()}. {comentario_interno}"
+            else:
+                contenido = f"Ticket reasignado de {usuario_anterior.get_full_name()} a {usuario_asignar.get_full_name()}. {comentario_interno}"
             ComentarioTicket.objects.create(
                 ticket=ticket,
                 autor=request.user,
-                contenido=f"Ticket reasignado de {usuario_anterior.get_full_name() if usuario_anterior else 'Sin asignar'} a {usuario_asignar.get_full_name()}. {comentario_interno}",
+                contenido=contenido,
                 es_interno=True
             )
         else:
             # Crear comentario automático
+            if es_asignacion_inicial:
+                contenido = f"Ticket asignado a {usuario_asignar.get_full_name()}."
+            else:
+                contenido = f"Ticket reasignado de {usuario_anterior.get_full_name()} a {usuario_asignar.get_full_name()}."
             ComentarioTicket.objects.create(
                 ticket=ticket,
                 autor=request.user,
-                contenido=f"Ticket reasignado de {usuario_anterior.get_full_name() if usuario_anterior else 'Sin asignar'} a {usuario_asignar.get_full_name()}.",
+                contenido=contenido,
                 es_interno=True
             )
         
+        # Determinar el mensaje de respuesta
+        if es_asignacion_inicial:
+            mensaje = f'Ticket asignado exitosamente a {usuario_asignar.get_full_name()} y estado cambiado a "En proceso"'
+        else:
+            mensaje = f'Ticket reasignado exitosamente a {usuario_asignar.get_full_name()}'
+        
         return JsonResponse({
             'success': True,
-            'message': f'Ticket reasignado exitosamente a {usuario_asignar.get_full_name()}'
+            'message': mensaje
         })
         
     except TicketSoporte.DoesNotExist:
