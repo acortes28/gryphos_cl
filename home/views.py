@@ -3501,6 +3501,25 @@ def limpiar_retroalimentaciones(request):
     return redirect('user_space')
 
 @login_required
+def plataforma_entregas(request, curso_id):
+    """
+    Vista principal de entregas para la plataforma de aprendizaje
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar que el usuario esté inscrito en el curso
+    if not request.user.cursos.filter(id=curso_id).exists():
+        messages.error(request, 'No tienes acceso a este curso.')
+        return redirect('user_space')
+    
+    context = {
+        'curso': curso,
+        'user': request.user,
+    }
+    
+    return render(request, 'pages/plataforma_entregas.html', context)
+
+@login_required
 def plataforma_entregas_ajax(request, curso_id):
     """Devuelve el HTML de la tabla de entregas y el formulario de subida para el usuario actual en el curso."""
     from django.template.loader import render_to_string
@@ -3783,6 +3802,25 @@ def enviar_correo_bienvenida_usuario_existente(request, user, curso_nombre):
 # ============================================================================
 # VISTAS DEL SISTEMA DE TICKETS DE SOPORTE
 # ============================================================================
+
+@login_required
+def plataforma_soporte(request, curso_id):
+    """
+    Vista principal de soporte para la plataforma de aprendizaje
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar que el usuario esté inscrito en el curso
+    if not request.user.cursos.filter(id=curso_id).exists():
+        messages.error(request, 'No tienes acceso a este curso.')
+        return redirect('user_space')
+    
+    context = {
+        'curso': curso,
+        'user': request.user,
+    }
+    
+    return render(request, 'pages/plataforma_soporte.html', context)
 
 @login_required
 def plataforma_soporte_ajax(request, curso_id):
@@ -5323,30 +5361,29 @@ def plataforma_calificaciones_ajax(request, curso_id):
         action = request.GET.get('action')
         
         if action == 'ver_rubricas':
-            # Cargar vista de rúbricas para estudiantes
-            if not request.user.is_staff:
-                evaluaciones_con_rubricas = []
-                evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
-                
-                for evaluacion in evaluaciones:
-                    try:
-                        rubrica = evaluacion.rubrica
-                        if rubrica and rubrica.activa:
-                            evaluaciones_con_rubricas.append({
-                                'evaluacion': evaluacion,
-                                'rubrica': rubrica
-                            })
-                    except:
-                        continue
-                
-                context = {
-                    'curso': curso,
-                    'evaluaciones_con_rubricas': evaluaciones_con_rubricas,
-                    'mostrar_rubricas': True,
-                }
-                
-                html = render_to_string('pages/plataforma_calificaciones_rubricas_content.html', context, request=request)
-                return JsonResponse({'html': html})
+            # Cargar vista de rúbricas para todos los usuarios
+            evaluaciones_con_rubricas = []
+            evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
+            
+            for evaluacion in evaluaciones:
+                try:
+                    rubrica = evaluacion.rubrica
+                    if rubrica and rubrica.activa:
+                        evaluaciones_con_rubricas.append({
+                            'evaluacion': evaluacion,
+                            'rubrica': rubrica
+                        })
+                except:
+                    continue
+            
+            context = {
+                'curso': curso,
+                'evaluaciones_con_rubricas': evaluaciones_con_rubricas,
+                'mostrar_rubricas': True,
+            }
+            
+            html = render_to_string('pages/plataforma_calificaciones_rubricas_content.html', context, request=request)
+            return JsonResponse({'html': html})
         
         elif action == 'ver_calificar':
             # Cargar vista de calificar estudiantes

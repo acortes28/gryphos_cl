@@ -112,10 +112,12 @@ urlpatterns = [
     path('join-meeting/<int:videollamada_id>/', views.join_meeting, name='join_meeting'),
 
     # Entregas URLs
+    path('curso/<int:curso_id>/plataforma/entregas/', views.plataforma_entregas, name='plataforma_entregas'),
     path('plataforma/curso/<int:curso_id>/entregas/ajax/', views.plataforma_entregas_ajax, name='plataforma_entregas_ajax'),
     path('reemplazar-archivo-entrega/', views.reemplazar_archivo_entrega, name='reemplazar_archivo_entrega'),
     
     # Soporte URLs
+    path('curso/<int:curso_id>/plataforma/soporte/', views.plataforma_soporte, name='plataforma_soporte'),
     path('curso/<int:curso_id>/plataforma/soporte/ajax/', views.plataforma_soporte_ajax, name='plataforma_soporte_ajax'),
     path('curso/<int:curso_id>/plataforma/soporte/crear-ticket/', views.crear_ticket_soporte, name='crear_ticket_soporte'),
     path('ticket/<int:ticket_id>/agregar-comentario/', views.agregar_comentario_ticket, name='agregar_comentario_ticket'),

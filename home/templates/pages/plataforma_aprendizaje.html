@@ -719,32 +719,32 @@
   </div>
   
   <nav class="sidebar-nav">
-    <a href="#" data-seccion="inicio" class="nav-link active">
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}" data-seccion="inicio" class="nav-link active">
       <i class="fas fa-home"></i>
       Inicio
     </a>
     
-    <a href="#" data-seccion="foro" class="nav-link">
+    <a href="{% url 'plataforma_foro' curso.id %}" data-seccion="foro" class="nav-link">
       <i class="fas fa-comments"></i>
       Foro
     </a>
     
-    <a href="#" data-seccion="recursos" class="nav-link">
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}" data-seccion="recursos" class="nav-link">
       <i class="fas fa-book"></i>
       Recursos
     </a>
     
-    <a href="#" data-seccion="entregas" class="nav-link">
+    <a href="{% url 'plataforma_entregas' curso.id %}" data-seccion="entregas" class="nav-link">
       <i class="fas fa-upload"></i>
       Entregas
     </a>
     
-    <a href="#" data-seccion="calificaciones" class="nav-link">
+    <a href="{% url 'plataforma_calificaciones' curso.id %}" data-seccion="calificaciones" class="nav-link">
       <i class="fas fa-chart-line"></i>
       Calificaciones
     </a>
     
-    <a href="#" data-seccion="soporte" class="nav-link">
+    <a href="{% url 'plataforma_soporte' curso.id %}" data-seccion="soporte" class="nav-link">
       <i class="fas fa-headset"></i>
       Soporte al Estudiante
     </a>
