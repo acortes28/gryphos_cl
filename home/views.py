@@ -5346,6 +5346,54 @@ def plataforma_calificaciones_ajax(request, curso_id):
                 html = render_to_string('pages/plataforma_calificaciones_rubricas_content.html', context, request=request)
                 return JsonResponse({'html': html})
         
+        elif action == 'ver_rubrica':
+            # Cargar vista de rúbrica específica
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para ver esta rúbrica'}, status=403)
+                
+                # Obtener la rúbrica
+                try:
+                    rubrica = evaluacion.rubrica
+                except Rubrica.DoesNotExist:
+                    return JsonResponse({'error': 'No se encontró una rúbrica para esta evaluación'}, status=404)
+                
+                # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
+                from datetime import date
+                hoy = date.today()
+                puede_editar = True
+                mensaje_restriccion = None
+                
+                if evaluacion.fecha_inicio and hoy >= evaluacion.fecha_inicio:
+                    puede_editar = False
+                    mensaje_restriccion = f'La evaluación comenzó el {evaluacion.fecha_inicio.strftime("%d/%m/%Y")}. La rúbrica no se puede editar después de esta fecha.'
+                
+                context = {
+                    'curso': curso,
+                    'evaluacion': evaluacion,
+                    'rubrica': rubrica,
+                    'user': request.user,
+                    'puede_editar': puede_editar,
+                    'mensaje_restriccion': mensaje_restriccion,
+                    'mostrar_rubrica': True,
+                }
+                
+                html = render_to_string('pages/plataforma_calificaciones_rubrica_content.html', context, request=request)
+                return JsonResponse({'html': html})
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                print(f"Error al cargar rúbrica: {str(e)}")
+                return JsonResponse({'error': 'Error al cargar la rúbrica'}, status=500)
+        
         elif action == 'ver_estadisticas':
             # Cargar vista de estadísticas
             try:

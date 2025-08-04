@@ -1,0 +1,205 @@
+{% load static %}
+{% load custom_filters %}
+
+<!-- Contenido específico para editar rúbrica -->
+<div id="seccion-editar-rubrica" class="section-content active">
+  <div class="row">
+    <!-- Información de la Rúbrica -->
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h4 class="mb-0">
+            <i class="fas fa-clipboard-list me-2"></i>Información de la Rúbrica
+          </h4>
+        </div>
+        <div class="card-body">
+          {% if mensaje_restriccion %}
+            <div class="alert alert-warning" role="alert">
+              <i class="fas fa-exclamation-triangle me-2"></i>{{ mensaje_restriccion }}
+            </div>
+          {% endif %}
+          
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+            
+            <div class="form-group">
+              <label for="nombre" class="form-label required-field">Nombre de la Rúbrica</label>
+              <input type="text" class="form-control" id="nombre" name="nombre" 
+                     value="{{ rubrica.nombre }}" required {% if not puede_editar %}disabled{% endif %}>
+              <small class="form-text text-muted">Nombre descriptivo que identifique la rúbrica</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="descripcion" class="form-label">Descripción</label>
+              <textarea class="form-control" id="descripcion" name="descripcion" rows="3"
+                        placeholder="Descripción opcional de la rúbrica" {% if not puede_editar %}disabled{% endif %}>{{ rubrica.descripcion }}</textarea>
+              <small class="form-text text-muted">Descripción adicional de la rúbrica (opcional)</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="objetivo" class="form-label required-field">Objetivo</label>
+              <textarea class="form-control" id="objetivo" name="objetivo" rows="4" required
+                        placeholder="¿Cuál es el objetivo principal de esta rúbrica?" {% if not puede_editar %}disabled{% endif %}>{{ rubrica.objetivo }}</textarea>
+              <small class="form-text text-muted">Define claramente el propósito de esta rúbrica</small>
+            </div>
+            
+            <div class="form-group">
+              <label for="aprendizaje_esperado" class="form-label required-field">Aprendizaje Esperado</label>
+              <textarea class="form-control" id="aprendizaje_esperado" name="aprendizaje_esperado" rows="4" required
+                        placeholder="¿Qué se espera que el estudiante aprenda o demuestre?" {% if not puede_editar %}disabled{% endif %}>{{ rubrica.aprendizaje_esperado }}</textarea>
+              <small class="form-text text-muted">Describe los aprendizajes que se evaluarán</small>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+              <button type="button" onclick="cargarCalificaciones()" class="btn btn-primary">
+                <i class="fas fa-arrow-left me-1"></i>Volver
+              </button>
+              {% if puede_editar %}
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-save me-1"></i>Guardar Cambios
+                </button>
+              {% else %}
+                <button type="button" class="btn btn-secondary" disabled>
+                  <i class="fas fa-lock me-1"></i>No Editable
+                </button>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Criterios de la Rúbrica -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-list-check me-2"></i>Criterios
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if rubrica.criterios.all %}
+            <div class="criterios-list">
+              {% for criterio in rubrica.criterios.all %}
+                <div class="criterio-item mb-3 p-3 border rounded">
+                  <h6 class="mb-2">{{ criterio.nombre }}</h6>
+                  <p class="text-muted small mb-2">{{ criterio.objetivo|truncatewords:20 }}</p>
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <small class="text-muted">{{ criterio.esperables.count }} esperables</small>
+                    <span class="badge bg-primary">{% if criterio.puntaje %}{{ criterio.puntaje|puntaje_entero }}{% else %}0{% endif %} puntos</span>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">Puntaje máximo</small>
+                    <div class="btn-group btn-group-sm">
+                      {% if puede_editar %}
+                        <button class="btn btn-outline-primary btn-sm" onclick="editarCriterio({{ criterio.id }})">
+                          <i class="fas fa-edit"></i>Editar
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="eliminarCriterio({{ criterio.id }})">
+                          <i class="fas fa-trash"></i>Eliminar
+                        </button>
+                      {% else %}
+                        <button class="btn btn-outline-secondary btn-sm" disabled>
+                          <i class="fas fa-lock"></i>No Editable
+                        </button>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-4">
+              <i class="fas fa-clipboard-list fa-2x text-muted mb-3"></i>
+              <p class="text-muted">No hay criterios agregados</p>
+            </div>
+          {% endif %}
+          
+          {% if puede_editar %}
+            <button class="btn btn-success w-100" onclick="abrirModalAgregarCriterio()">
+              <i class="fas fa-plus me-2"></i>Agregar Criterio
+            </button>
+          {% else %}
+            <button class="btn btn-secondary w-100" disabled>
+              <i class="fas fa-lock me-2"></i>No Se Pueden Agregar Criterios
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incluir los modales y scripts necesarios -->
+{% include 'pages/editar_rubrica_modals.html' %}
+
+<style>
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-label {
+    font-weight: 600;
+    color: #344767;
+    margin-bottom: 8px;
+  }
+  
+  .form-control {
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    padding: 12px 16px;
+    transition: all 0.3s ease;
+  }
+  
+  .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+  
+  .card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 20px 25px;
+  }
+  
+  .card-body {
+    padding: 25px;
+  }
+  
+  .required-field::after {
+    content: " *";
+    color: #dc3545;
+  }
+  
+  .criterio-item {
+    background: #f8f9fa;
+    transition: all 0.3s ease;
+  }
+  
+  .criterio-item:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+  }
+</style> 
