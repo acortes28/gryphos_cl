@@ -1,16 +1,155 @@
-{% extends 'layouts/base_background.html' %}
 {% load static %}
 {% load custom_filters %}
-{% block title %}Calificar Estudiantes - {{ evaluacion.nombre }} - {{ curso.nombre }}{% endblock title %}
-{% block body %} class="about-us bg-gray-200" {% endblock body %}
-
-{% block header %}
-<!-- Ocultar la navegación en la plataforma de aprendizaje -->
-{% endblock header %}
-
-{% block content %}
 
 <style>
+/* Estilos para la nota calculada */
+.nota-calculada-container {
+  min-width: 200px;
+}
+
+.nota-calculada-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.nota-calculada-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2);
+}
+
+.nota-calculada-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.nota-calculada-title {
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nota-calculada-value {
+  margin: 12px 0;
+}
+
+.nota-calculada-value input {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  color: #2c3e50 !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease !important;
+}
+
+.nota-calculada-value input:focus {
+  outline: none !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(255, 255, 255, 0.3) !important;
+  transform: scale(1.02) !important;
+}
+
+/* Animación cuando se actualiza la nota */
+.nota-calculada-value input.nota-updating {
+  animation: notaUpdate 0.3s ease-in-out;
+}
+
+/* Estilo para el placeholder de cálculo */
+.nota-calculada-value input::placeholder {
+  color: #6c757d !important;
+  font-style: italic;
+  font-size: 1rem !important;
+}
+
+@keyframes notaUpdate {
+  0% {
+    transform: scale(1);
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+  50% {
+    transform: scale(1.05);
+    background: rgba(255, 255, 255, 1) !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(255, 193, 7, 0.5) !important;
+  }
+  100% {
+    transform: scale(1);
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+}
+
+.nota-calculada-footer {
+  text-align: center;
+}
+
+.nota-calculada-footer small {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Animación de entrada */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.nota-calculada-container {
+  animation: slideInFromRight 0.6s ease-out;
+}
+
+/* Efecto de brillo en hover */
+.nota-calculada-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.nota-calculada-card:hover::before {
+  left: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nota-calculada-container {
+    min-width: 150px;
+  }
+  
+  .nota-calculada-card {
+    padding: 12px;
+  }
+  
+  .nota-calculada-value input {
+    font-size: 1.2rem !important;
+    padding: 8px 12px !important;
+  }
+  
+  .nota-calculada-title {
+    font-size: 0.8rem;
+  }
+}
+
+/* Estilos para el sidebar y layout */
   .sidebar {
     position: fixed;
     top: 0;
@@ -532,978 +671,9 @@
     color: #6c757d;
     font-size: 0.9rem;
   }
-</style>
-
-<!-- Sidebar -->
-<div class="sidebar">
-  <div class="sidebar-header">
-    <h5 class="mb-0">
-      <i class="fas fa-graduation-cap me-2"></i>
-      {{ curso.nombre }}
-    </h5>
-    <small class="text-white-50">Plataforma de Aprendizaje</small>
-  </div>
-  
-  <nav class="sidebar-nav">
-    <a href="{% url 'plataforma_aprendizaje' curso.id %}" class="nav-link">
-      <i class="fas fa-home"></i>
-      Inicio
-    </a>
-    
-    <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=foro" class="nav-link">
-      <i class="fas fa-comments"></i>
-      Foro
-    </a>
-    
-    <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=recursos" class="nav-link">
-      <i class="fas fa-book"></i>
-      Recursos
-    </a>
-    
-    <a href="{% url 'plataforma_calificaciones' curso.id %}" class="nav-link active">
-      <i class="fas fa-chart-line"></i>
-      Calificaciones
-    </a>
-    
-    <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=soporte" class="nav-link">
-      <i class="fas "></i>
-      Soporte al Estudiante
-    </a>
-  </nav>
-</div>
-
-<!-- Mobile Toggle Button -->
-<button class="mobile-toggle d-md-none" onclick="toggleSidebar()">
-  <i class="fas fa-bars"></i>
-</button>
-
-<!-- Main Content -->
-<div class="main-content">
-  <!-- Content Header -->
-  <div class="content-header">
-
-    
-    <div class="d-flex justify-content-between align-items-start mt-3">
-      <div>
-        <h2 class="mb-1">
-          <i class="fas fa-edit me-2"></i>Calificar Estudiantes
-        </h2>
-        <p class="text-muted mb-0">Asigna calificaciones para la evaluación: {{ evaluacion.nombre }}</p>
-      </div>
-      
-      <div class="d-flex align-items-center">
-        <!-- Botones de acción -->
-        <div class="me-3 action-buttons">
-          <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-secondary me-2">
-            <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
-          </a>
-          <a href="{% url 'user_space' %}" class="btn btn-portal-nav me-2">
-            <i class="fas fa-home me-1"></i>Ir a mi Portal
-          </a>
-          <a href="{% url 'logout' %}" class="btn btn-logout-nav">
-            <i class="fas fa-sign-out-alt me-1"></i>Cerrar Sesión
-          </a>
-        </div>
-        
-        <div class="user-card">
-          <div class="user-info">
-            <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
-            <div class="user-email">{{ user.email }}</div>
-          </div>
-          <div class="user-avatar">
-            {% if user.profile_photo %}
-              <img src="{{ user.profile_photo.url }}" alt="Foto de perfil" class="avatar avatar-sm rounded-circle">
-            {% else %}
-              <div class="avatar avatar-sm bg-gradient-primary rounded-circle">
-                <i class="fas fa-user text-white"></i>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Content Body -->
-  <div class="content-body">
-    <!-- Información de la Evaluación -->
-    <div class="evaluacion-info">
-      <h4>
-        <i class="fas fa-clipboard-list me-2"></i>{{ evaluacion.nombre }}
-      </h4>
-      <p class="mb-3">{{ evaluacion.get_tipo_display }} - {{ evaluacion.fecha_inicio|date:"d/m/Y" }} a {{ evaluacion.fecha_fin|date:"d/m/Y" }}</p>
-      <div class="evaluacion-stats">
-        <div class="stat-item">
-          <span class="stat-value">{{ evaluacion.nota_maxima }}</span>
-          <span class="stat-label">Nota Máxima</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">{{ evaluacion.ponderacion }}%</span>
-          <span class="stat-label">Ponderación</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">{{ evaluacion.get_calificaciones_count }}</span>
-          <span class="stat-label">Calificaciones Registradas</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">{{ estudiantes.count }}</span>
-          <span class="stat-label">Disponibles para Calificar</span>
-        </div>
-      </div>
-    </div>
-    
-    {% if stats %}
-      <div class="alert alert-info mb-4">
-        <div class="d-flex align-items-center">
-          <i class="fas fa-info-circle me-2"></i>
-          <div>
-            <strong>Estadísticas de la Evaluación:</strong>
-            <br>
-            <small class="text-muted">
-              • Total estudiantes del curso: {{ stats.total_estudiantes_curso }}
-              • Estudiantes con entregas: {{ stats.total_estudiantes_con_entregas }}
-              • Ya calificados: {{ stats.estudiantes_ya_calificados }}
-              • Pendientes de calificar: {{ stats.estudiantes_disponibles_para_calificar }}
-            </small>
-          </div>
-        </div>
-      </div>
-    {% endif %}
-    
-
-    
-    <!-- Formulario de Calificación -->
-    <div class="row justify-content-center">
-      <div class="col-lg-8">
-        <div class="form-card">
-          <div class="d-flex justify-content-between align-items-start mb-4">
-            <h4 class="mb-0">
-              <i class="fas fa-user-graduate me-2"></i>Calificar Estudiante
-            </h4>
-            <div class="text-end">
-              <div class="nota-calculada-container">
-                <div class="nota-calculada-card">
-                  <div class="nota-calculada-header">
-                    <i class="fas fa-star text-warning me-2"></i>
-                    <span class="nota-calculada-title">Nota Calculada</span>
-                  </div>
-                  <div class="nota-calculada-value">
-                    {{ form.nota }}
-                  </div>
-                  <div class="nota-calculada-footer">
-                    <small class="text-muted">
-                      <i class="fas fa-calculator me-1"></i>
-                      Se calcula automáticamente
-                    </small>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <form method="post">
-            {% csrf_token %}
-            
-            <!-- Campo de nota oculto para enviar con el formulario -->
-            <input type="hidden" name="nota" id="nota_hidden" value="">
-            
-            <div class="form-group">
-              <label for="{{ form.estudiante.id_for_label }}" class="form-label">
-                <i class="fas fa-user me-1"></i>Estudiante *
-              </label>
-              {{ form.estudiante }}
-              {% if form.estudiante.errors %}
-                <div class="text-danger small mt-1">
-                  {% for error in form.estudiante.errors %}
-                    {{ error }}
-                  {% endfor %}
-                </div>
-              {% endif %}
-              {% if form.estudiante.help_text %}
-                <small class="form-text text-muted">{{ form.estudiante.help_text }}</small>
-              {% endif %}
-            </div>
-            
-            <!-- Campos dinámicos para criterios de la rúbrica -->
-            {% if evaluacion.rubrica %}
-              <div class="alert alert-info mb-4">
-                <div class="d-flex align-items-center">
-                  <i class="fas fa-list-check me-2"></i>
-                  <div>
-                    <strong>Rúbrica de Evaluación: {{ evaluacion.rubrica.nombre }}</strong>
-                    <br>
-                    <small class="text-muted">
-                      Selecciona el nivel de desempeño para cada criterio según la rúbrica.
-                    </small>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Mostrar campos de criterio dinámicamente -->
-              {% for criterio in criterios_rubrica %}
-                <div class="form-group">
-                  <label for="id_criterio_{{ criterio.id }}" class="form-label">
-                    <i class="fas fa-check-circle me-1"></i>{{ criterio.nombre }} *
-                  </label>
-                  
-                  <!-- Renderizar el campo usando el filtro específico para criterios -->
-                  {% with criterio_field=form|get_criterio_field:criterio.id %}
-                    {% if criterio_field %}
-                      {{ criterio_field }}
-                      {% if criterio_field.errors %}
-                        <div class="text-danger small mt-1">
-                          {% for error in criterio_field.errors %}
-                            {{ error }}
-                          {% endfor %}
-                        </div>
-                      {% endif %}
-                      {% if criterio_field.help_text %}
-                        <small class="form-text text-muted">{{ criterio_field.help_text }}</small>
-                      {% endif %}
-                    {% else %}
-                      <div class="alert alert-warning">
-                        Campo no encontrado para criterio {{ criterio.id }}
-                      </div>
-                    {% endif %}
-                  {% endwith %}
-                </div>
-              {% endfor %}
-            {% else %}
-              <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                <strong>Esta evaluación no tiene una rúbrica asociada.</strong>
-                <br>
-                <small>Debes crear una rúbrica antes de poder calificar estudiantes.</small>
-              </div>
-            {% endif %}
-            
-            <div class="form-group">
-              <label for="{{ form.retroalimentacion.id_for_label }}" class="form-label">
-                <i class="fas fa-comment me-1"></i>Retroalimentación
-              </label>
-              {{ form.retroalimentacion }}
-              {% if form.retroalimentacion.errors %}
-                <div class="text-danger small mt-1">
-                  {% for error in form.retroalimentacion.errors %}
-                    {{ error }}
-                  {% endfor %}
-                </div>
-              {% endif %}
-              {% if form.retroalimentacion.help_text %}
-                <small class="form-text text-muted">{{ form.retroalimentacion.help_text }}</small>
-              {% endif %}
-            </div>
-            
-            <div class="d-flex justify-content-between align-items-center mt-4">
-              <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-secondary">
-                <i class="fas fa-times me-2"></i>Cancelar
-              </a>
-              <button type="submit" class="btn btn-primary" id="calcular-nota" onclick="calcularNota()">
-                <i class="fas fa-save me-2"></i>Guardar Calificación
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Lista de Estudiantes -->
-    <div class="row mt-4">
-      <div class="col-12">
-        <div class="section-content">
-          <h4 class="mb-3">
-            <i class="fas fa-users me-2"></i>Estudiantes del Curso
-          </h4>
-          
-          {% if todos_estudiantes %}
-            <div class="row">
-              {% for estudiante in todos_estudiantes %}
-                <div class="col-md-6 col-lg-4 mb-3">
-                  <div class="card border-0 shadow-sm">
-                    <div class="card-body text-center">
-                      <div class="mb-3">
-                        <div class="avatar bg-gradient-primary rounded-circle mx-auto" style="width: 60px; height: 60px;">
-                          <i class="fas fa-user text-white" style="font-size: 1.5rem;"></i>
-                        </div>
-                      </div>
-                      <h6 class="card-title mb-1">{{ estudiante.get_full_name|default:estudiante.username }}</h6>
-                      <p class="text-muted small mb-2">{{ estudiante.email }}</p>
-                      
-                      {% for calificacion in estudiante.calificaciones.all %}
-                        {% if calificacion.evaluacion == evaluacion %}
-                          <div class="mb-2">
-                            {% if calificacion.nota %}
-                              {% if calificacion.nota >= 7.0 %}
-                                <span class="badge bg-success">{{ calificacion.nota }}</span>
-                              {% elif calificacion.nota >= 5.5 %}
-                                <span class="badge bg-info">{{ calificacion.nota }}</span>
-                              {% elif calificacion.nota >= 4.0 %}
-                                <span class="badge bg-warning">{{ calificacion.nota }}</span>
-                              {% else %}
-                                <span class="badge bg-danger">{{ calificacion.nota }}</span>
-                              {% endif %}
-                            {% else %}
-                              <span class="badge bg-secondary">Sin calificar</span>
-                            {% endif %}
-                          </div>
-                          <small class="text-muted mb-2 d-block">
-                            Calificada el {{ calificacion.fecha_calificacion|date:"d/m/Y" }}
-                          </small>
-                          <button type="button" class="btn btn-edit-calificacion btn-sm edit-calificacion-btn"
-                                  data-estudiante-id="{{ estudiante.id }}"
-                                  data-estudiante-nombre="{{ estudiante.get_full_name|default:estudiante.username|escapejs }}"
-                                  data-estudiante-email="{{ estudiante.email|escapejs }}"
-                                  data-calificacion-id="{{ calificacion.id }}"
-                                  data-nota-actual="{{ calificacion.nota|default:"" }}"
-                                  data-nota-maxima="{{ evaluacion.nota_maxima }}"
-                                  data-retroalimentacion="{{ calificacion.retroalimentacion|default:""|escapejs }}"
-                                  onclick="cargarDatosCalificacion('{{ calificacion.id }}', this)">
-                            <i class="fas fa-edit me-1"></i>Editar
-                          </button>
-                        {% endif %}
-                      {% empty %}
-                        {% if estudiante.entregas.all %}
-                          {% for entrega in estudiante.entregas.all %}
-                            {% if entrega.evaluacion == evaluacion %}
-                              <span class="badge bg-warning">Con entrega</span>
-                              <small class="text-muted mb-2 d-block">
-                                Entregado el {{ entrega.fecha_entrega|date:"d/m/Y" }}
-                              </small>
-                              <span class="text-muted small">Pendiente de calificar</span>
-                            {% endif %}
-                          {% empty %}
-                            <span class="badge bg-secondary">Sin entrega</span>
-                            <small class="text-muted">No ha entregado</small>
-                          {% endfor %}
-                        {% else %}
-                          <span class="badge bg-secondary">Sin entrega</span>
-                          <small class="text-muted">No ha entregado</small>
-                        {% endif %}
-                      {% endfor %}
-                    </div>
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
-          {% else %}
-            <div class="text-center py-5">
-              <i class="fas fa-users fa-3x text-muted mb-3"></i>
-              <h5 class="text-muted">No hay estudiantes inscritos</h5>
-              <p class="text-muted">No hay estudiantes inscritos en este curso.</p>
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal para editar calificación -->
-<div id="editCalificacionModal" class="modal-edit-calificacion">
-  <div class="modal-content-edit">
-    <div class="modal-header-edit">
-      <h5><i class="fas fa-edit me-2"></i>Editar Calificación</h5>
-      <span class="close-modal" onclick="closeEditModal()">&times;</span>
-    </div>
-    <div class="modal-body-edit">
-      <div class="estudiante-info-edit">
-        <div class="estudiante-nombre-edit" id="modalEstudianteNombre"></div>
-        <div class="estudiante-email-edit" id="modalEstudianteEmail"></div>
-      </div>
-      
-      <form id="editCalificacionForm" method="post" action="{% url 'editar_calificacion' %}">
-        {% csrf_token %}
-        <input type="hidden" id="editCalificacionId" name="calificacion_id">
-        <input type="hidden" id="editEstudianteId" name="estudiante_id">
-        <input type="hidden" id="editEvaluacionId" name="evaluacion_id" value="{{ evaluacion.id }}">
-        
-        <!-- Criterios de la rúbrica -->
-        {% if evaluacion.rubrica %}
-          <div class="alert alert-info mb-3">
-            <div class="d-flex align-items-center">
-              <i class="fas fa-list-check me-2"></i>
-              <div>
-                <strong>Rúbrica: {{ evaluacion.rubrica.nombre }}</strong>
-                <br>
-                <small class="text-muted">
-                  Edita los criterios para recalcular la nota automáticamente.
-                </small>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Campos dinámicos para criterios -->
-          {% for criterio in criterios_rubrica %}
-            <div class="form-group-edit">
-              <label for="editCriterio_{{ criterio.id }}" class="form-label-edit">
-                <i class="fas fa-check-circle me-1"></i>{{ criterio.nombre }} *
-              </label>
-              <select id="editCriterio_{{ criterio.id }}" 
-                      name="criterio_{{ criterio.id }}" 
-                      class="form-control-edit edit-criterio-field"
-                      data-criterio-id="{{ criterio.id }}"
-                      data-criterio-puntaje-maximo="{{ criterio.puntaje|puntaje_entero }}"
-                      onfocus="cargarEsperablesDisponibles('{{ criterio.id }}', null, null, null)"
-                      required>
-                <option value="">Selecciona un nivel...</option>
-                <!-- Los esperables se cargarán dinámicamente desde JavaScript -->
-              </select>
-              <small class="text-muted">Puntaje máximo: {{ criterio.puntaje|puntaje_entero }} puntos</small>
-            </div>
-          {% endfor %}
-        {% endif %}
-        
-        <div class="form-group-edit">
-          <label for="editNota" class="form-label-edit">
-            <i class="fas fa-star me-1"></i>Nota Calculada *
-          </label>
-          <input type="number" 
-                 id="editNota" 
-                 name="nota" 
-                 class="form-control-edit" 
-                 step="0.1" 
-                 min="0" 
-                 max="10" 
-                 readonly>
-          <small class="text-muted">Nota máxima: <span id="modalNotaMaxima"></span></small>
-        </div>
-        
-        <div class="form-group-edit">
-          <label for="editRetroalimentacion" class="form-label-edit">
-            <i class="fas fa-comment me-1"></i>Retroalimentación
-          </label>
-          <textarea id="editRetroalimentacion" 
-                    name="retroalimentacion" 
-                    class="form-control-edit" 
-                    rows="3" 
-                    placeholder="Agrega retroalimentación para el estudiante..."
-                    style="white-space: pre-wrap;"></textarea>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer-edit">
-      <button type="button" class="btn-cancel-edit" onclick="closeEditModal()">
-        <i class="fas fa-times me-1"></i>Cancelar
-      </button>
-      <button type="button" class="btn-edit-calificacion" onclick="saveEditCalificacion()">
-        <i class="fas fa-save me-1"></i>Guardar Cambios
-      </button>
-    </div>
-  </div>
-</div>
-
-<script>
-function toggleSidebar() {
-  const sidebar = document.querySelector('.sidebar');
-  sidebar.classList.toggle('show');
-}
-
-// Funciones para el modal de edición
-function openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion, criteriosData) {
-  console.log('Abriendo modal con datos:', {
-    estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, criteriosData
-  });
-  
-  document.getElementById('modalEstudianteNombre').textContent = estudianteNombre;
-  document.getElementById('modalEstudianteEmail').textContent = estudianteEmail;
-  document.getElementById('editCalificacionId').value = calificacionId;
-  document.getElementById('editEstudianteId').value = estudianteId;
-  document.getElementById('editNota').value = notaActual;
-  document.getElementById('modalNotaMaxima').textContent = notaMaxima;
-  document.getElementById('editNota').max = notaMaxima;
-  
-  // Limpiar caracteres de control de línea en la retroalimentación
-  const retroalimentacionLimpia = retroalimentacion
-    .replace(/\\u000D\\u000A/g, '\n')  // Reemplazar caracteres de control con saltos de línea
-    .replace(/\\u000D/g, '\n')          // Solo CR
-    .replace(/\\u000A/g, '\n')          // Solo LF
-    .replace(/\\n/g, '\n')              // Secuencias de escape
-    .replace(/\\r/g, '\n');             // Carriage return
-  document.getElementById('editRetroalimentacion').value = retroalimentacionLimpia;
-  
-  // Cargar esperables para todos los criterios sin valores predeterminados
-  const criterioFields = document.querySelectorAll('.edit-criterio-field');
-  let criteriosCargados = 0;
-  const totalCriterios = criterioFields.length;
-  
-  criterioFields.forEach(function(field) {
-    const criterioId = field.getAttribute('data-criterio-id');
-    console.log(`Cargando esperables para criterio ${criterioId} sin valor predeterminado`);
-    
-    // Cargar esperables sin establecer valor predeterminado
-    cargarEsperablesDisponibles(criterioId, null, estudianteId, function() {
-      criteriosCargados++;
-      console.log(`Criterio ${criterioId} cargado (${criteriosCargados}/${totalCriterios})`);
-      
-      // Si todos los criterios están cargados, calcular la nota inicial (será 0)
-      if (criteriosCargados === totalCriterios) {
-        console.log('Todos los criterios cargados, calculando nota inicial...');
-        setTimeout(() => {
-          calcularNotaModal();
-        }, 300);
-      }
-    });
-  });
-  
-  document.getElementById('editCalificacionModal').style.display = 'block';
-  document.body.style.overflow = 'hidden';
-}
-
-// Función para cargar esperables disponibles para un criterio
-function cargarEsperablesDisponibles(criterioId, esperableSeleccionadoId = null, estudianteId = null, callback = null) {
-  const fieldId = `editCriterio_${criterioId}`;
-  const field = document.getElementById(fieldId);
-  
-  // Si ya tiene más de una opción (además del placeholder), no cargar de nuevo
-  if (field.options.length > 1 && !esperableSeleccionadoId) {
-    return;
-  }
-  
-  // Mostrar indicador de carga
-  const originalText = field.options[0].text;
-  field.options[0].text = 'Cargando esperables...';
-  
-  // Construir la URL según si tenemos estudianteId o no
-  const url = estudianteId 
-    ? `/obtener-esperables-criterio-por-estudiante/${criterioId}/${estudianteId}/`
-    : `/obtener-esperables-criterio/${criterioId}/`;
-  
-  fetch(url)
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Limpiar opciones existentes
-        field.innerHTML = '<option value="">Selecciona un nivel...</option>';
-        
-        // Agregar esperables disponibles
-        data.esperables.forEach(function(esperable) {
-          const option = document.createElement('option');
-          option.value = esperable.id;
-          option.setAttribute('data-puntaje', esperable.puntaje.toFixed(2));
-          option.textContent = `${Math.round(esperable.puntaje)} pts - ${esperable.nivel} - ${esperable.descripcion}`;
-          field.appendChild(option);
-          console.log(`Esperable agregado: ID=${esperable.id}, Nivel=${esperable.nivel}, Seleccionado: ${esperable.es_seleccionado}`);
-        });
-        
-        // NO establecer valores predeterminados - siempre mantener "Selecciona un nivel"
-        console.log(`Esperables cargados para criterio ${criterioId}:`, data.esperables.length);
-        
-        // Ejecutar callback si se proporcionó
-        if (callback) {
-          callback();
-        }
-      } else {
-        console.error('Error al cargar esperables:', data.error);
-        field.options[0].text = originalText;
-        if (callback) {
-          callback();
-        }
-      }
-    })
-    .catch(error => {
-      console.error('Error en la petición:', error);
-      field.options[0].text = originalText;
-      if (callback) {
-        callback();
-      }
-    });
-}
-
-// Función para calcular nota en el modal
-function calcularNotaModal() {
-  try {
-    const evaluacionNotaMaxima = parseFloat('{{ evaluacion.nota_maxima|default:7.0 }}');
-    let sumaPuntajesObtenidos = 0;
-    let sumaPuntajesMaximos = 0;
-    
-    // Obtener todos los campos de criterio del modal
-    const criterioFields = document.querySelectorAll('.edit-criterio-field');
-    
-    console.log('Calculando nota en modal...');
-    console.log('Campos de criterio encontrados:', criterioFields.length);
-    
-    criterioFields.forEach(function(field) {
-      const selectedOption = field.options[field.selectedIndex];
-      console.log('Campo:', field.id, 'Opción seleccionada:', selectedOption ? selectedOption.text : 'Ninguna', 'Valor:', field.value);
-      
-      if (selectedOption && selectedOption.value !== '') {
-        // Usar el ID del esperable para obtener el puntaje desde el atributo data-puntaje
-        const esperableId = selectedOption.value;
-        const dataPuntaje = selectedOption.getAttribute('data-puntaje');
-        const puntajeObtenido = parseFloat(dataPuntaje || '0');
-        
-        console.log('Campo:', field.id);
-        console.log('Esperable ID:', esperableId);
-        console.log('Data-puntaje raw:', dataPuntaje);
-        console.log('Puntaje obtenido:', puntajeObtenido);
-        
-        sumaPuntajesObtenidos += puntajeObtenido;
-      }
-      
-      // Obtener el puntaje máximo del criterio desde el atributo data
-      const puntajeMaximoStr = field.getAttribute('data-criterio-puntaje-maximo') || '0';
-      const puntajeMaximo = parseFloat(puntajeMaximoStr.replace(',', '.'));
-      sumaPuntajesMaximos += puntajeMaximo;
-      console.log('Puntaje máximo del criterio:', puntajeMaximo);
-    });
-    
-    // Calcular la nota según la fórmula
-    let notaCalculada = 0;
-    if (sumaPuntajesMaximos > 0) {
-      notaCalculada = (evaluacionNotaMaxima * sumaPuntajesObtenidos) / sumaPuntajesMaximos;
-    }
-    
-    // Actualizar el campo de nota en el modal
-    const notaField = document.getElementById('editNota');
-    if (notaField) {
-      notaField.value = notaCalculada.toFixed(1);
-      console.log('Nota actualizada en modal:', notaField.value);
-    }
-    
-    console.log('Modal - Puntajes obtenidos:', sumaPuntajesObtenidos);
-    console.log('Modal - Puntajes máximos:', sumaPuntajesMaximos);
-    console.log('Modal - Nota calculada:', notaCalculada.toFixed(1));
-  } catch (error) {
-    console.error('Error al calcular nota en modal:', error);
-  }
-}
-
-// Función para cargar datos de calificación
-function cargarDatosCalificacion(calificacionId, button) {
-  // Mostrar indicador de carga
-  button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cargando...';
-  button.disabled = true;
-  
-  // Realizar petición AJAX para obtener los datos
-  fetch(`/obtener-datos-calificacion/${calificacionId}/`)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(data => {
-      if (data.success) {
-        // Obtener datos del botón
-        const estudianteId = button.getAttribute('data-estudiante-id');
-        const estudianteNombre = button.getAttribute('data-estudiante-nombre');
-        const estudianteEmail = button.getAttribute('data-estudiante-email');
-        const notaActual = button.getAttribute('data-nota-actual');
-        const notaMaxima = button.getAttribute('data-nota-maxima');
-        const retroalimentacion = button.getAttribute('data-retroalimentacion');
-        
-        // Abrir modal con los datos (sin criterios para no establecer valores predeterminados)
-        openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion, null);
-      } else {
-        alert('Error al cargar los datos de la calificación: ' + data.error);
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('Error al cargar los datos de la calificación. Verifica que la calificación tenga una rúbrica asociada.');
-    })
-    .finally(() => {
-      // Restaurar botón
-      button.innerHTML = '<i class="fas fa-edit me-1"></i>Editar';
-      button.disabled = false;
-    });
-}
-
-// Event listeners para los campos de criterio en el modal
-document.addEventListener('change', function(event) {
-  if (event.target.classList.contains('edit-criterio-field')) {
-    console.log('Cambio detectado en criterio:', event.target.id, 'Nuevo valor:', event.target.value);
-    calcularNotaModal();
-  }
-});
-
-function closeEditModal() {
-  document.getElementById('editCalificacionModal').style.display = 'none';
-  document.body.style.overflow = 'auto';
-}
-
-function saveEditCalificacion() {
-  const form = document.getElementById('editCalificacionForm');
-  const nota = document.getElementById('editNota').value;
-  
-  if (!nota || nota < 0 || nota > document.getElementById('editNota').max) {
-    alert('Por favor ingresa una nota válida.');
-    return;
-  }
-  
-  // Enviar formulario
-  form.submit();
-}
-
-// Cerrar modal al hacer clic fuera de él
-window.onclick = function(event) {
-  const modal = document.getElementById('editCalificacionModal');
-  if (event.target === modal) {
-    closeEditModal();
-  }
-}
-
-// Cerrar modal con ESC
-document.addEventListener('keydown', function(event) {
-  if (event.key === 'Escape') {
-    closeEditModal();
-  }
-});
-
-// Función para calcular la nota automáticamente
-function calcularNota() {
-  // Mostrar indicador de cálculo
-  let notaField = document.getElementById('id_nota_calculada');
-  if (notaField) {
-    notaField.placeholder = 'Calculando...';
-  }
-  
-  const evaluacionNotaMaxima = parseFloat('{{ evaluacion.nota_maxima|default:7.0 }}');
-  let sumaPuntajesObtenidos = 0;
-  let sumaPuntajesMaximos = 0;
-  
-  // Obtener todos los campos de criterio
-  const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
-  
-  criterioFields.forEach(function(field) {
-    const selectedOption = field.options[field.selectedIndex];
-    if (selectedOption && selectedOption.value !== '') {
-      // Extraer el puntaje del texto de la opción (formato: "25.00 pts - Logrado - Descripción")
-      const optionText = selectedOption.text;
-      const puntajeMatch = optionText.match(/(\d+\.?\d*)\s+pts/);
-      if (puntajeMatch) {
-        sumaPuntajesObtenidos += parseFloat(puntajeMatch[1]);
-      }
-    }
-    
-    // Obtener el puntaje máximo del criterio desde el atributo data
-    const puntajeMaximo = parseFloat(field.getAttribute('data-criterio-puntaje-maximo') || 0);
-    sumaPuntajesMaximos += puntajeMaximo;
-  });
-  
-  // Calcular la nota según la fórmula
-  let notaCalculada = 0;
-  if (sumaPuntajesMaximos > 0) {
-    notaCalculada = (evaluacionNotaMaxima * sumaPuntajesObtenidos) / sumaPuntajesMaximos;
-  }
-  
-  // Actualizar el campo de nota con animación
-  if (notaField) {
-    // Agregar clase para animación
-    notaField.classList.add('nota-updating');
-    
-    // Actualizar valor
-    notaField.value = notaCalculada.toFixed(1);
-    
-    // Actualizar también el campo oculto para el formulario
-    const notaHidden = document.getElementById('nota_hidden');
-    if (notaHidden) {
-      notaHidden.value = notaField.value;
-    }
-    
-    // Remover clase después de la animación
-    setTimeout(() => {
-      notaField.classList.remove('nota-updating');
-    }, 300);
-  }
-  
-  // Mostrar información de debug (opcional)
-  console.log('Puntajes obtenidos:', sumaPuntajesObtenidos);
-  console.log('Puntajes máximos:', sumaPuntajesMaximos);
-  console.log('Nota calculada:', notaCalculada.toFixed(1));
-}
-
-// Agregar event listeners para los campos de criterio
-document.addEventListener('DOMContentLoaded', function() {
-  // Restaurar botón si hay errores de validación
-  const hasValidationErrors = document.querySelectorAll('.text-danger').length > 0;
-  if (hasValidationErrors) {
-    const submitButton = document.getElementById('btn-guardar-calificacion');
-    if (submitButton) {
-      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
-      submitButton.disabled = false;
-    }
-  }
-  
-  // Restaurar botón si hay mensajes de error del servidor
-  const hasServerErrors = document.querySelectorAll('.alert-danger, .alert-warning').length > 0;
-  if (hasServerErrors) {
-    const submitButton = document.getElementById('btn-guardar-calificacion');
-    if (submitButton) {
-      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
-      submitButton.disabled = false;
-    }
-  }
-  
-  // Restaurar botón si la página se cargó con errores de validación (URL con parámetros)
-  if (window.location.search.includes('error') || window.location.search.includes('invalid')) {
-    const submitButton = document.getElementById('btn-guardar-calificacion');
-    if (submitButton) {
-      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
-      submitButton.disabled = false;
-    }
-  }
-  
-  // Recalcular nota si hay valores preservados del formulario
-  recalcularNotaConValoresPreservados();
-  const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
-  
-  criterioFields.forEach(function(field) {
-    field.addEventListener('change', calcularNota);
-    
-    // Verificar si el campo tiene un valor preservado
-    if (field.value && field.value !== '') {
-      // Marcar que hay valores preservados
-      field.setAttribute('data-has-preserved-value', 'true');
-    }
-  });
-  
-  // Calcular nota inicial
-  calcularNota();
-  
-  // Recalcular nota después de un breve delay para asegurar que todos los campos estén cargados
-  setTimeout(() => {
-    recalcularNotaConValoresPreservados();
-  }, 100);
-  
-  // También recalcular cuando la página se carga con errores de validación
-  if (document.querySelectorAll('.text-danger').length > 0) {
-    setTimeout(() => {
-      recalcularNotaConValoresPreservados();
-    }, 200);
-  }
-  
-  // Función para recalcular nota cuando se cargan valores preservados
-  function recalcularNotaConValoresPreservados() {
-    // Verificar si hay valores seleccionados en los campos de criterio
-    const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
-    let hayValoresSeleccionados = false;
-    let valoresSeleccionados = [];
-    
-    criterioFields.forEach(function(field) {
-      if (field.value && field.value !== '') {
-        hayValoresSeleccionados = true;
-        valoresSeleccionados.push({
-          field: field,
-          value: field.value,
-          text: field.options[field.selectedIndex]?.text || ''
-        });
-      }
-    });
-    
-    // Si hay valores seleccionados, recalcular la nota
-    if (hayValoresSeleccionados) {
-      console.log('Valores preservados detectados:', valoresSeleccionados);
-      calcularNota();
-      
-      // También actualizar el campo oculto de nota
-      const notaHidden = document.getElementById('nota_hidden');
-      const notaField = document.getElementById('id_nota_calculada');
-      if (notaHidden && notaField && notaField.value) {
-        notaHidden.value = notaField.value;
-      }
-    }
-  }
-  
-  // Función para restaurar el botón de guardar
-  function restaurarBotonGuardar() {
-    const submitButton = document.getElementById('btn-guardar-calificacion');
-    if (submitButton) {
-      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
-      submitButton.disabled = false;
-    }
-  }
-  
-  // Verificar si hay errores de formulario y restaurar el botón
-  const hasFormErrors = document.querySelectorAll('.text-danger').length > 0;
-  if (hasFormErrors) {
-    restaurarBotonGuardar();
-  }
-  
-  // Verificar si hay mensajes de error del servidor
-  const errorMessages = document.querySelectorAll('.alert-danger, .alert-warning');
-  if (errorMessages.length > 0) {
-    restaurarBotonGuardar();
-  }
-  
-  // Verificar si la página se cargó con errores de validación (URL con parámetros)
-  if (window.location.search.includes('error') || window.location.search.includes('invalid')) {
-    restaurarBotonGuardar();
-  }
-  
-  // Recalcular nota si hay valores preservados del formulario
-  recalcularNotaConValoresPreservados();
-  
-  // Event listener para el botón de guardar
-  const submitButton = document.getElementById('btn-guardar-calificacion');
-  if (submitButton) {
-    submitButton.addEventListener('click', function(event) {
-      // Calcular la nota una vez más antes de enviar
-      calcularNota();
-      
-      // Verificar que la nota se haya calculado correctamente
-      const notaField = document.getElementById('id_nota_calculada');
-      if (notaField && notaField.value === '') {
-        event.preventDefault();
-        alert('Por favor, selecciona al menos un criterio antes de guardar la calificación.');
-        return false;
-      }
-      
-      // Guardar el estado original del botón
-      const originalContent = this.innerHTML;
-      const originalDisabled = this.disabled;
-      
-      // Mostrar indicador de guardado
-      this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
-      this.disabled = true;
-      
-      // Crear un timeout para restaurar el botón si no hay respuesta
-      const timeoutId = setTimeout(() => {
-        this.innerHTML = originalContent;
-        this.disabled = originalDisabled;
-        console.log('Timeout: Restaurando botón después de 10 segundos');
-      }, 10000);
-      
-      // Interceptar el envío del formulario para manejar errores
-      const form = this.closest('form');
-      if (form) {
-        const originalSubmit = form.onsubmit;
-        form.onsubmit = function(e) {
-          // Limpiar el timeout si el formulario se envía correctamente
-          clearTimeout(timeoutId);
-          
-          // Restaurar el botón después de un breve delay para permitir la redirección
-          setTimeout(() => {
-            submitButton.innerHTML = originalContent;
-            submitButton.disabled = originalDisabled;
-          }, 1000);
-          
-          return true;
-        };
-        
-        // También interceptar el evento submit del formulario
-        form.addEventListener('submit', function(e) {
-          // Limpiar el timeout
-          clearTimeout(timeoutId);
-          
-          // Restaurar el botón después de un breve delay
-          setTimeout(() => {
-            submitButton.innerHTML = originalContent;
-            submitButton.disabled = originalDisabled;
-          }, 1000);
-        });
-      }
-      
-      // El formulario se enviará automáticamente
-    });
-  }
-});
 
 
-</script>
-
-<style>
-/* Estilos para la nota calculada */
+  /* Estilos para la nota calculada */
 .nota-calculada-container {
   min-width: 200px;
 }
@@ -1651,4 +821,410 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
-{% endblock content %} 
+<div class="evaluacion-info">
+  <h4>
+    <i class="fas fa-clipboard-list me-2"></i>{{ evaluacion.nombre }}
+  </h4>
+  <p class="mb-3">{{ evaluacion.get_tipo_display }} - {{ evaluacion.fecha_inicio|date:"d/m/Y" }} a {{ evaluacion.fecha_fin|date:"d/m/Y" }}</p>
+  <div class="evaluacion-stats">
+    <div class="stat-item">
+      <span class="stat-value">{{ evaluacion.nota_maxima }}</span>
+      <span class="stat-label">Nota Máxima</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">{{ evaluacion.ponderacion }}%</span>
+      <span class="stat-label">Ponderación</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">{{ evaluacion.get_calificaciones_count }}</span>
+      <span class="stat-label">Calificaciones Registradas</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-value">{{ estudiantes.count }}</span>
+      <span class="stat-label">Disponibles para Calificar</span>
+    </div>
+  </div>
+</div>
+    
+{% if stats %}
+  <div class="alert alert-info mb-4">
+    <div class="d-flex align-items-center">
+      <i class="fas fa-info-circle me-2"></i>
+      <div>
+        <strong>Estadísticas de la Evaluación:</strong>
+        <br>
+        <small class="text-muted">
+          • Total estudiantes del curso: {{ stats.total_estudiantes_curso }}
+          • Estudiantes con entregas: {{ stats.total_estudiantes_con_entregas }}
+          • Ya calificados: {{ stats.estudiantes_ya_calificados }}
+          • Pendientes de calificar: {{ stats.estudiantes_disponibles_para_calificar }}
+        </small>
+      </div>
+    </div>
+  </div>
+{% endif %}
+    
+    <!-- Formulario de Calificación -->
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="form-card">
+      <div class="d-flex justify-content-between align-items-start mb-4">
+        <h4 class="mb-0">
+          <i class="fas fa-user-graduate me-2"></i>Calificar Estudiante
+        </h4>
+        <div class="text-end">
+          <div class="nota-calculada-container">
+            <div class="nota-calculada-card">
+              <div class="nota-calculada-header">
+                <i class="fas fa-star text-warning me-2"></i>
+                <span class="nota-calculada-title">Nota Calculada</span>
+              </div>
+              <div class="nota-calculada-value">
+                {{ form.nota }}
+                <!-- Debug: Mostrar el ID del campo de nota -->
+                <script>
+                  document.addEventListener('DOMContentLoaded', function() {
+                    const notaField = document.querySelector('input[name="nota"]');
+                    if (notaField) {
+                      console.log('Campo de nota encontrado:', notaField.id, notaField.name, notaField.className);
+                    } else {
+                      console.log('No se encontró campo de nota con name="nota"');
+                    }
+                  });
+                </script>
+              </div>
+              <div class="nota-calculada-footer">
+                <small class="text-muted">
+                  <i class="fas fa-calculator me-1"></i>
+                  Se calcula automáticamente
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <form method="post">
+        {% csrf_token %}
+        
+        <!-- Campo de nota oculto para enviar con el formulario -->
+        <input type="hidden" name="nota" id="nota_hidden" value="">
+        
+        <div class="form-group">
+          <label for="{{ form.estudiante.id_for_label }}" class="form-label">
+            <i class="fas fa-user me-1"></i>Estudiante *
+          </label>
+          {{ form.estudiante }}
+          {% if form.estudiante.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.estudiante.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if form.estudiante.help_text %}
+            <small class="form-text text-muted">{{ form.estudiante.help_text }}</small>
+          {% endif %}
+        </div>
+        
+        <!-- Campos dinámicos para criterios de la rúbrica -->
+        {% if evaluacion.rubrica %}
+          <div class="alert alert-info mb-4">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-list-check me-2"></i>
+              <div>
+                <strong>Rúbrica de Evaluación: {{ evaluacion.rubrica.nombre }}</strong>
+                <br>
+                <small class="text-muted">
+                  Selecciona el nivel de desempeño para cada criterio según la rúbrica.
+                </small>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Mostrar campos de criterio dinámicamente -->
+          {% for criterio in criterios_rubrica %}
+            <div class="form-group">
+              <label for="id_criterio_{{ criterio.id }}" class="form-label">
+                <i class="fas fa-check-circle me-1"></i>{{ criterio.nombre }} *
+              </label>
+              
+              <!-- Renderizar el campo usando el filtro específico para criterios -->
+              {% with criterio_field=form|get_criterio_field:criterio.id %}
+                {% if criterio_field %}
+                  {{ criterio_field }}
+                  {% if criterio_field.errors %}
+                    <div class="text-danger small mt-1">
+                      {% for error in criterio_field.errors %}
+                        {{ error }}
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                  {% if criterio_field.help_text %}
+                    <small class="form-text text-muted">{{ criterio_field.help_text }}</small>
+                  {% endif %}
+                {% else %}
+                  <div class="alert alert-warning">
+                    Campo no encontrado para criterio {{ criterio.id }}
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Esta evaluación no tiene una rúbrica asociada.</strong>
+            <br>
+            <small>Debes crear una rúbrica antes de poder calificar estudiantes.</small>
+          </div>
+        {% endif %}
+        
+        <div class="form-group">
+          <label for="{{ form.retroalimentacion.id_for_label }}" class="form-label">
+            <i class="fas fa-comment me-1"></i>Retroalimentación
+          </label>
+          {{ form.retroalimentacion }}
+          {% if form.retroalimentacion.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.retroalimentacion.errors %}
+                {{ error }}
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if form.retroalimentacion.help_text %}
+            <small class="form-text text-muted">{{ form.retroalimentacion.help_text }}</small>
+          {% endif %}
+        </div>
+        
+        <div class="d-flex justify-content-between align-items-center mt-4">
+          <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=calificaciones" class="btn btn-secondary">
+            <i class="fas fa-times me-2"></i>Cancelar
+          </a>
+          <button type="submit" class="btn btn-primary" id="btn-guardar-calificacion">
+            <i class="fas fa-save me-2"></i>Guardar Calificación
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+    
+    <!-- Lista de Estudiantes -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="section-content active">
+      <h4 class="mb-3">
+        <i class="fas fa-users me-2"></i>Estudiantes del Curso
+      </h4>
+      
+
+      
+      {% if todos_estudiantes %}
+        <div class="row">
+          {% for estudiante in todos_estudiantes %}
+            <div class="col-md-6 col-lg-4 mb-3">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                  <div class="mb-3">
+                    <div class="avatar bg-gradient-primary rounded-circle mx-auto" style="width: 60px; height: 60px;">
+                      <i class="fas fa-user text-white" style="font-size: 1.5rem;"></i>
+                    </div>
+                  </div>
+                  <h6 class="card-title mb-1">{{ estudiante.get_full_name|default:estudiante.username }}</h6>
+                  <p class="text-muted small mb-2">{{ estudiante.email }}</p>
+                  
+                  <!-- Mostrar estado de calificación -->
+                  {% with calificacion_actual=estudiante.calificaciones.all|first %}
+                    {% if calificacion_actual and calificacion_actual.evaluacion == evaluacion %}
+                      <div class="mb-2">
+                        {% if calificacion_actual.nota %}
+                          {% if calificacion_actual.nota >= 7.0 %}
+                            <span class="badge bg-success">{{ calificacion_actual.nota }}</span>
+                          {% elif calificacion_actual.nota >= 5.5 %}
+                            <span class="badge bg-info">{{ calificacion_actual.nota }}</span>
+                          {% elif calificacion_actual.nota >= 4.0 %}
+                            <span class="badge bg-warning">{{ calificacion_actual.nota }}</span>
+                          {% else %}
+                            <span class="badge bg-danger">{{ calificacion_actual.nota }}</span>
+                          {% endif %}
+                        {% else %}
+                          <span class="badge bg-secondary">Sin calificar</span>
+                        {% endif %}
+                      </div>
+                      <small class="text-muted mb-2 d-block">
+                        Calificada el {{ calificacion_actual.fecha_calificacion|date:"d/m/Y" }}
+                      </small>
+                      <button type="button" class="btn btn-edit-calificacion btn-sm edit-calificacion-btn"
+                              data-estudiante-id="{{ estudiante.id }}"
+                              data-estudiante-nombre="{{ estudiante.get_full_name|default:estudiante.username|escapejs }}"
+                              data-estudiante-email="{{ estudiante.email|escapejs }}"
+                              data-calificacion-id="{{ calificacion_actual.id }}"
+                              data-nota-actual="{{ calificacion_actual.nota|default:"" }}"
+                              data-nota-maxima="{{ evaluacion.nota_maxima }}"
+                              data-retroalimentacion="{{ calificacion_actual.retroalimentacion|default:""|escapejs }}"
+                              onclick="cargarDatosCalificacion('{{ calificacion_actual.id }}', this)">
+                        <i class="fas fa-edit me-1"></i>Editar
+                      </button>
+                    {% else %}
+                      <!-- Verificar si tiene entrega para esta evaluación -->
+                      {% with entrega_actual=estudiante.entregas.all|first %}
+                        {% if entrega_actual and entrega_actual.evaluacion == evaluacion %}
+                          <span class="badge bg-warning">Con entrega</span>
+                          <small class="text-muted mb-2 d-block">
+                            Entregado el {{ entrega_actual.fecha_entrega|date:"d/m/Y" }}
+                          </small>
+                          <span class="text-muted small">Pendiente de calificar</span>
+                        {% else %}
+                          <span class="badge bg-secondary">Sin entrega</span>
+                          <small class="text-muted">No ha entregado</small>
+                        {% endif %}
+                      {% endwith %}
+                    {% endif %}
+                  {% endwith %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-5">
+          <i class="fas fa-users fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted">No hay estudiantes inscritos</h5>
+          <p class="text-muted">No hay estudiantes inscritos en este curso.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal para editar calificación -->
+<div id="editCalificacionModal" class="modal-edit-calificacion" style="display: none;">
+  <div class="modal-content-edit">
+    <div class="modal-header-edit">
+      <h5><i class="fas fa-edit me-2"></i>Editar Calificación</h5>
+      <span class="close-modal" onclick="closeEditModal()">&times;</span>
+    </div>
+    <div class="modal-body-edit">
+      <div class="estudiante-info-edit">
+        <div class="estudiante-nombre-edit" id="modalEstudianteNombre"></div>
+        <div class="estudiante-email-edit" id="modalEstudianteEmail"></div>
+      </div>
+      
+      <form id="editCalificacionForm" method="post" action="{% url 'editar_calificacion' %}">
+        {% csrf_token %}
+        <input type="hidden" id="editCalificacionId" name="calificacion_id">
+        <input type="hidden" id="editEstudianteId" name="estudiante_id">
+        <input type="hidden" id="editEvaluacionId" name="evaluacion_id" value="{{ evaluacion.id }}">
+        
+        <!-- Criterios de la rúbrica -->
+        {% if evaluacion.rubrica %}
+          <div class="alert alert-info mb-3">
+            <div class="d-flex align-items-center">
+              <i class="fas fa-list-check me-2"></i>
+              <div>
+                <strong>Rúbrica: {{ evaluacion.rubrica.nombre }}</strong>
+                <br>
+                <small class="text-muted">
+                  Edita los criterios para recalcular la nota automáticamente.
+                </small>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Campos dinámicos para criterios -->
+          {% for criterio in criterios_rubrica %}
+            <div class="form-group-edit">
+              <label for="editCriterio_{{ criterio.id }}" class="form-label-edit">
+                <i class="fas fa-check-circle me-1"></i>{{ criterio.nombre }} *
+              </label>
+              <select id="editCriterio_{{ criterio.id }}" 
+                      name="criterio_{{ criterio.id }}" 
+                      class="form-control-edit edit-criterio-field"
+                      data-criterio-id="{{ criterio.id }}"
+                      data-criterio-puntaje-maximo="{{ criterio.puntaje|puntaje_entero }}"
+                      onfocus="cargarEsperablesDisponibles('{{ criterio.id }}', null, null, null)"
+                      required>
+                <option value="">Selecciona un nivel...</option>
+                <!-- Los esperables se cargarán dinámicamente desde JavaScript -->
+              </select>
+              <small class="text-muted">Puntaje máximo: {{ criterio.puntaje|puntaje_entero }} puntos</small>
+            </div>
+          {% endfor %}
+        {% endif %}
+        
+        <div class="form-group-edit">
+          <label for="editNota" class="form-label-edit">
+            <i class="fas fa-star me-1"></i>Nota Calculada *
+          </label>
+          <input type="number" 
+                 id="editNota" 
+                 name="nota" 
+                 class="form-control-edit" 
+                 step="0.1" 
+                 min="0" 
+                 max="10" 
+                 readonly>
+          <small class="text-muted">Nota máxima: <span id="modalNotaMaxima"></span></small>
+        </div>
+        
+        <div class="form-group-edit">
+          <label for="editRetroalimentacion" class="form-label-edit">
+            <i class="fas fa-comment me-1"></i>Retroalimentación
+          </label>
+          <textarea id="editRetroalimentacion" 
+                    name="retroalimentacion" 
+                    class="form-control-edit" 
+                    rows="3" 
+                    placeholder="Agrega retroalimentación para el estudiante..."
+                    style="white-space: pre-wrap;"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer-edit">
+      <button type="button" class="btn-cancel-edit" onclick="closeEditModal()">
+        <i class="fas fa-times me-1"></i>Cancelar
+      </button>
+      <button type="button" class="btn-edit-calificacion" onclick="saveEditCalificacion()">
+        <i class="fas fa-save me-1"></i>Guardar Cambios
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// Script específico para la página de calificar estudiante
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Inicializando página de calificar estudiante...');
+  
+  // Debug: Verificar todos los campos select en la página
+  const allSelectFields = document.querySelectorAll('select');
+  console.log('Total de campos select encontrados:', allSelectFields.length);
+  allSelectFields.forEach(function(field, index) {
+    console.log(`Campo ${index + 1}:`, field.id, field.name, field.className);
+  });
+  
+  // Debug: Verificar campos de criterio específicamente
+  const criterioFieldsDebug = document.querySelectorAll('select[name^="criterio_"]');
+  console.log('Campos de criterio por nombre encontrados:', criterioFieldsDebug.length);
+  criterioFieldsDebug.forEach(function(field, index) {
+    console.log(`Criterio ${index + 1}:`, field.id, field.name, field.className);
+  });
+  
+  // Debug: Verificar todos los campos de nota en la página
+  const allNotaFields = document.querySelectorAll('input[type="number"], input[name="nota"], .nota-calculada-value input');
+  console.log('Total de campos de nota encontrados:', allNotaFields.length);
+  allNotaFields.forEach(function(field, index) {
+    console.log(`Campo de nota ${index + 1}:`, field.id, field.name, field.className, field.value);
+  });
+  
+  // Calcular nota inicial después de un breve delay
+  setTimeout(() => {
+    console.log('Calculando nota inicial...');
+    calcularNota();
+  }, 100);
+});
+</script>
+

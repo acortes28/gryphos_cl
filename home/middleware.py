@@ -7,6 +7,23 @@ import traceback
 
 logger = logging.getLogger('home.middleware')
 
+class MessageCleanupMiddleware:
+    """
+    Middleware para limpiar automáticamente los mensajes después de mostrarlos
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        
+        # Limpiar mensajes después de procesar la respuesta
+        if hasattr(request, '_messages'):
+            storage = messages.get_messages(request)
+            storage.used = True  # Marcar todos los mensajes como usados
+        
+        return response
+
 class SessionTimeoutMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response

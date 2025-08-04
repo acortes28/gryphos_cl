@@ -103,7 +103,9 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "core.middleware.SessionFixMiddleware",
+    "core.middleware.NoCacheMiddleware",
     "home.middleware.SessionTimeoutMiddleware",
+    "home.middleware.MessageCleanupMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -199,6 +201,14 @@ STATICFILES_IGNORE_PATTERNS = [
     'icon-unknown.svg',
     'icon-unknown-alt.svg',
 ]
+
+# Configuración para prevenir caché de páginas dinámicas
+CACHE_MIDDLEWARE_SECONDS = 0
+CACHE_MIDDLEWARE_KEY_PREFIX = 'gryphos'
+
+# Configuración de mensajes
+MESSAGE_STORAGE = 'django.contrib.messages.storage.session.SessionStorage'
+MESSAGE_LEVEL = 20  # INFO level por defecto
 
 
 # Default primary key field type

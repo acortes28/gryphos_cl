@@ -144,6 +144,40 @@
     
     // Inicializar timer cuando se carga la página
     document.addEventListener('DOMContentLoaded', resetSessionTimer);
+    
+    // Función para limpiar mensajes del servidor
+    function clearServerMessages() {
+      fetch('/clear-messages/', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+          'Content-Type': 'application/json',
+        },
+      }).then(response => response.json())
+      .then(data => {
+        console.log('Mensajes limpiados del servidor');
+      })
+      .catch(error => {
+        console.error('Error al limpiar mensajes:', error);
+      });
+    }
+    
+    // Limpiar mensajes al cargar la página y después de mostrarlos
+    document.addEventListener('DOMContentLoaded', function() {
+      // Limpiar mensajes del servidor después de mostrarlos
+      setTimeout(clearServerMessages, 1000);
+      
+      // Prevenir caché de la página
+      if (window.performance && window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD) {
+        // Si es navegación hacia atrás/adelante, recargar la página
+        window.location.reload();
+      }
+    });
+    
+    // Limpiar mensajes antes de salir de la página
+    window.addEventListener('beforeunload', function() {
+      clearServerMessages();
+    });
   </script>
 
 </body>
