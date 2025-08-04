@@ -1,0 +1,235 @@
+{% load static %}
+{% load custom_filters %}
+
+<style>
+  .stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .stats-card h3 {
+    color: white;
+    margin-bottom: 10px;
+  }
+  
+  .stats-card .stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .stats-card .stat-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+  
+  .table-responsive {
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+  }
+  
+  .table td {
+    vertical-align: middle;
+  }
+  
+  .badge-stats {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+  }
+  
+  .estadisticas-evaluaciones-content,
+  .estadisticas-estudiantes-content,
+  .estadisticas-no-data-content {
+    display: block !important;
+  }
+</style>
+
+<!-- Contenido de Estadísticas -->
+<!-- Estadísticas Generales -->
+{% if estadisticas %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <h4 class="mb-3">
+        <i class="fas fa-chart-pie me-2"></i>Estadísticas Generales
+      </h4>
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <div class="stats-card">
+            <div class="stat-value">{{ estadisticas.promedio_general|floatformat:1|default:"N/A" }}</div>
+            <div class="stat-label">Promedio General</div>
+          </div>
+        </div>
+        <div class="col-md-3 mb-3">
+          <div class="stats-card">
+            <div class="stat-value">{{ estadisticas.nota_minima|floatformat:1|default:"N/A" }}</div>
+            <div class="stat-label">Nota Mínima</div>
+          </div>
+        </div>
+        <div class="col-md-3 mb-3">
+          <div class="stats-card">
+            <div class="stat-value">{{ estadisticas.nota_maxima|floatformat:1|default:"N/A" }}</div>
+            <div class="stat-label">Nota Máxima</div>
+          </div>
+        </div>
+        <div class="col-md-3 mb-3">
+          <div class="stats-card">
+            <div class="stat-value">{{ estadisticas.total_estudiantes }}</div>
+            <div class="stat-label">Total Estudiantes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Estadísticas por Evaluación -->
+{% if estadisticas_evaluaciones %}
+  <div class="estadisticas-evaluaciones-content">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="mb-0">
+        <i class="fas fa-clipboard-list me-2"></i>Estadísticas por Evaluación
+      </h4>
+      <div class="d-flex gap-2">
+        <button onclick="window.location.href='{% url 'exportar_calificaciones_excel' curso.id %}'" class="btn btn-success">
+          <i class="fas fa-file-excel me-1"></i>Exportar Detallado
+        </button>
+        <button onclick="cargarCalificaciones()" class="btn btn-secondary">
+          <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+        </button>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Evaluación</th>
+            <th>Tipo</th>
+            <th>Fecha</th>
+            <th>Calificaciones</th>
+            <th>Promedio</th>
+            <th>Mínima</th>
+            <th>Máxima</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stats in estadisticas_evaluaciones %}
+            <tr>
+              <td>
+                <strong>{{ stats.evaluacion.nombre }}</strong>
+                {% if stats.evaluacion.descripcion %}
+                  <br><small class="text-muted">{{ stats.evaluacion.descripcion|truncatewords:10 }}</small>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge bg-primary badge-stats">{{ stats.evaluacion.get_tipo_display }}</span>
+              </td>
+              <td>{{ stats.evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ stats.evaluacion.fecha_fin|date:"d/m/Y" }}</td>
+              <td>
+                <span class="badge bg-info badge-stats">{{ stats.total_calificaciones }}</span>
+              </td>
+              <td>
+                {% if stats.promedio %}
+                  <span class="badge bg-success badge-stats">{{ stats.promedio|floatformat:1 }}</span>
+                {% else %}
+                  <span class="badge bg-secondary badge-stats">N/A</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if stats.nota_minima %}
+                  <span class="badge bg-warning badge-stats">{{ stats.nota_minima|floatformat:1 }}</span>
+                {% else %}
+                  <span class="badge bg-secondary badge-stats">N/A</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if stats.nota_maxima %}
+                  <span class="badge bg-info badge-stats">{{ stats.nota_maxima|floatformat:1 }}</span>
+                {% else %}
+                  <span class="badge bg-secondary badge-stats">N/A</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Estadísticas por Estudiante -->
+{% if estadisticas_estudiantes %}
+  <div class="estadisticas-estudiantes-content">
+    <h4 class="mb-3">
+      <i class="fas fa-users me-2"></i>Estadísticas por Estudiante
+    </h4>
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Estudiante</th>
+            <th>Email</th>
+            <th>Calificaciones</th>
+            <th>Promedio</th>
+            <th>Mínima</th>
+            <th>Máxima</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for stats in estadisticas_estudiantes %}
+            <tr>
+              <td>
+                <strong>{{ stats.estudiante.get_full_name|default:stats.estudiante.username }}</strong>
+              </td>
+              <td>{{ stats.estudiante.email }}</td>
+              <td>
+                <span class="badge bg-info badge-stats">{{ stats.total_calificaciones }}</span>
+              </td>
+              <td>
+                {% if stats.promedio %}
+                  <span class="badge bg-success badge-stats">{{ stats.promedio|floatformat:1 }}</span>
+                {% else %}
+                  <span class="badge bg-secondary badge-stats">N/A</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if stats.nota_minima %}
+                  <span class="badge bg-warning badge-stats">{{ stats.nota_minima|floatformat:1 }}</span>
+                {% else %}
+                  <span class="badge bg-secondary badge-stats">N/A</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if stats.nota_maxima %}
+                  <span class="badge bg-info badge-stats">{{ stats.nota_maxima|floatformat:1 }}</span>
+                {% else %}
+                  <span class="badge bg-secondary badge-stats">N/A</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Mensaje si no hay datos -->
+{% if not estadisticas and not estadisticas_evaluaciones and not estadisticas_estudiantes %}
+  <div class="estadisticas-no-data-content text-center">
+    <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+    <h5 class="text-muted">No hay estadísticas disponibles</h5>
+    <p class="text-muted">Las estadísticas aparecerán aquí una vez que se registren calificaciones en el curso.</p>
+    <button onclick="cargarCalificaciones()" class="btn btn-primary">
+      <i class="fas fa-arrow-left me-2"></i>Volver a Calificaciones
+    </button>
+  </div>
+{% endif %} 

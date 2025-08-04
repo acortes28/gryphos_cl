@@ -5346,7 +5346,181 @@ def plataforma_calificaciones_ajax(request, curso_id):
                 html = render_to_string('pages/plataforma_calificaciones_rubricas_content.html', context, request=request)
                 return JsonResponse({'html': html})
         
-        # Vista principal de calificaciones
+        elif action == 'ver_estadisticas':
+            # Cargar vista de estadísticas
+            try:
+                print(f"=== INICIANDO ESTADISTICAS ===")
+                print(f"Usuario: {request.user.username}")
+                print(f"Es staff: {request.user.is_staff}")
+                print(f"Curso ID: {curso.id}")
+                
+                if request.user.is_staff:
+                    # Estadísticas para staff
+                    evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('-fecha_creacion')
+                    calificaciones_curso = Calificacion.objects.filter(evaluacion__curso=curso, nota__isnull=False)
+                    
+                    # Estadísticas generales
+                    if calificaciones_curso.exists():
+                        estadisticas = {
+                            'promedio_general': calificaciones_curso.aggregate(Avg('nota'))['nota__avg'],
+                            'nota_minima': calificaciones_curso.aggregate(Min('nota'))['nota__min'],
+                            'nota_maxima': calificaciones_curso.aggregate(Max('nota'))['nota__max'],
+                            'total_estudiantes': curso.usuarios.filter(is_staff=False, is_superuser=False).count(),
+                        }
+                    else:
+                        estadisticas = None
+                    
+                    # Estadísticas por evaluación
+                    estadisticas_evaluaciones = []
+                    for evaluacion in evaluaciones:
+                        calificaciones_eval = calificaciones_curso.filter(evaluacion=evaluacion)
+                        stats = {
+                            'evaluacion': evaluacion,
+                            'total_calificaciones': calificaciones_eval.count(),
+                            'promedio': calificaciones_eval.aggregate(Avg('nota'))['nota__avg'] if calificaciones_eval.exists() else None,
+                            'nota_minima': calificaciones_eval.aggregate(Min('nota'))['nota__min'] if calificaciones_eval.exists() else None,
+                            'nota_maxima': calificaciones_eval.aggregate(Max('nota'))['nota__max'] if calificaciones_eval.exists() else None,
+                        }
+                        estadisticas_evaluaciones.append(stats)
+                    
+                    # Estadísticas por estudiante
+                    estudiantes = curso.usuarios.filter(is_staff=False, is_superuser=False).order_by('first_name', 'last_name')
+                    estadisticas_estudiantes = []
+                    
+                    for estudiante in estudiantes:
+                        calificaciones_est = calificaciones_curso.filter(estudiante=estudiante)
+                        stats = {
+                            'estudiante': estudiante,
+                            'total_calificaciones': calificaciones_est.count(),
+                            'promedio': calificaciones_est.aggregate(Avg('nota'))['nota__avg'] if calificaciones_est.exists() else None,
+                            'nota_minima': calificaciones_est.aggregate(Min('nota'))['nota__min'] if calificaciones_est.exists() else None,
+                            'nota_maxima': calificaciones_est.aggregate(Max('nota'))['nota__max'] if calificaciones_est.exists() else None,
+                        }
+                        estadisticas_estudiantes.append(stats)
+                    
+                    context = {
+                        'curso': curso,
+                        'estadisticas': estadisticas,
+                        'estadisticas_evaluaciones': estadisticas_evaluaciones,
+                        'estadisticas_estudiantes': estadisticas_estudiantes,
+                        'evaluaciones': evaluaciones,
+                        'mostrar_estadisticas': True,
+                    }
+                    
+                    html = render_to_string('pages/estadisticas_curso_content.html', context, request=request)
+                    
+                    print(f"=== DEBUG ESTADISTICAS ===")
+                    print(f"Estadísticas evaluaciones: {len(estadisticas_evaluaciones)}")
+                    print(f"Estadísticas estudiantes: {len(estadisticas_estudiantes)}")
+                    print(f"HTML length: {len(html)}")
+                    
+                    return JsonResponse({'html': html})
+                else:
+                    # Estadísticas para estudiantes
+                    calificaciones_usuario = Calificacion.objects.filter(
+                        evaluacion__curso=curso,
+                        estudiante=request.user
+                    ).order_by('-fecha_calificacion')
+                    
+                    calificaciones_con_nota = calificaciones_usuario.filter(nota__isnull=False)
+                    total_evaluaciones = Evaluacion.objects.filter(curso=curso).count()
+                    
+                    if calificaciones_con_nota.exists():
+                        # Calcular promedio ponderado
+                        suma_ponderada = 0
+                        suma_ponderaciones = 0
+                        evaluaciones_calificadas = 0
+                        
+                        for calificacion in calificaciones_con_nota:
+                            nota_ponderada = calificacion.nota * calificacion.evaluacion.ponderacion
+                            suma_ponderada += nota_ponderada
+                            suma_ponderaciones += calificacion.evaluacion.ponderacion
+                            evaluaciones_calificadas += 1
+                        
+                        if suma_ponderaciones > 0:
+                            promedio_ponderado = suma_ponderada / suma_ponderaciones
+                            estadisticas_estudiante = {
+                                'promedio_ponderado': promedio_ponderado,
+                                'evaluaciones_calificadas': evaluaciones_calificadas,
+                                'total_evaluaciones': total_evaluaciones,
+                                'suma_ponderaciones': suma_ponderaciones
+                            }
+                        else:
+                            estadisticas_estudiante = {
+                                'evaluaciones_calificadas': evaluaciones_calificadas,
+                                'total_evaluaciones': total_evaluaciones,
+                                'suma_ponderaciones': suma_ponderaciones
+                            }
+                    else:
+                        estadisticas_estudiante = {
+                            'evaluaciones_calificadas': 0,
+                            'total_evaluaciones': total_evaluaciones,
+                            'suma_ponderaciones': 0
+                        }
+                    
+                    context = {
+                        'curso': curso,
+                        'calificaciones_usuario': calificaciones_usuario,
+                        'estadisticas_estudiante': estadisticas_estudiante,
+                        'mostrar_estadisticas': True,
+                    }
+                    
+                    html = render_to_string('pages/estadisticas_curso_content.html', context, request=request)
+                    return JsonResponse({'html': html})
+            except Exception as e:
+                print(f"=== ERROR EN ESTADISTICAS ===")
+                print(f"Error: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                return JsonResponse({'error': 'Error al cargar las estadísticas'}, status=500)
+        
+        elif action == 'ver_evaluacion':
+            # Cargar detalle de una evaluación específica
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if evaluacion_id:
+                try:
+                    evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                    
+                    if request.user.is_staff:
+                        # Vista para staff - mostrar entregas y calificaciones
+                        entregas = evaluacion.entregas.all().order_by('-fecha_entrega')
+                        calificaciones = evaluacion.calificaciones.all().order_by('-fecha_calificacion')
+                        
+                        context = {
+                            'curso': curso,
+                            'evaluacion': evaluacion,
+                            'entregas': entregas,
+                            'calificaciones': calificaciones,
+                            'mostrar_detalle_evaluacion': True,
+                        }
+                    else:
+                        # Vista para estudiantes - mostrar su entrega y calificación
+                        try:
+                            entrega = evaluacion.entregas.get(estudiante=request.user)
+                        except Entrega.DoesNotExist:
+                            entrega = None
+                        
+                        try:
+                            calificacion = evaluacion.calificaciones.get(estudiante=request.user)
+                        except Calificacion.DoesNotExist:
+                            calificacion = None
+                        
+                        context = {
+                            'curso': curso,
+                            'evaluacion': evaluacion,
+                            'entrega': entrega,
+                            'calificacion': calificacion,
+                            'mostrar_detalle_evaluacion': True,
+                        }
+                    
+                    html = render_to_string('pages/plataforma_calificaciones_evaluacion_content.html', context, request=request)
+                    return JsonResponse({'html': html})
+                except Evaluacion.DoesNotExist:
+                    return JsonResponse({'error': 'La evaluación no existe'}, status=404)
+            else:
+                return JsonResponse({'error': 'ID de evaluación no proporcionado'}, status=400)
+        
+        # Vista principal de calificaciones (sin acción específica)
         context = {
             'curso': curso,
             'user': request.user,

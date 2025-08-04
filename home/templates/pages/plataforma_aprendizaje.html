@@ -850,11 +850,7 @@
       <!-- Contenido de la sección Recursos -->
     </div>
     
-    <div id="seccion-calificaciones" class="section-content">
-      <h4>Calificaciones y Progreso</h4>
-      <p>Revisa tu progreso y calificaciones en el curso.</p>
-      <!-- Contenido de la sección Calificaciones -->
-    </div>
+
     
     <div id="seccion-soporte" class="section-content">
       <div class="text-center py-5">
@@ -966,17 +962,40 @@ function cambiarSeccion(seccion) {
   if (seccion === 'foro') {
     cargarForoContenido();
   } else if (seccion === 'calificaciones') {
-    // Cargar calificaciones vía AJAX
-    fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}`, {
+    // Verificar si hay parámetros específicos en la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get('action');
+    const evaluacionId = urlParams.get('evaluacion_id');
+    
+    let url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+    
+    // Si hay una acción específica, agregarla a la URL
+    if (action) {
+      url += `?action=${action}`;
+      if (evaluacionId) {
+        url += `&evaluacion_id=${evaluacionId}`;
+      }
+    }
+    
+    // Cargar contenido de calificaciones vía AJAX
+    fetch(url, {
       headers: {
         'X-Requested-With': 'XMLHttpRequest'
       }
     })
       .then(response => response.json())
-      .then(data => {
-        document.getElementById('seccion-calificaciones').innerHTML = data.html;
-        document.getElementById('seccion-calificaciones').classList.add('active');
-        document.getElementById('loading').classList.remove('show');
+          .then(data => {
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      
+      // Ocultar todas las secciones primero
+      document.querySelectorAll('.section-content').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // Actualizar contenido y mostrar sección de calificaciones
+      seccionCalificaciones.innerHTML = data.html;
+      seccionCalificaciones.classList.add('active');
+      document.getElementById('loading').classList.remove('show');
         
         // Hacer scroll hacia las evaluaciones después de cargar
         setTimeout(() => {
@@ -989,6 +1008,13 @@ function cambiarSeccion(seccion) {
         // Actualizar URL sin recargar
         const url = new URL(window.location);
         url.searchParams.set('seccion', 'calificaciones');
+        // Mantener los parámetros específicos si existen
+        if (action) {
+          url.searchParams.set('action', action);
+          if (evaluacionId) {
+            url.searchParams.set('evaluacion_id', evaluacionId);
+          }
+        }
         window.history.pushState({}, '', url);
       })
       .catch(error => {
@@ -1713,6 +1739,195 @@ function inicializarModalReemplazo() {
 // Función para cargar contenido de soporte
 function cargarSoporteContenido() {
   cambiarSeccion('soporte');
+}
+
+// ============================================================================
+// FUNCIONES PARA EL SISTEMA DE CALIFICACIONES
+// ============================================================================
+
+// Función para cargar estadísticas de calificaciones
+function cargarEstadisticasCalificaciones() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_estadisticas`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_estadisticas');
+        window.history.pushState({}, '', url);
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando estadísticas:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      if (seccionCalificaciones) {
+        seccionCalificaciones.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar las estadísticas</h4>
+            <p>Hubo un problema al cargar las estadísticas. Por favor, intenta nuevamente.</p>
+            <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </button>
+          </div>
+        `;
+        seccionCalificaciones.classList.add('active');
+      }
+    });
+}
+
+// Función para cargar rúbricas de calificaciones
+function cargarRubricasCalificaciones() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_rubricas`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_rubricas');
+        window.history.pushState({}, '', url);
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando rúbricas:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para cargar detalle de evaluación
+function cargarDetalleEvaluacion(evaluacionId) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_evaluacion&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_evaluacion');
+        url.searchParams.set('evaluacion_id', evaluacionId);
+        window.history.pushState({}, '', url);
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando detalle de evaluación:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para volver a calificaciones principales
+function cargarCalificaciones() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        // Limpiar parámetros específicos
+        url.searchParams.delete('action');
+        url.searchParams.delete('evaluacion_id');
+        window.history.pushState({}, '', url);
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando calificaciones:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
 }
 
 // ============================================================================
