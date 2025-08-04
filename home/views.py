@@ -5453,6 +5453,53 @@ def plataforma_calificaciones_ajax(request, curso_id):
                 logger.debug(f"Traceback: {traceback.format_exc()}")
                 return JsonResponse({'error': f'Error al cargar la vista de calificación: {str(e)}'}, status=500)
         
+        elif action == 'ver_editar_evaluacion':
+            # Cargar vista de editar evaluación
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso)
+                
+                # Verificar permisos
+                if not request.user.is_staff:
+                    return JsonResponse({'error': 'No tienes permisos para editar evaluaciones'}, status=403)
+                
+                # Crear formulario
+                from .forms import EvaluacionForm
+                form = EvaluacionForm(instance=evaluacion, curso=curso)
+                
+                # Asegurar que las fechas estén en formato ISO para HTML5 date inputs
+                # Forzar el formato ISO independientemente de la configuración de Django
+                if evaluacion.fecha_inicio:
+                    form.fields['fecha_inicio'].widget.attrs['value'] = evaluacion.fecha_inicio.strftime('%Y-%m-%d')
+                    # También establecer el formato de visualización para evitar problemas de localización
+                    form.fields['fecha_inicio'].widget.format = '%Y-%m-%d'
+                if evaluacion.fecha_fin:
+                    form.fields['fecha_fin'].widget.attrs['value'] = evaluacion.fecha_fin.strftime('%Y-%m-%d')
+                    # También establecer el formato de visualización para evitar problemas de localización
+                    form.fields['fecha_fin'].widget.format = '%Y-%m-%d'
+                
+                context = {
+                    'curso': curso,
+                    'evaluacion': evaluacion,
+                    'form': form,
+                    'user': request.user,
+                }
+                
+                # Renderizar solo el contenido del formulario
+                html = render_to_string('pages/editar_evaluacion_content.html', context, request=request)
+                return JsonResponse({'html': html})
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.debug(f"Error al cargar editar evaluación: {str(e)}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': f'Error al cargar la vista de editar evaluación: {str(e)}'}, status=500)
+        
         elif action == 'ver_rubrica':
             # Cargar vista de rúbrica específica
             evaluacion_id = request.GET.get('evaluacion_id')
@@ -5840,3 +5887,75 @@ def clear_messages(request):
         return JsonResponse({'status': 'success', 'message': 'Mensajes limpiados'})
     else:
         return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+@login_required
+def editar_evaluacion_ajax(request, curso_id, evaluacion_id):
+    """
+    Vista AJAX para editar evaluación como subsección de la plataforma de aprendizaje
+    """
+    try:
+        curso = get_object_or_404(Curso, id=curso_id)
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+        
+        # Verificar permisos
+        if not request.user.is_staff:
+            return JsonResponse({'error': 'No tienes permisos para editar evaluaciones.'}, status=403)
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if not request.user.cursos.filter(id=curso_id).exists():
+            return JsonResponse({'error': 'No tienes acceso a este curso.'}, status=403)
+        
+        if request.method == 'POST':
+            form = EvaluacionForm(request.POST, instance=evaluacion, curso=curso)
+            if form.is_valid():
+                evaluacion = form.save(commit=False)
+                evaluacion.curso = curso
+                evaluacion.save()
+                
+                # Retornar respuesta de éxito
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Evaluación "{evaluacion.nombre}" actualizada exitosamente.',
+                    'redirect_url': f'/curso/{curso_id}/plataforma/?seccion=calificaciones'
+                })
+            else:
+                # Retornar errores del formulario
+                errors = {}
+                for field, field_errors in form.errors.items():
+                    errors[field] = [str(error) for error in field_errors]
+                return JsonResponse({
+                    'success': False,
+                    'errors': errors
+                })
+        else:
+            # GET request - mostrar formulario
+            form = EvaluacionForm(instance=evaluacion, curso=curso)
+            
+            # Asegurar que las fechas estén en formato ISO para HTML5 date inputs
+            # Forzar el formato ISO independientemente de la configuración de Django
+            if evaluacion.fecha_inicio:
+                form.fields['fecha_inicio'].widget.attrs['value'] = evaluacion.fecha_inicio.strftime('%Y-%m-%d')
+                # También establecer el formato de visualización para evitar problemas de localización
+                form.fields['fecha_inicio'].widget.format = '%Y-%m-%d'
+            if evaluacion.fecha_fin:
+                form.fields['fecha_fin'].widget.attrs['value'] = evaluacion.fecha_fin.strftime('%Y-%m-%d')
+                # También establecer el formato de visualización para evitar problemas de localización
+                form.fields['fecha_fin'].widget.format = '%Y-%m-%d'
+            
+            context = {
+                'curso': curso,
+                'evaluacion': evaluacion,
+                'form': form,
+                'user': request.user,
+            }
+            
+            # Renderizar solo el contenido del formulario
+            html = render_to_string('pages/editar_evaluacion_content.html', context, request=request)
+            return JsonResponse({'html': html})
+            
+    except Curso.DoesNotExist:
+        return JsonResponse({'error': 'El curso no existe'}, status=404)
+    except Evaluacion.DoesNotExist:
+        return JsonResponse({'error': 'La evaluación no existe'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Error inesperado: {str(e)}'}, status=500)

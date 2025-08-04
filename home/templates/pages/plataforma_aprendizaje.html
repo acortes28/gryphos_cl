@@ -1951,6 +1951,203 @@ function cargarRubrica(evaluacionId) {
     });
 }
 
+// Función para cargar vista de editar evaluación
+function cargarEditarEvaluacion(evaluacionId) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_editar_evaluacion&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_editar_evaluacion');
+        url.searchParams.set('evaluacion_id', evaluacionId);
+        window.history.pushState({}, '', url);
+        
+        // Inicializar el formulario después de cargar el contenido
+        setTimeout(() => {
+          inicializarFormularioEditarEvaluacion();
+        }, 100);
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando vista de editar evaluación:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      if (seccionCalificaciones) {
+        seccionCalificaciones.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar la vista de editar evaluación</h4>
+            <p>Hubo un problema al cargar la vista de editar evaluación. Por favor, intenta nuevamente.</p>
+            <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </button>
+          </div>
+        `;
+        seccionCalificaciones.classList.add('active');
+      }
+    });
+}
+
+// Función para inicializar el formulario de editar evaluación
+function inicializarFormularioEditarEvaluacion() {
+  const form = document.getElementById('form-editar-evaluacion');
+  if (form) {
+    // Inicializar campos de fecha con los valores de la evaluación
+    inicializarCamposFecha();
+    
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const mensajeDiv = document.getElementById('mensaje-editar-evaluacion');
+      const submitBtn = document.getElementById('btn-guardar-evaluacion');
+      
+      // Limpiar mensajes anteriores
+      mensajeDiv.innerHTML = '';
+      
+      // Mostrar indicador de carga
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...';
+      submitBtn.disabled = true;
+      
+      // Obtener el curso_id y evaluacion_id de la URL actual
+      const urlParams = new URLSearchParams(window.location.search);
+      const cursoId = window.location.pathname.split('/')[2];
+      const evaluacionId = window.location.pathname.split('/')[5];
+      
+      fetch(`/curso/${cursoId}/plataforma/calificaciones/editar/${evaluacionId}/ajax/`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Mostrar mensaje de éxito
+          mensajeDiv.innerHTML = `
+            <div class="alert alert-success alert-dismissible">
+              <i class="fas fa-check-circle me-2"></i>${data.message}
+              <button type="button" class="btn-close" aria-label="Cerrar">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+          `;
+          
+          // Redirigir después de 2 segundos
+          setTimeout(() => {
+            cargarCalificaciones();
+          }, 2000);
+        } else {
+          // Mostrar errores
+          let errorHtml = '<div class="alert alert-danger alert-dismissible"><ul class="mb-0">';
+          if (data.errors) {
+            for (const field in data.errors) {
+              data.errors[field].forEach(error => {
+                errorHtml += `<li>${error}</li>`;
+              });
+            }
+          } else if (data.error) {
+            errorHtml += `<li>${data.error}</li>`;
+          }
+          errorHtml += '</ul><button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
+          mensajeDiv.innerHTML = errorHtml;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        mensajeDiv.innerHTML = `
+          <div class="alert alert-danger alert-dismissible">
+            <i class="fas fa-exclamation-triangle me-2"></i>Error al guardar la evaluación. Por favor, intenta nuevamente.
+            <button type="button" class="btn-close" aria-label="Cerrar">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+        `;
+      })
+      .finally(() => {
+        // Restaurar el botón
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      });
+    });
+  }
+}
+
+// Función para inicializar los campos de fecha
+function inicializarCamposFecha() {
+  console.log('🔍 Iniciando búsqueda de campos de fecha...');
+  
+  // Buscar campos de fecha
+  const fechaInicioField = document.querySelector('input[name="fecha_inicio"]') || 
+                          document.querySelector('input[id*="fecha_inicio"]') ||
+                          document.querySelector('input[type="date"]:first-of-type');
+  
+  const fechaFinField = document.querySelector('input[name="fecha_fin"]') || 
+                       document.querySelector('input[id*="fecha_fin"]') ||
+                       document.querySelector('input[type="date"]:last-of-type');
+  
+  console.log('Campos encontrados:');
+  console.log('Fecha inicio:', !!fechaInicioField);
+  console.log('Fecha fin:', !!fechaFinField);
+  
+  // Debug: mostrar todos los campos de fecha en la página
+  const todosLosCamposFecha = document.querySelectorAll('input[type="date"]');
+  console.log('Todos los campos de fecha encontrados:', todosLosCamposFecha.length);
+  todosLosCamposFecha.forEach((campo, index) => {
+    console.log(`Campo ${index + 1}:`, {
+      id: campo.id,
+      name: campo.name,
+      value: campo.value
+    });
+  });
+  
+  // Verificar que los campos tengan valores correctos
+  if (fechaInicioField) {
+    console.log('✅ Campo fecha inicio encontrado con valor:', fechaInicioField.value);
+  } else {
+    console.log('❌ No se encontró el campo de fecha de inicio');
+  }
+  
+  if (fechaFinField) {
+    console.log('✅ Campo fecha fin encontrado con valor:', fechaFinField.value);
+  } else {
+    console.log('❌ No se encontró el campo de fecha de fin');
+  }
+}
+
 // Función para cargar vista de calificar estudiantes
 function cargarCalificar(evaluacionId) {
   // Mostrar loading

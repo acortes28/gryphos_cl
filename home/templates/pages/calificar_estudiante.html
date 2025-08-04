@@ -853,7 +853,7 @@
       <div>
         <strong>Estadísticas de la Evaluación:</strong>
         <br>
-        <small class="text-muted">
+        <small class="mb-3">
           • Total estudiantes del curso: {{ stats.total_estudiantes_curso }}
           • Estudiantes con entregas: {{ stats.total_estudiantes_con_entregas }}
           • Ya calificados: {{ stats.estudiantes_ya_calificados }}
@@ -881,17 +881,6 @@
               </div>
               <div class="nota-calculada-value">
                 {{ form.nota }}
-                <!-- Debug: Mostrar el ID del campo de nota -->
-                <script>
-                  document.addEventListener('DOMContentLoaded', function() {
-                    const notaField = document.querySelector('input[name="nota"]');
-                    if (notaField) {
-                      console.log('Campo de nota encontrado:', notaField.id, notaField.name, notaField.className);
-                    } else {
-                      console.log('No se encontró campo de nota con name="nota"');
-                    }
-                  });
-                </script>
               </div>
               <div class="nota-calculada-footer">
                 <small class="text-muted">
