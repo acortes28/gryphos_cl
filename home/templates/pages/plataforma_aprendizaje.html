@@ -1328,7 +1328,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
-  // Event delegation para botones de soporte
+  // Event delegation para botones de soporte y calificaciones
   document.addEventListener('click', function(e) {
     const action = e.target.closest('[data-action]')?.getAttribute('data-action');
     
@@ -1357,12 +1357,39 @@ document.addEventListener('DOMContentLoaded', function() {
       const ticketId = e.target.closest('[data-action]').getAttribute('data-ticket-id');
       verTicket(ticketId);
     }
+    
+    // Manejo específico para botones de calificaciones
+    if (e.target.matches('button[onclick*="cargarEliminarEvaluacion"]')) {
+      e.preventDefault();
+      const evaluacionId = e.target.getAttribute('onclick').match(/cargarEliminarEvaluacion\((\d+)\)/)?.[1];
+      if (evaluacionId) {
+        console.log('Llamando a cargarEliminarEvaluacion con ID:', evaluacionId);
+        cargarEliminarEvaluacion(evaluacionId);
+      }
+    } else if (e.target.matches('button[onclick*="cargarCalificar"]')) {
+      e.preventDefault();
+      const evaluacionId = e.target.getAttribute('onclick').match(/cargarCalificar\((\d+)\)/)?.[1];
+      if (evaluacionId) {
+        console.log('Llamando a cargarCalificar con ID:', evaluacionId);
+        cargarCalificar(evaluacionId);
+      }
+    } else if (e.target.matches('button[onclick*="cargarEditarEvaluacion"]')) {
+      e.preventDefault();
+      const evaluacionId = e.target.getAttribute('onclick').match(/cargarEditarEvaluacion\((\d+)\)/)?.[1];
+      if (evaluacionId) {
+        console.log('Llamando a cargarEditarEvaluacion con ID:', evaluacionId);
+        cargarEditarEvaluacion(evaluacionId);
+      }
+    }
   });
   
   // Inicializar con la sección activa desde la URL
   const urlParams = new URLSearchParams(window.location.search);
   const seccionActiva = urlParams.get('seccion') || 'inicio';
   cambiarSeccion(seccionActiva);
+  
+  // Iniciar observer para detectar contenido de eliminación
+  iniciarObserverEliminacion();
 });
 
 // Función para mostrar el modal de confirmación
@@ -2211,6 +2238,105 @@ function cargarCalificar(evaluacionId) {
     });
 }
 
+// Función para cargar vista de eliminar evaluación
+function cargarEliminarEvaluacion(evaluacionId) {
+  console.log('=== DEBUG: cargarEliminarEvaluacion ===');
+  console.log('evaluacionId:', evaluacionId);
+  
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}?action=eliminar_evaluacion&evaluacion_id=${evaluacionId}`;
+  console.log('URL de fetch:', url);
+  
+  fetch(url, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('=== DEBUG: Respuesta recibida ===');
+      console.log('data:', data);
+      
+      if (data.html) {
+        console.log('HTML recibido, longitud:', data.html.length);
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        console.log('seccionCalificaciones:', seccionCalificaciones);
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        console.log('Secciones ocultadas, activando sección de calificaciones...');
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Asegurar visibilidad de la sección
+        seccionCalificaciones.style.display = 'block';
+        seccionCalificaciones.style.visibility = 'visible';
+        seccionCalificaciones.style.opacity = '1';
+        
+        // Asegurar visibilidad del contenido de eliminación si existe
+        setTimeout(() => {
+          const eliminarContent = seccionCalificaciones.querySelector('.eliminar-evaluacion-content');
+          if (eliminarContent) {
+            eliminarContent.style.display = 'block';
+            eliminarContent.style.visibility = 'visible';
+            eliminarContent.style.opacity = '1';
+          }
+        }, 50);
+        
+
+        
+                // Inicializar funciones de eliminación después de cargar el contenido
+        setTimeout(() => {
+          inicializarEliminacionSiExiste();
+        }, 100);
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'eliminar_evaluacion');
+        url.searchParams.set('evaluacion_id', evaluacionId);
+        window.history.pushState({}, '', url);
+      } else {
+        console.log('No se recibió HTML en la respuesta');
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando vista de eliminación:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      if (seccionCalificaciones) {
+        seccionCalificaciones.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar la vista de eliminación</h4>
+            <p>Hubo un problema al cargar la vista de eliminación. Por favor, intenta nuevamente.</p>
+            <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </button>
+          </div>
+        `;
+        seccionCalificaciones.classList.add('active');
+      }
+    });
+}
+
 // Función para volver a calificaciones principales
 function cargarCalificaciones() {
   // Mostrar loading
@@ -2251,6 +2377,145 @@ function cargarCalificaciones() {
       console.error('Error cargando calificaciones:', error);
       document.getElementById('loading').classList.remove('show');
     });
+}
+
+// ============================================================================
+// FUNCIONES PARA EL SISTEMA DE ELIMINACIÓN DE EVALUACIONES
+// ============================================================================
+
+// Función para habilitar/deshabilitar botón según confirmación
+function inicializarConfirmacionEliminacion() {
+  const input = document.getElementById('confirmacion');
+  const btnEliminar = document.getElementById('btnEliminar');
+  
+  if (input && btnEliminar) {
+    // Remover event listeners anteriores para evitar duplicados
+    input.removeEventListener('input', input._confirmacionHandler);
+    
+    // Crear nuevo handler
+    input._confirmacionHandler = function() {
+      const confirmacion = this.value.trim().toUpperCase();
+      btnEliminar.disabled = confirmacion !== 'ELIMINAR';
+    };
+    
+    input.addEventListener('input', input._confirmacionHandler);
+  }
+}
+
+// Función para manejar el envío del formulario de eliminación
+function inicializarFormularioEliminacion() {
+  const form = document.getElementById('formEliminarEvaluacion');
+  
+  if (form) {
+    // Remover event listeners anteriores para evitar duplicados
+    form.removeEventListener('submit', form._submitHandler);
+    
+    // Crear nuevo handler
+    form._submitHandler = function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const evaluacionId = this.getAttribute('data-evaluacion-id');
+      
+      // Mostrar loading
+      document.getElementById('loading').classList.add('show');
+      
+      fetch(`{% url 'eliminar_evaluacion_ajax' curso.id %}?evaluacion_id=${evaluacionId}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('loading').classList.remove('show');
+        
+        if (data.success) {
+          // Mostrar mensaje de éxito
+          mostrarMensajeEliminacion('success', data.message);
+          
+          // Recargar la lista de evaluaciones
+          setTimeout(() => {
+            cargarCalificaciones();
+          }, 1500);
+        } else {
+          // Mostrar mensaje de error
+          mostrarMensajeEliminacion('error', data.error || 'Error al eliminar la evaluación');
+        }
+      })
+      .catch(error => {
+        document.getElementById('loading').classList.remove('show');
+        console.error('Error:', error);
+        mostrarMensajeEliminacion('error', 'Error al eliminar la evaluación');
+      });
+    };
+    
+    form.addEventListener('submit', form._submitHandler);
+  }
+}
+
+// Función para mostrar mensajes en la vista de eliminación
+function mostrarMensajeEliminacion(tipo, mensaje) {
+  // Crear elemento de mensaje
+  const mensajeDiv = document.createElement('div');
+  mensajeDiv.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+  mensajeDiv.innerHTML = `
+    ${mensaje}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
+  
+  // Insertar al inicio del contenido
+  const contenido = document.querySelector('.eliminar-evaluacion-content');
+  if (contenido) {
+    contenido.insertBefore(mensajeDiv, contenido.firstChild);
+    
+    // Auto-ocultar después de 5 segundos
+    setTimeout(() => {
+      mensajeDiv.remove();
+    }, 5000);
+  }
+}
+
+// Función para inicializar automáticamente cuando se detecta contenido de eliminación
+function inicializarEliminacionSiExiste() {
+  const eliminarContent = document.querySelector('.eliminar-evaluacion-content');
+  if (eliminarContent) {
+    inicializarConfirmacionEliminacion();
+    inicializarFormularioEliminacion();
+  }
+}
+
+// Observer para detectar cambios en el DOM y inicializar automáticamente
+let eliminarObserver = null;
+
+function iniciarObserverEliminacion() {
+  if (eliminarObserver) {
+    eliminarObserver.disconnect();
+  }
+  
+  eliminarObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType === 1 && node.classList && node.classList.contains('eliminar-evaluacion-content')) {
+            setTimeout(() => {
+              inicializarEliminacionSiExiste();
+            }, 50);
+          }
+        });
+      }
+    });
+  });
+  
+  const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+  if (seccionCalificaciones) {
+    eliminarObserver.observe(seccionCalificaciones, {
+      childList: true,
+      subtree: true
+    });
+  }
 }
 
 // ============================================================================

@@ -10,6 +10,9 @@
 
 {% block content %}
 
+<!-- Contenedor principal con clase para estilos específicos de la plataforma -->
+<div class="plataforma-aprendizaje">
+
 <style>
   .sidebar {
     position: fixed;
@@ -587,23 +590,8 @@ function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
   sidebar.classList.toggle('show');
 }
-
-// Habilitar/deshabilitar botón según confirmación (solo si hay calificaciones)
-{% if tiene_calificaciones %}
-document.addEventListener('DOMContentLoaded', function() {
-  var input = document.getElementById('confirmacion');
-  var btnEliminar = document.getElementById('btnEliminar');
-  if (input && btnEliminar) {
-    input.addEventListener('input', function() {
-      if (this.value === 'ELIMINAR') {
-        btnEliminar.disabled = false;
-      } else {
-        btnEliminar.disabled = true;
-      }
-    });
-  }
-});
-{% endif %}
 </script>
+
+</div>
 
 {% endblock content %} 

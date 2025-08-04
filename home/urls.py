@@ -59,6 +59,7 @@ urlpatterns = [
     path('curso/<int:curso_id>/calificaciones/exportar-excel/', views.exportar_calificaciones_excel, name='exportar_calificaciones_excel'),
     path('curso/<int:curso_id>/calificaciones/editar/<int:evaluacion_id>/', views.editar_evaluacion, name='editar_evaluacion'),
     path('curso/<int:curso_id>/plataforma/calificaciones/editar/<int:evaluacion_id>/ajax/', views.editar_evaluacion_ajax, name='editar_evaluacion_ajax'),
+    path('curso/<int:curso_id>/plataforma/calificaciones/eliminar/ajax/', views.eliminar_evaluacion_ajax, name='eliminar_evaluacion_ajax'),
     path('curso/<int:curso_id>/calificaciones/eliminar/<int:evaluacion_id>/', views.eliminar_evaluacion, name='eliminar_evaluacion'),
     path('editar-calificacion/', views.editar_calificacion, name='editar_calificacion'),
     path('obtener-datos-calificacion/<int:calificacion_id>/', views.obtener_datos_calificacion, name='obtener_datos_calificacion'),

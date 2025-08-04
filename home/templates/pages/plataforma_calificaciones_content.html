@@ -131,7 +131,7 @@
                     <button onclick="cargarEditarEvaluacion({{ evaluacion.id }})" class="btn btn-sm btn-outline-warning">
                       <i class="fas fa-edit me-1"></i>Editar
                     </button>
-                    <button onclick="window.location.href='{% url 'eliminar_evaluacion' curso.id evaluacion.id %}'" class="btn btn-sm btn-outline-danger">
+                    <button onclick="cargarEliminarEvaluacion({{ evaluacion.id }})" class="btn btn-sm btn-outline-danger">
                       <i class="fas fa-trash-alt me-1"></i>Eliminar
                     </button>
                   </div>

@@ -5453,6 +5453,40 @@ def plataforma_calificaciones_ajax(request, curso_id):
                 logger.debug(f"Traceback: {traceback.format_exc()}")
                 return JsonResponse({'error': f'Error al cargar la vista de calificación: {str(e)}'}, status=500)
         
+        elif action == 'eliminar_evaluacion':
+            # Cargar vista de eliminación de evaluación
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar permisos
+                if not request.user.is_staff:
+                    return JsonResponse({'error': 'No tienes permisos para eliminar evaluaciones'}, status=403)
+                
+                # Verificar si la evaluación tiene calificaciones
+                tiene_calificaciones = evaluacion.calificaciones.exists()
+                
+                context = {
+                    'curso': curso,
+                    'evaluacion': evaluacion,
+                    'tiene_calificaciones': tiene_calificaciones,
+                    'mostrar_eliminar': True,
+                }
+                
+                html = render_to_string('pages/plataforma_calificaciones_eliminar_content.html', context, request=request)
+                return JsonResponse({'html': html})
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.debug(f"Error al cargar eliminación: {str(e)}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': f'Error al cargar la vista de eliminación: {str(e)}'}, status=500)
+        
         elif action == 'ver_editar_evaluacion':
             # Cargar vista de editar evaluación
             evaluacion_id = request.GET.get('evaluacion_id')
@@ -5891,71 +5925,95 @@ def clear_messages(request):
 @login_required
 def editar_evaluacion_ajax(request, curso_id, evaluacion_id):
     """
-    Vista AJAX para editar evaluación como subsección de la plataforma de aprendizaje
+    Vista AJAX para editar evaluaciones
     """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
     try:
-        curso = get_object_or_404(Curso, id=curso_id)
-        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso)
         
         # Verificar permisos
         if not request.user.is_staff:
-            return JsonResponse({'error': 'No tienes permisos para editar evaluaciones.'}, status=403)
+            return JsonResponse({'error': 'No tienes permisos para editar evaluaciones'}, status=403)
         
-        # Verificar que el usuario esté inscrito en el curso
-        if not request.user.cursos.filter(id=curso_id).exists():
-            return JsonResponse({'error': 'No tienes acceso a este curso.'}, status=403)
-        
-        if request.method == 'POST':
-            form = EvaluacionForm(request.POST, instance=evaluacion, curso=curso)
-            if form.is_valid():
-                evaluacion = form.save(commit=False)
-                evaluacion.curso = curso
-                evaluacion.save()
-                
-                # Retornar respuesta de éxito
-                return JsonResponse({
-                    'success': True,
-                    'message': f'Evaluación "{evaluacion.nombre}" actualizada exitosamente.',
-                    'redirect_url': f'/curso/{curso_id}/plataforma/?seccion=calificaciones'
-                })
-            else:
-                # Retornar errores del formulario
-                errors = {}
-                for field, field_errors in form.errors.items():
-                    errors[field] = [str(error) for error in field_errors]
-                return JsonResponse({
-                    'success': False,
-                    'errors': errors
-                })
+        form = EvaluacionForm(request.POST, instance=evaluacion, curso=curso)
+        if form.is_valid():
+            evaluacion = form.save(commit=False)
+            evaluacion.curso = curso
+            evaluacion.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Evaluación "{evaluacion.nombre}" actualizada exitosamente.'
+            })
         else:
-            # GET request - mostrar formulario
-            form = EvaluacionForm(instance=evaluacion, curso=curso)
-            
-            # Asegurar que las fechas estén en formato ISO para HTML5 date inputs
-            # Forzar el formato ISO independientemente de la configuración de Django
-            if evaluacion.fecha_inicio:
-                form.fields['fecha_inicio'].widget.attrs['value'] = evaluacion.fecha_inicio.strftime('%Y-%m-%d')
-                # También establecer el formato de visualización para evitar problemas de localización
-                form.fields['fecha_inicio'].widget.format = '%Y-%m-%d'
-            if evaluacion.fecha_fin:
-                form.fields['fecha_fin'].widget.attrs['value'] = evaluacion.fecha_fin.strftime('%Y-%m-%d')
-                # También establecer el formato de visualización para evitar problemas de localización
-                form.fields['fecha_fin'].widget.format = '%Y-%m-%d'
-            
-            context = {
-                'curso': curso,
-                'evaluacion': evaluacion,
-                'form': form,
-                'user': request.user,
-            }
-            
-            # Renderizar solo el contenido del formulario
-            html = render_to_string('pages/editar_evaluacion_content.html', context, request=request)
-            return JsonResponse({'html': html})
+            return JsonResponse({
+                'success': False,
+                'error': 'Error en el formulario',
+                'form_errors': form.errors
+            })
             
     except Curso.DoesNotExist:
-        return JsonResponse({'error': 'El curso no existe'}, status=404)
+        return JsonResponse({'error': 'Curso no encontrado'}, status=404)
     except Evaluacion.DoesNotExist:
-        return JsonResponse({'error': 'La evaluación no existe'}, status=404)
+        return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
     except Exception as e:
-        return JsonResponse({'error': f'Error inesperado: {str(e)}'}, status=500)
+        return JsonResponse({'error': f'Error al actualizar la evaluación: {str(e)}'}, status=500)
+
+@login_required
+def eliminar_evaluacion_ajax(request, curso_id):
+    """
+    Vista AJAX para eliminar evaluaciones
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        evaluacion_id = request.GET.get('evaluacion_id')
+        
+        if not evaluacion_id:
+            return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+        
+        evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso)
+        
+        # Verificar permisos
+        if not request.user.is_staff:
+            return JsonResponse({'error': 'No tienes permisos para eliminar evaluaciones'}, status=403)
+        
+        # Verificar si la evaluación tiene calificaciones
+        tiene_calificaciones = evaluacion.calificaciones.exists()
+        
+        # Si no tiene calificaciones, eliminar directamente
+        if not tiene_calificaciones:
+            nombre_evaluacion = evaluacion.nombre
+            evaluacion.delete()
+            return JsonResponse({
+                'success': True,
+                'message': f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.'
+            })
+        
+        # Si tiene calificaciones, verificar confirmación
+        confirmacion = request.POST.get('confirmacion', '').strip()
+        if confirmacion != 'ELIMINAR':
+            return JsonResponse({
+                'success': False,
+                'error': 'Debes escribir "ELIMINAR" para confirmar la eliminación.'
+            })
+        
+        # Eliminar la evaluación y todas sus calificaciones asociadas
+        nombre_evaluacion = evaluacion.nombre
+        evaluacion.delete()
+        return JsonResponse({
+            'success': True,
+            'message': f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.'
+        })
+        
+    except Curso.DoesNotExist:
+        return JsonResponse({'error': 'Curso no encontrado'}, status=404)
+    except Evaluacion.DoesNotExist:
+        return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Error al eliminar la evaluación: {str(e)}'}, status=500)
