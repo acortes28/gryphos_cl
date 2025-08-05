@@ -2696,7 +2696,7 @@ def calificar_estudiante_ajax(request, curso_id, evaluacion_id):
             return JsonResponse({
                 'success': True,
                 'message': mensaje,
-                'redirect_url': reverse('plataforma_calificaciones', kwargs={'curso_id': curso_id})
+                'redirect_url': reverse('plataforma_aprendizaje', kwargs={'curso_id': curso_id}) + f'?seccion=calificaciones&action=ver_calificar&evaluacion_id={evaluacion_id}'
             })
             
         except Exception as e:

@@ -4820,13 +4820,22 @@ function calificarEstudiante() {
       // Mostrar mensaje de éxito
       alert(data.message);
       
-      // Redirigir a la página de calificaciones
+      // Redirigir a la subsección de calificar estudiante en la plataforma
       if (data.redirect_url) {
         window.location.href = data.redirect_url;
       } else {
-        // Redirigir a la página de calificaciones por defecto
+        // Redirigir a la subsección de calificar estudiante en la plataforma
         const baseUrl = window.location.pathname.split('/calificar/')[0];
-        window.location.href = baseUrl + '/calificaciones/';
+        const urlParams = new URLSearchParams(window.location.search);
+        const evaluacionId = urlParams.get('evaluacion_id');
+        
+        if (evaluacionId) {
+          // Redirigir a la plataforma con la sección de calificaciones y la evaluación específica
+          window.location.href = baseUrl + '/plataforma/?seccion=calificaciones&action=ver_calificar&evaluacion_id=' + evaluacionId;
+        } else {
+          // Fallback: redirigir a la plataforma con sección de calificaciones
+          window.location.href = baseUrl + '/plataforma/?seccion=calificaciones';
+        }
       }
     } else {
       // Mostrar error
