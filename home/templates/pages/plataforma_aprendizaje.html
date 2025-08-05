@@ -2238,6 +2238,44 @@ function cargarCalificar(evaluacionId) {
     });
 }
 
+// Función para cargar el formulario de crear evaluación
+function cargarCrearEvaluacion() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=crear_evaluacion`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'crear_evaluacion');
+        window.history.pushState({}, '', url);
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando formulario de crear evaluación:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
 // Función para cargar vista de eliminar evaluación
 function cargarEliminarEvaluacion(evaluacionId) {
   console.log('=== DEBUG: cargarEliminarEvaluacion ===');
@@ -5226,4 +5264,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% block extra_css %}
 <link href="{% static 'css/plataforma-specific-messages.css' %}" rel="stylesheet" />
-{% endblock extra_css %} 
+{% endblock extra_css %}

@@ -5619,6 +5619,23 @@ def plataforma_calificaciones_ajax(request, curso_id):
                 logger.debug(f"Error al cargar rúbrica: {str(e)}")
                 return JsonResponse({'error': 'Error al cargar la rúbrica'}, status=500)
         
+        elif action == 'crear_evaluacion':
+            # Cargar formulario de crear evaluación
+            from .forms import EvaluacionForm
+            
+            # Verificar permisos de staff
+            if not request.user.is_staff:
+                return JsonResponse({'error': 'No tienes permisos para crear evaluaciones'}, status=403)
+            
+            form = EvaluacionForm(curso=curso)
+            context = {
+                'curso': curso,
+                'form': form,
+                'user': request.user,
+            }
+            html = render_to_string('pages/plataforma_calificaciones_crear_evaluacion_content.html', context, request=request)
+            return JsonResponse({'html': html})
+        
         elif action == 'ver_estadisticas':
             # Cargar vista de estadísticas
             try:
@@ -6054,3 +6071,84 @@ def eliminar_evaluacion_ajax(request, curso_id):
         return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
     except Exception as e:
         return JsonResponse({'error': f'Error al eliminar la evaluación: {str(e)}'}, status=500)
+
+@login_required
+def crear_evaluacion_ajax(request, curso_id):
+    """
+    Vista AJAX para cargar el formulario de crear evaluación dinámicamente
+    """
+    try:
+        logger.debug(f"DEBUG: Iniciando crear_evaluacion_ajax")
+        logger.debug(f"DEBUG: curso_id: {curso_id}")
+        logger.debug(f"DEBUG: usuario: {request.user.username}")
+        logger.debug(f"DEBUG: es_staff: {request.user.is_staff}")
+        
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        logger.debug(f"DEBUG: Curso encontrado: {curso.nombre}")
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            return JsonResponse({'error': 'No tienes acceso a este curso'}, status=403)
+        
+        # Verificar permisos de staff
+        if not request.user.is_staff:
+            return JsonResponse({'error': 'No tienes permisos para crear evaluaciones'}, status=403)
+        
+        # Verificar si es una acción específica
+        action = request.GET.get('action')
+        
+        if action == 'crear_evaluacion':
+            # Cargar formulario de crear evaluación
+            from .forms import EvaluacionForm
+            
+            if request.method == 'POST':
+                form = EvaluacionForm(request.POST, curso=curso)
+                if form.is_valid():
+                    evaluacion = form.save(commit=False)
+                    evaluacion.curso = curso
+                    evaluacion.creado_por = request.user
+                    evaluacion.save()
+                    
+                    # Retornar respuesta de éxito
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Evaluación "{evaluacion.nombre}" creada exitosamente.',
+                        'redirect_url': reverse('plataforma_calificaciones', kwargs={'curso_id': curso_id})
+                    })
+                else:
+                    # Formulario con errores
+                    context = {
+                        'curso': curso,
+                        'form': form,
+                        'user': request.user,
+                    }
+                    html = render_to_string('pages/plataforma_calificaciones_crear_evaluacion_content.html', context, request=request)
+                    return JsonResponse({'html': html})
+            else:
+                # Formulario inicial
+                form = EvaluacionForm(curso=curso)
+                context = {
+                    'curso': curso,
+                    'form': form,
+                    'user': request.user,
+                }
+                html = render_to_string('pages/plataforma_calificaciones_crear_evaluacion_content.html', context, request=request)
+                return JsonResponse({'html': html})
+        
+        else:
+            # Acción por defecto: mostrar formulario
+            from .forms import EvaluacionForm
+            form = EvaluacionForm(curso=curso)
+            context = {
+                'curso': curso,
+                'form': form,
+                'user': request.user,
+            }
+            html = render_to_string('pages/plataforma_calificaciones_crear_evaluacion_content.html', context, request=request)
+            return JsonResponse({'html': html})
+            
+    except Curso.DoesNotExist:
+        return JsonResponse({'error': 'Curso no encontrado'}, status=404)
+    except Exception as e:
+        logger.error(f"Error en crear_evaluacion_ajax: {str(e)}")
+        return JsonResponse({'error': f'Error interno del servidor: {str(e)}'}, status=500)

@@ -32,6 +32,97 @@
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 <!-- CSS Files -->
 <link id="pagestyle" href="{% static 'css/material-kit.css' %}" rel="stylesheet" />
+
+<style>
+  /* Estilos para el modal flotante de mensajes */
+  .floating-messages-modal {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+    width: 100%;
+    pointer-events: none;
+  }
+  
+  .floating-message {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin-bottom: 10px;
+    padding: 15px 20px;
+    border-left: 4px solid;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease-in-out;
+    position: relative;
+  }
+  
+  .floating-message.show {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  
+  .floating-message.hide {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  
+  .floating-message.alert-success {
+    border-left-color: #28a745;
+  }
+  
+  .floating-message.alert-danger {
+    border-left-color: #dc3545;
+  }
+  
+  .floating-message.alert-warning {
+    border-left-color: #ffc107;
+  }
+  
+  .floating-message.alert-info {
+    border-left-color: #17a2b8;
+  }
+  
+  .floating-message .message-content {
+    margin-right: 30px;
+    color: #333;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .floating-message .close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease;
+  }
+  
+  .floating-message .close-btn:hover {
+    color: #333;
+  }
+  
+  @media (max-width: 768px) {
+    .floating-messages-modal {
+      bottom: 10px;
+      right: 10px;
+      left: 10px;
+      max-width: none;
+    }
+  }
+</style>
 </head>
 
 <body {% block body %}{% endblock body %} >
@@ -50,11 +141,76 @@
 
   {% endblock footer %}
 
+  <!-- Modal flotante para mensajes -->
+  <div class="floating-messages-modal" id="floatingMessagesModal">
+    {% include 'includes/messages.html' %}
+  </div>
+
   {% include 'includes/scripts.html' %}
 
   {% block javascripts %}{% endblock javascripts %}
 
   {% block extra_css %}
   {% endblock extra_css %}
+
+  <script>
+    // Script para manejar el modal flotante de mensajes
+    document.addEventListener('DOMContentLoaded', function() {
+      const floatingModal = document.getElementById('floatingMessagesModal');
+      const messages = floatingModal.querySelectorAll('.alert');
+      
+      if (messages.length > 0) {
+        messages.forEach(function(message, index) {
+          // Convertir el alert de Bootstrap a nuestro formato flotante
+          const messageContent = message.textContent.trim();
+          const messageType = message.classList.contains('alert-danger') ? 'danger' : 
+                             message.classList.contains('alert-warning') ? 'warning' : 
+                             message.classList.contains('alert-info') ? 'info' : 'success';
+          
+          // Crear el elemento flotante
+          const floatingMessage = document.createElement('div');
+          floatingMessage.className = `floating-message alert-${messageType}`;
+          floatingMessage.innerHTML = `
+            <div class="message-content">${messageContent}</div>
+            <button type="button" class="close-btn" onclick="closeFloatingMessage(this)">×</button>
+          `;
+          
+          // Agregar al modal
+          floatingModal.appendChild(floatingMessage);
+          
+          // Mostrar con fade in
+          setTimeout(function() {
+            floatingMessage.classList.add('show');
+          }, index * 200); // Delay escalonado para múltiples mensajes
+          
+          // Auto-ocultar después de 5 segundos
+          setTimeout(function() {
+            hideFloatingMessage(floatingMessage);
+          }, 5000 + (index * 200));
+        });
+        
+        // Limpiar los alerts originales
+        messages.forEach(function(message) {
+          message.remove();
+        });
+      }
+    });
+    
+    function hideFloatingMessage(messageElement) {
+      if (messageElement && messageElement.parentNode) {
+        messageElement.classList.add('hide');
+        setTimeout(function() {
+          if (messageElement && messageElement.parentNode) {
+            messageElement.remove();
+          }
+        }, 300);
+      }
+    }
+    
+    function closeFloatingMessage(closeBtn) {
+      const messageElement = closeBtn.closest('.floating-message');
+      hideFloatingMessage(messageElement);
+    }
+  </script>
 </body>
 </html>
