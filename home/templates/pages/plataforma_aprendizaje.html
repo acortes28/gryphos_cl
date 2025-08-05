@@ -4665,6 +4665,208 @@ function crearMensajeWarning(mensaje, contenedor = null) {
 
 console.log('Se está cargando el archivo el script');
 
+
+
+console.log("Se esta cargando el script específico para la página de calificar estudiante");
+
+function calificarEstudiante() {
+  console.log('Función calificarEstudiante() ejecutada');
+  
+  // Obtener el botón que disparó la función
+  const submitButton = event.target;
+  let originalContent = '';
+  if (submitButton) {
+    // Mostrar indicador de carga inmediatamente
+    originalContent = submitButton.innerHTML;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+    submitButton.disabled = true;
+  }
+  
+  // Calcular nota antes de enviar
+  if (typeof calcularNota === 'function') {
+    calcularNota();
+  } else {
+    console.warn('Función calcularNota no está disponible');
+  }
+  
+  // Verificar que la nota se haya calculado
+  const notaField = document.getElementById('id_nota_calculada');
+  const notaHidden = document.getElementById('nota_hidden');
+  
+  console.log('Campo nota visible:', notaField ? notaField.value : 'No encontrado');
+  console.log('Campo nota oculto:', notaHidden ? notaHidden.value : 'No encontrado');
+  
+  if (notaField && notaField.value === '') {
+    alert('Por favor, selecciona al menos un criterio antes de guardar la calificación.');
+    if (submitButton) {
+      submitButton.innerHTML = originalContent;
+      submitButton.disabled = false;
+    }
+    return false;
+  }
+  
+  // Sincronizar campo oculto
+  if (notaField && notaHidden) {
+    notaHidden.value = notaField.value;
+    console.log('Nota sincronizada:', notaHidden.value);
+  }
+  
+  // Verificar que haya al menos un criterio seleccionado
+  const criterioFields = document.querySelectorAll('select[name^="criterio_"]');
+  let criteriosSeleccionados = 0;
+  criterioFields.forEach(field => {
+    if (field.value && field.value !== '') {
+      criteriosSeleccionados++;
+      console.log('Criterio seleccionado:', field.name, field.value);
+    }
+  });
+  
+  if (criteriosSeleccionados === 0) {
+    alert('Por favor, selecciona al menos un criterio antes de guardar la calificación.');
+    if (submitButton) {
+      submitButton.innerHTML = originalContent;
+      submitButton.disabled = false;
+    }
+    return false;
+  }
+  
+  // Obtener el formulario y sus datos
+  const form = document.querySelector('form[method="post"]');
+  if (!form) {
+    alert('Error: No se encontró el formulario de calificación.');
+    if (submitButton) {
+      submitButton.innerHTML = originalContent;
+      submitButton.disabled = false;
+    }
+    return false;
+  }
+  
+  // Crear FormData con todos los datos del formulario
+  const formData = new FormData(form);
+  
+  // Obtener la URL del endpoint AJAX
+  const currentUrl = window.location.pathname;
+  console.log('URL actual:', currentUrl);
+  
+  // Extraer curso_id y evaluacion_id de la URL actual
+  const urlParts = currentUrl.split('/');
+  console.log('Partes de la URL:', urlParts);
+  
+  // Buscar el índice de 'calificar' en la URL
+  const calificarIndex = urlParts.findIndex(part => part === 'calificar');
+  
+  let cursoId, evaluacionId;
+  
+  if (calificarIndex !== -1) {
+    // URL directa de calificar estudiante
+    cursoId = urlParts[calificarIndex - 2]; // Antes de 'calificaciones'
+    evaluacionId = urlParts[calificarIndex + 1]; // Después de 'calificar'
+  } else {
+    // URL desde plataforma con parámetros
+    const urlParams = new URLSearchParams(window.location.search);
+    const evaluacionIdParam = urlParams.get('evaluacion_id');
+    
+    if (!evaluacionIdParam) {
+      console.error('No se encontró evaluacion_id en los parámetros de URL');
+      alert('Error: No se pudo identificar la evaluación.');
+      if (submitButton) {
+        submitButton.innerHTML = originalContent;
+        submitButton.disabled = false;
+      }
+      return false;
+    }
+    
+    // Extraer curso_id de la URL actual
+    const cursoMatch = currentUrl.match(/\/curso\/(\d+)/);
+    if (!cursoMatch) {
+      console.error('No se pudo extraer el curso_id de la URL');
+      alert('Error: URL inválida para calificación.');
+      if (submitButton) {
+        submitButton.innerHTML = originalContent;
+        submitButton.disabled = false;
+      }
+      return false;
+    }
+    
+    cursoId = cursoMatch[1];
+    evaluacionId = evaluacionIdParam;
+  }
+  
+  console.log('Curso ID:', cursoId);
+  console.log('Evaluación ID:', evaluacionId);
+  
+  const ajaxUrl = `/curso/${cursoId}/calificaciones/calificar/${evaluacionId}/ajax/`;
+  
+  console.log('Enviando datos a:', ajaxUrl);
+  console.log('Datos del formulario:', Object.fromEntries(formData));
+  
+  // Enviar datos via AJAX
+  console.log('Iniciando petición AJAX a:', ajaxUrl);
+  console.log('Datos del formulario:', Object.fromEntries(formData));
+  
+  fetch(ajaxUrl, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Respuesta del servidor:', data);
+    
+    if (data.success) {
+      // Mostrar mensaje de éxito
+      alert(data.message);
+      
+      // Redirigir a la página de calificaciones
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        // Redirigir a la página de calificaciones por defecto
+        const baseUrl = window.location.pathname.split('/calificar/')[0];
+        window.location.href = baseUrl + '/calificaciones/';
+      }
+    } else {
+      // Mostrar error
+      alert('Error: ' + (data.error || 'Error desconocido'));
+      
+      // Restaurar botón
+      if (submitButton) {
+        submitButton.innerHTML = originalContent;
+        submitButton.disabled = false;
+      }
+    }
+  })
+  .catch(error => {
+    console.error('Error en la petición AJAX:', error);
+    console.error('Detalles del error:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    
+    let errorMessage = 'Error al enviar la calificación. Por favor, intenta de nuevo.';
+    if (error.message.includes('404')) {
+      errorMessage = 'Error: Endpoint no encontrado. Verifica la URL del servidor.';
+    } else if (error.message.includes('500')) {
+      errorMessage = 'Error del servidor. Por favor, contacta al administrador.';
+    }
+    
+    alert(errorMessage);
+    
+    // Restaurar botón
+    if (submitButton) {
+      submitButton.innerHTML = originalContent;
+      submitButton.disabled = false;
+    }
+  });
+  
+  // Prevenir el envío normal del formulario
+  return false;
+}
+
 // Funciones para el modal de edición
 function openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion, criteriosData) {
   console.log('Abriendo modal con datos:', {
@@ -5044,6 +5246,7 @@ function calcularNota() {
     const notaHidden = document.getElementById('nota_hidden');
     if (notaHidden) {
       notaHidden.value = notaField.value;
+      console.log('Campo oculto actualizado con nota:', notaHidden.value);
     }
     
     // Remover clase después de la animación
@@ -5058,200 +5261,46 @@ function calcularNota() {
   console.log('Nota calculada:', notaCalculada.toFixed(1));
 }
 
-// Agregar event listeners para los campos de criterio
+// Inicialización específica para formularios de calificación
 document.addEventListener('DOMContentLoaded', function() {
-  // Restaurar botón si hay errores de validación
-  const hasValidationErrors = document.querySelectorAll('.text-danger').length > 0;
-  if (hasValidationErrors) {
-    const submitButton = document.getElementById('btn-guardar-calificacion');
-    if (submitButton) {
-      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
-      submitButton.disabled = false;
-    }
-  }
+  console.log('Inicializando sistema de calificaciones...');
   
-  // Restaurar botón si hay mensajes de error del servidor
-  const hasServerErrors = document.querySelectorAll('.alert-danger, .alert-warning').length > 0;
-  if (hasServerErrors) {
-    const submitButton = document.getElementById('btn-guardar-calificacion');
-    if (submitButton) {
-      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
-      submitButton.disabled = false;
-    }
-  }
+  // Verificar si estamos en una página de calificación
+  const isCalificacionPage = document.getElementById('btn-guardar-calificacion') !== null;
   
-  // Restaurar botón si la página se cargó con errores de validación (URL con parámetros)
-  if (window.location.search.includes('error') || window.location.search.includes('invalid')) {
-    const submitButton = document.getElementById('btn-guardar-calificacion');
-    if (submitButton) {
-      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
-      submitButton.disabled = false;
-    }
-  }
-  
-  // Recalcular nota si hay valores preservados del formulario
-  recalcularNotaConValoresPreservados();
-  const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
-  
-  criterioFields.forEach(function(field) {
-    field.addEventListener('change', calcularNota);
+  if (isCalificacionPage) {
+    console.log('Página de calificación detectada en template padre');
     
-    // Verificar si el campo tiene un valor preservado
-    if (field.value && field.value !== '') {
-      // Marcar que hay valores preservados
-      field.setAttribute('data-has-preserved-value', 'true');
-    }
-  });
-  
-  // Event listener global para capturar todos los cambios en campos de criterio
-  document.addEventListener('change', function(event) {
-    if (event.target.tagName === 'SELECT' && 
-        (event.target.id.startsWith('id_criterio_') || 
-         event.target.name.startsWith('criterio_') || 
-         event.target.hasAttribute('data-criterio-id'))) {
-      console.log('Event listener global detectó cambio en:', event.target.id, event.target.name, 'Valor:', event.target.value);
-      calcularNota();
-    }
-  });
-  
-  // Calcular nota inicial
-  calcularNota();
-  
-  // Recalcular nota después de un breve delay para asegurar que todos los campos estén cargados
-  setTimeout(() => {
-    recalcularNotaConValoresPreservados();
-  }, 100);
-  
-  // También recalcular cuando la página se carga con errores de validación
-  if (document.querySelectorAll('.text-danger').length > 0) {
-    setTimeout(() => {
-      recalcularNotaConValoresPreservados();
-    }, 200);
-  }
-  
-  // Función para recalcular nota cuando se cargan valores preservados
-  function recalcularNotaConValoresPreservados() {
-    // Verificar si hay valores seleccionados en los campos de criterio
+    // Solo configurar event listeners para campos de criterio (no para el botón)
     const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
-    let hayValoresSeleccionados = false;
-    let valoresSeleccionados = [];
-    
     criterioFields.forEach(function(field) {
-      if (field.value && field.value !== '') {
-        hayValoresSeleccionados = true;
-        valoresSeleccionados.push({
-          field: field,
-          value: field.value,
-          text: field.options[field.selectedIndex]?.text || ''
-        });
+      field.addEventListener('change', function() {
+        console.log('Campo de criterio cambiado:', field.id, field.value);
+        if (typeof calcularNota === 'function') {
+          calcularNota();
+        }
+      });
+    });
+    
+    // Event listener global para capturar todos los cambios en campos de criterio
+    document.addEventListener('change', function(event) {
+      if (event.target.tagName === 'SELECT' && 
+          (event.target.id.startsWith('id_criterio_') || 
+           event.target.name.startsWith('criterio_') || 
+           event.target.hasAttribute('data-criterio-id'))) {
+        console.log('Event listener global detectó cambio en:', event.target.id, event.target.name, 'Valor:', event.target.value);
+        if (typeof calcularNota === 'function') {
+          calcularNota();
+        }
       }
     });
     
-    // Si hay valores seleccionados, recalcular la nota
-    if (hayValoresSeleccionados) {
-      console.log('Valores preservados detectados:', valoresSeleccionados);
-      calcularNota();
-      
-      // También actualizar el campo oculto de nota
-      const notaHidden = document.getElementById('nota_hidden');
-      const notaField = document.getElementById('id_nota_calculada');
-      if (notaHidden && notaField && notaField.value) {
-        notaHidden.value = notaField.value;
-      }
+    // Calcular nota inicial
+    if (typeof calcularNota === 'function') {
+      setTimeout(() => {
+        calcularNota();
+      }, 100);
     }
-  }
-  
-  // Función para restaurar el botón de guardar
-  function restaurarBotonGuardar() {
-    const submitButton = document.getElementById('btn-guardar-calificacion');
-    if (submitButton) {
-      submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Calificación';
-      submitButton.disabled = false;
-    }
-  }
-  
-  // Verificar si hay errores de formulario y restaurar el botón
-  const hasFormErrors = document.querySelectorAll('.text-danger').length > 0;
-  if (hasFormErrors) {
-    restaurarBotonGuardar();
-  }
-  
-  // Verificar si hay mensajes de error del servidor
-  const errorMessages = document.querySelectorAll('.alert-danger, .alert-warning');
-  if (errorMessages.length > 0) {
-    restaurarBotonGuardar();
-  }
-  
-  // Verificar si la página se cargó con errores de validación (URL con parámetros)
-  if (window.location.search.includes('error') || window.location.search.includes('invalid')) {
-    restaurarBotonGuardar();
-  }
-  
-  // Recalcular nota si hay valores preservados del formulario
-  recalcularNotaConValoresPreservados();
-  
-  // Event listener para el botón de guardar
-  const submitButton = document.getElementById('btn-guardar-calificacion');
-  if (submitButton) {
-    submitButton.addEventListener('click', function(event) {
-      // Calcular la nota una vez más antes de enviar
-      calcularNota();
-      
-      // Verificar que la nota se haya calculado correctamente
-      const notaField = document.getElementById('id_nota_calculada');
-      if (notaField && notaField.value === '') {
-        event.preventDefault();
-        alert('Por favor, selecciona al menos un criterio antes de guardar la calificación.');
-        return false;
-      }
-      
-      // Guardar el estado original del botón
-      const originalContent = this.innerHTML;
-      const originalDisabled = this.disabled;
-      
-      // Mostrar indicador de guardado
-      this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
-      this.disabled = true;
-      
-      // Crear un timeout para restaurar el botón si no hay respuesta
-      const timeoutId = setTimeout(() => {
-        this.innerHTML = originalContent;
-        this.disabled = originalDisabled;
-        console.log('Timeout: Restaurando botón después de 10 segundos');
-      }, 10000);
-      
-      // Interceptar el envío del formulario para manejar errores
-      const form = this.closest('form');
-      if (form) {
-        const originalSubmit = form.onsubmit;
-        form.onsubmit = function(e) {
-          // Limpiar el timeout si el formulario se envía correctamente
-          clearTimeout(timeoutId);
-          
-          // Restaurar el botón después de un breve delay para permitir la redirección
-          setTimeout(() => {
-            submitButton.innerHTML = originalContent;
-            submitButton.disabled = originalDisabled;
-          }, 1000);
-          
-          return true;
-        };
-        
-        // También interceptar el evento submit del formulario
-        form.addEventListener('submit', function(e) {
-          // Limpiar el timeout
-          clearTimeout(timeoutId);
-          
-          // Restaurar el botón después de un breve delay
-          setTimeout(() => {
-            submitButton.innerHTML = originalContent;
-            submitButton.disabled = originalDisabled;
-          }, 1000);
-        });
-      }
-      
-      // El formulario se enviará automáticamente
-    });
   }
 });
 

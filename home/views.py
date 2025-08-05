@@ -2539,6 +2539,177 @@ def crear_evaluacion(request, curso_id):
     return render(request, 'pages/crear_evaluacion.html', context)
 
 @login_required
+def calificar_estudiante_ajax(request, curso_id, evaluacion_id):
+    """
+    Endpoint AJAX para calificar estudiantes
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        curso = get_object_or_404(Curso, id=curso_id)
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+        
+        # Verificar permisos
+        if not request.user.is_staff:
+            return JsonResponse({'error': 'No tienes permisos para calificar estudiantes.'}, status=403)
+        
+        # Obtener datos del formulario
+        estudiante_id = request.POST.get('estudiante')
+        nota = request.POST.get('nota')
+        retroalimentacion = request.POST.get('retroalimentacion', '')
+        
+        if not estudiante_id:
+            return JsonResponse({'error': 'Debes seleccionar un estudiante.'}, status=400)
+        
+        if not nota:
+            return JsonResponse({'error': 'No se pudo calcular la nota.'}, status=400)
+        
+        # Obtener el estudiante
+        estudiante = get_object_or_404(User, id=estudiante_id)
+        
+        # Verificar que el estudiante tenga una entrega para esta evaluación
+        tiene_entrega = estudiante.entregas.filter(evaluacion=evaluacion).exists()
+        if not tiene_entrega:
+            return JsonResponse({
+                'error': f'El estudiante {estudiante.get_full_name()} no tiene entregas para la evaluación "{evaluacion.nombre}".'
+            }, status=400)
+        
+        # Verificar que la evaluación tenga una rúbrica
+        if not hasattr(evaluacion, 'rubrica') or not evaluacion.rubrica:
+            return JsonResponse({
+                'error': f'La evaluación "{evaluacion.nombre}" no tiene una rúbrica asociada.'
+            }, status=400)
+        
+        # Verificar que se hayan enviado criterios
+        criterios_enviados = []
+        for key, value in request.POST.items():
+            if key.startswith('criterio_') and value:
+                criterios_enviados.append((key, value))
+        
+        if not criterios_enviados:
+            return JsonResponse({'error': 'Debes seleccionar al menos un criterio.'}, status=400)
+        
+        # Limpiar caracteres de control de línea en la retroalimentación
+        if retroalimentacion:
+            retroalimentacion_limpia = re.sub(r'\\u000D\\u000A', '\n', retroalimentacion)
+            retroalimentacion_limpia = re.sub(r'\\u000D', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\u000A', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\n', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\r', '\n', retroalimentacion_limpia)
+        else:
+            retroalimentacion_limpia = retroalimentacion
+        
+        # Verificar si ya existe una calificación para este estudiante
+        calificacion_existente = Calificacion.objects.filter(
+            evaluacion=evaluacion,
+            estudiante=estudiante
+        ).first()
+        
+        try:
+            if calificacion_existente:
+                # Actualizar calificación existente
+                calificacion_existente.nota = round(float(nota), 1)
+                calificacion_existente.retroalimentacion = retroalimentacion_limpia
+                calificacion_existente.calificado_por = request.user
+                calificacion_existente.save()
+                
+                # Actualizar o crear ResultadoRubrica
+                resultado_rubrica, created = ResultadoRubrica.objects.get_or_create(
+                    rubrica=evaluacion.rubrica,
+                    estudiante=calificacion_existente.estudiante,
+                    defaults={
+                        'evaluador': request.user,
+                        'puntaje_total': 0
+                    }
+                )
+                
+                # Actualizar puntajes de criterios
+                puntaje_total = 0
+                for criterio in evaluacion.rubrica.criterios.all():
+                    field_name = f'criterio_{criterio.id}'
+                    esperable_id = request.POST.get(field_name)
+                    
+                    if esperable_id:
+                        esperable = Esperable.objects.get(id=esperable_id)
+                        puntaje_criterio, created = PuntajeCriterio.objects.get_or_create(
+                            resultado_rubrica=resultado_rubrica,
+                            criterio=criterio,
+                            defaults={
+                                'esperable_seleccionado': esperable,
+                                'puntaje_obtenido': esperable.puntaje
+                            }
+                        )
+                        
+                        if not created:
+                            puntaje_criterio.esperable_seleccionado = esperable
+                            puntaje_criterio.puntaje_obtenido = esperable.puntaje
+                            puntaje_criterio.save()
+                        
+                        puntaje_total += esperable.puntaje
+                
+                # Actualizar puntaje total
+                resultado_rubrica.puntaje_total = puntaje_total
+                resultado_rubrica.save()
+                
+                mensaje = f'Calificación actualizada para {estudiante.get_full_name()}.'
+            else:
+                # Crear nueva calificación
+                calificacion = Calificacion.objects.create(
+                    evaluacion=evaluacion,
+                    estudiante=estudiante,
+                    nota=round(float(nota), 1),
+                    retroalimentacion=retroalimentacion_limpia,
+                    calificado_por=request.user
+                )
+                
+                # Crear ResultadoRubrica
+                resultado_rubrica = ResultadoRubrica.objects.create(
+                    rubrica=evaluacion.rubrica,
+                    estudiante=calificacion.estudiante,
+                    evaluador=request.user,
+                    puntaje_total=0
+                )
+                
+                # Crear puntajes de criterios
+                puntaje_total = 0
+                for criterio in evaluacion.rubrica.criterios.all():
+                    field_name = f'criterio_{criterio.id}'
+                    esperable_id = request.POST.get(field_name)
+                    
+                    if esperable_id:
+                        esperable = Esperable.objects.get(id=esperable_id)
+                        PuntajeCriterio.objects.create(
+                            resultado_rubrica=resultado_rubrica,
+                            criterio=criterio,
+                            esperable_seleccionado=esperable,
+                            puntaje_obtenido=esperable.puntaje
+                        )
+                        puntaje_total += esperable.puntaje
+                
+                # Actualizar puntaje total
+                resultado_rubrica.puntaje_total = puntaje_total
+                resultado_rubrica.save()
+                
+                mensaje = f'Calificación registrada para {estudiante.get_full_name()}.'
+            
+            return JsonResponse({
+                'success': True,
+                'message': mensaje,
+                'redirect_url': reverse('plataforma_calificaciones', kwargs={'curso_id': curso_id})
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'error': f'Error al guardar la calificación: {str(e)}'
+            }, status=500)
+            
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Error inesperado: {str(e)}'
+        }, status=500)
+
+@login_required
 def calificar_estudiante(request, curso_id, evaluacion_id):
     """
     Vista para calificar estudiantes en una evaluación específica (solo staff/admin)

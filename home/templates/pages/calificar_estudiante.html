@@ -893,7 +893,7 @@
         </div>
       </div>
       
-      <form method="post">
+      <form method="post" action="">
         {% csrf_token %}
         
         <!-- Campo de nota oculto para enviar con el formulario -->
@@ -990,7 +990,7 @@
           <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=calificaciones" class="btn btn-secondary">
             <i class="fas fa-times me-2"></i>Cancelar
           </a>
-          <button type="submit" class="btn btn-primary" id="btn-guardar-calificacion">
+          <button type="button" class="btn btn-primary" onclick="calificarEstudiante()">
             <i class="fas fa-save me-2"></i>Guardar Calificación
           </button>
         </div>
@@ -1183,36 +1183,21 @@
 </div>
 
 
+<!-- Script específico para la página de calificar estudiante -->
 <script>
-// Script específico para la página de calificar estudiante
+// Inicialización específica para la página de calificar estudiante
+console.log("Se esta cargando el script específico para la página de calificar estudiante");
+
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Inicializando página de calificar estudiante...');
-  
-  // Debug: Verificar todos los campos select en la página
-  const allSelectFields = document.querySelectorAll('select');
-  console.log('Total de campos select encontrados:', allSelectFields.length);
-  allSelectFields.forEach(function(field, index) {
-    console.log(`Campo ${index + 1}:`, field.id, field.name, field.className);
-  });
-  
-  // Debug: Verificar campos de criterio específicamente
-  const criterioFieldsDebug = document.querySelectorAll('select[name^="criterio_"]');
-  console.log('Campos de criterio por nombre encontrados:', criterioFieldsDebug.length);
-  criterioFieldsDebug.forEach(function(field, index) {
-    console.log(`Criterio ${index + 1}:`, field.id, field.name, field.className);
-  });
-  
-  // Debug: Verificar todos los campos de nota en la página
-  const allNotaFields = document.querySelectorAll('input[type="number"], input[name="nota"], .nota-calculada-value input');
-  console.log('Total de campos de nota encontrados:', allNotaFields.length);
-  allNotaFields.forEach(function(field, index) {
-    console.log(`Campo de nota ${index + 1}:`, field.id, field.name, field.className, field.value);
-  });
-  
   // Calcular nota inicial después de un breve delay
   setTimeout(() => {
-    console.log('Calculando nota inicial...');
-    calcularNota();
+    console.log('Calculando nota inicial en página de calificar estudiante...');
+    if (typeof calcularNota === 'function') {
+      calcularNota();
+    } else {
+      console.warn('Función calcularNota no está disponible');
+    }
   }, 100);
 });
 </script>
