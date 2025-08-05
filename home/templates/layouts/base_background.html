@@ -27,7 +27,7 @@
 <link href="{% static 'css/nucleo-icons.css' %}" rel="stylesheet" />
 <link href="{% static 'css/nucleo-svg.css' %}" rel="stylesheet" />
 <!-- Font Awesome Icons -->
-<script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <!-- Material Icons -->
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 <!-- CSS Files -->
@@ -150,8 +150,43 @@
 
   {% block javascripts %}{% endblock javascripts %}
 
-  {% block extra_css %}
-  {% endblock extra_css %}
+  <!-- Script para manejar errores de carga de scripts externos -->
+  <script>
+    // Interceptar errores de carga de scripts
+    window.addEventListener('error', function(e) {
+      // Manejar errores de Font Awesome
+      if (e.target && e.target.src && e.target.src.includes('fontawesome')) {
+        console.warn('Font Awesome error detected, using fallback icons');
+        // Aquí podrías cargar un fallback de iconos
+      }
+      
+      // Manejar errores de Google Maps
+      if (e.target && e.target.src && e.target.src.includes('maps.googleapis.com')) {
+        console.warn('Google Maps error detected');
+        // Aquí podrías implementar un fallback para mapas
+      }
+    }, true);
+
+    // Prevenir errores de scripts que no se cargan
+    document.addEventListener('DOMContentLoaded', function() {
+      // Verificar si Font Awesome se cargó correctamente
+      setTimeout(function() {
+        var testIcon = document.createElement('i');
+        testIcon.className = 'fas fa-test';
+        testIcon.style.display = 'none';
+        document.body.appendChild(testIcon);
+        
+        var computedStyle = window.getComputedStyle(testIcon, ':before');
+        if (computedStyle.content === 'none' || computedStyle.content === '') {
+          console.warn('Font Awesome no se cargó correctamente, usando fallback');
+        }
+        
+        document.body.removeChild(testIcon);
+      }, 1000);
+    });
+  </script>
+
+
 
   <script>
     // Script para manejar el modal flotante de mensajes

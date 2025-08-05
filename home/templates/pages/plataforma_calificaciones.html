@@ -1,6 +1,8 @@
 {% extends 'layouts/base_background.html' %}
 {% load static %}
 {% load custom_filters %}
+
+
 {% block title %}Calificaciones - {{ curso.nombre }} - Plataforma de Aprendizaje{% endblock title %}
 {% block body %} class="about-us bg-gray-200" {% endblock body %}
 
@@ -165,11 +167,13 @@
     font-size: 2rem;
     font-weight: bold;
     margin-bottom: 5px;
+    color: white !important;
   }
   
   .stats-card .stat-label {
     font-size: 0.9rem;
     opacity: 0.9;
+    color: white !important;
   }
   
   .evaluacion-card {

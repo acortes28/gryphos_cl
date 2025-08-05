@@ -1,0 +1,161 @@
+{% load static %}
+
+<!--   Core JS Files   -->
+<script src="{% static 'js/core/popper.min.js' %}" type="text/javascript"></script>
+<script src="{% static 'js/core/bootstrap.min.js' %}" type="text/javascript"></script>
+<script src="{% static 'js/material-kit.min.js' %}" type="text/javascript"></script>
+
+<!-- Control Center for Material Kit: parallax effects, scripts for the example pages etc -->
+<script>
+  // Función para manejar errores de carga de scripts
+  function handleScriptError(error) {
+    console.warn('Error al cargar script:', error);
+  }
+
+  // Función para verificar si un elemento existe antes de acceder a él
+  function safeQuerySelector(parent, selector) {
+    try {
+      return parent.querySelector(selector);
+    } catch (error) {
+      console.warn('Error al buscar elemento:', selector, error);
+      return null;
+    }
+  }
+
+  // Función para clonar elementos de forma segura
+  function safeCloneNode(element) {
+    try {
+      return element.cloneNode(true);
+    } catch (error) {
+      console.warn('Error al clonar elemento:', error);
+      return null;
+    }
+  }
+
+  // Verificar que los elementos existan antes de intentar acceder a ellos
+  document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips y popovers solo si Bootstrap está disponible
+    if (typeof bootstrap !== 'undefined') {
+      try {
+        // Tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+          return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Popovers
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+          return new bootstrap.Popover(popoverTriggerEl);
+        });
+      } catch (error) {
+        console.warn('Error al inicializar tooltips/popovers:', error);
+      }
+    }
+
+    // Inicializar elementos de Material Kit de forma segura
+    var navPills = document.querySelectorAll(".nav-pills");
+    if (navPills.length > 0) {
+      navPills.forEach(function(navPill) {
+        try {
+          // Verificar que el elemento tenga hijos antes de intentar clonar
+          var firstNavLink = safeQuerySelector(navPill, "li:first-child .nav-link");
+          if (firstNavLink) {
+            var movingTab = document.createElement("div");
+            var clonedLink = safeCloneNode(firstNavLink);
+            
+            if (clonedLink) {
+              clonedLink.innerHTML = "-";
+              movingTab.classList.add("moving-tab", "position-absolute", "nav-link");
+              movingTab.appendChild(clonedLink);
+              navPill.appendChild(movingTab);
+              
+              // Configurar estilos iniciales de forma segura
+              var firstLi = safeQuerySelector(navPill, "li:nth-child(1)");
+              if (firstLi && firstLi.offsetWidth) {
+                movingTab.style.padding = "0px";
+                movingTab.style.width = firstLi.offsetWidth + "px";
+                movingTab.style.transform = "translate3d(0px, 0px, 0px)";
+                movingTab.style.transition = ".5s ease";
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Error al inicializar nav-pills:', error);
+        }
+      });
+    }
+
+    // Inicializar inputs de forma segura
+    var inputs = document.querySelectorAll("input");
+    inputs.forEach(function(input) {
+      input.addEventListener("focus", function() {
+        if (this.parentElement) {
+          this.parentElement.classList.add("is-focused");
+        }
+      });
+
+      input.addEventListener("keyup", function() {
+        if (this.parentElement) {
+          if (this.value !== "") {
+            this.parentElement.classList.add("is-filled");
+          } else {
+            this.parentElement.classList.remove("is-filled");
+          }
+        }
+      });
+
+      input.addEventListener("focusout", function() {
+        if (this.parentElement) {
+          if (this.value !== "") {
+            this.parentElement.classList.add("is-filled");
+          }
+          this.parentElement.classList.remove("is-focused");
+        }
+      });
+    });
+
+    // Inicializar botones de forma segura
+    var buttons = document.querySelectorAll(".btn");
+    buttons.forEach(function(button) {
+      button.addEventListener("click", function(e) {
+        try {
+          var ripple = document.createElement("span");
+          ripple.classList.add("ripple");
+          
+          // Verificar que offsetWidth y offsetHeight existan
+          var maxSize = Math.max(
+            this.offsetWidth || 0, 
+            this.offsetHeight || 0
+          );
+          
+          ripple.style.width = ripple.style.height = maxSize + "px";
+          this.appendChild(ripple);
+          
+          // Verificar que offsetX y offsetY existan
+          var offsetX = e.offsetX || 0;
+          var offsetY = e.offsetY || 0;
+          
+          ripple.style.left = offsetX - ripple.offsetWidth / 2 + "px";
+          ripple.style.top = offsetY - ripple.offsetHeight / 2 + "px";
+          ripple.classList.add("ripple");
+          
+          setTimeout(function() {
+            if (ripple.parentElement) {
+              ripple.parentElement.removeChild(ripple);
+            }
+          }, 600);
+        } catch (error) {
+          console.warn('Error al crear efecto ripple:', error);
+        }
+      });
+    });
+
+    // Manejar errores de Google Maps si están presentes
+    window.addEventListener('error', function(e) {
+      if (e.message && e.message.includes('google.maps')) {
+        console.warn('Google Maps error detected:', e.message);
+      }
+    });
+  });
+</script> 
