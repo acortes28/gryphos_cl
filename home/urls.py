@@ -128,5 +128,6 @@ urlpatterns = [
     path('resolver-ticket/', views.resolver_ticket, name='resolver_ticket'),
     path('reabrir-ticket/', views.reabrir_ticket, name='reabrir_ticket'),
     path('obtener-usuarios-staff/', views.obtener_usuarios_staff, name='obtener_usuarios_staff'),
+    path('obtener-usuarios-staff-por-ticket/', views.obtener_usuarios_staff_por_ticket, name='obtener_usuarios_staff_por_ticket'),
     path('obtener-subclasificaciones/', views.obtener_subclasificaciones, name='obtener_subclasificaciones'),
 ]

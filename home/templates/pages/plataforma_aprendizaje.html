@@ -3480,7 +3480,7 @@ function volverASoporte() {
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
   
-  fetch(`{% url 'plataforma_soporte_ajax' curso.id %}?estado=abierto`, {
+  fetch(`{% url 'plataforma_soporte_ajax' curso.id %}`, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     }
@@ -4241,6 +4241,67 @@ function verTicket(ticketId) {
     });
 }
 
+// Función para asignar ticket (asignación inicial)
+function asignarTicket(ticketId) {
+  console.log('Asignando ticket:', ticketId);
+  
+  // Verificar que los elementos existan antes de acceder a ellos
+  const ticketIdElement = document.getElementById('ticketIdReasignar');
+  const usuarioElement = document.getElementById('usuarioAsignar');
+  const comentarioElement = document.getElementById('comentarioReasignacion');
+  const modalElement = document.getElementById('modalReasignar');
+  const modalTitle = document.getElementById('modalReasignarLabel');
+  
+  if (!ticketIdElement) {
+    console.error('Elemento ticketIdReasignar no encontrado');
+    alert('Error: No se pudo encontrar el formulario de asignación');
+    return;
+  }
+  
+  if (!usuarioElement) {
+    console.error('Elemento usuarioAsignar no encontrado');
+    alert('Error: No se pudo encontrar el campo de usuario');
+    return;
+  }
+  
+  if (!comentarioElement) {
+    console.error('Elemento comentarioReasignacion no encontrado');
+    alert('Error: No se pudo encontrar el campo de comentario');
+    return;
+  }
+  
+  if (!modalElement) {
+    console.error('Modal modalReasignar no encontrado');
+    alert('Error: No se pudo encontrar el modal de asignación');
+    return;
+  }
+  
+  // Establecer el ID del ticket en el formulario
+  ticketIdElement.value = ticketId;
+  
+  // Actualizar el título del modal para asignación
+  if (modalTitle) {
+    modalTitle.innerHTML = '<i class="fas fa-user-plus me-2"></i>Asignar Ticket';
+  }
+  
+  // Para asignación inicial, restaurar la lista completa de usuarios staff
+  // Obtener todos los usuarios staff sin excluir a nadie
+  obtenerTodosUsuariosStaff(usuarioElement);
+  
+  // Limpiar formulario
+  usuarioElement.value = '';
+  comentarioElement.value = '';
+  
+  // Mostrar modal
+  if (typeof bootstrap !== 'undefined') {
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+  } else {
+    console.error('Bootstrap no está disponible');
+    alert('Error: Bootstrap no está disponible');
+  }
+}
+
 // Función para reasignar ticket
 function reasignarTicket(ticketId) {
   console.log('Reasignando ticket:', ticketId);
@@ -4279,35 +4340,14 @@ function reasignarTicket(ticketId) {
   // Establecer el ID del ticket en el formulario
   ticketIdElement.value = ticketId;
   
-  // Determinar si el ticket está asignado o no
-  let isAssigned = false;
-  
-  // Intentar encontrar la fila en la tabla (para el panel de administración)
-  const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
-  if (ticketRow) {
-    // Buscar la celda de asignación (columna 6)
-    const asignacionCell = ticketRow.querySelector('td:nth-child(6)');
-    if (asignacionCell) {
-      const sinAsignarText = asignacionCell.querySelector('.text-muted');
-      isAssigned = !sinAsignarText || !sinAsignarText.textContent.includes('Sin asignar');
-    }
-  } else {
-    // Si no se encuentra la fila, buscar en el contexto de detalle del ticket
-    const asignacionInfo = document.querySelector('.card-body .mb-3:last-child');
-    if (asignacionInfo) {
-      const sinAsignarText = asignacionInfo.querySelector('.text-muted');
-      isAssigned = !sinAsignarText || !sinAsignarText.textContent.includes('Sin asignar');
-    }
-  }
-  
-  // Actualizar el título del modal según si está asignado o no
+  // Actualizar el título del modal para reasignación
   if (modalTitle) {
-    if (isAssigned) {
-      modalTitle.innerHTML = '<i class="fas fa-user-edit me-2"></i>Reasignar Ticket';
-    } else {
-      modalTitle.innerHTML = '<i class="fas fa-user-plus me-2"></i>Asignar Ticket';
-    }
+    modalTitle.innerHTML = '<i class="fas fa-user-edit me-2"></i>Reasignar Ticket';
   }
+  
+  // Obtener usuarios staff específicos para este ticket (excluyendo al asignado actualmente)
+  // Solo para reasignación, no para asignación inicial
+  obtenerUsuariosStaffPorTicket(ticketId, usuarioElement);
   
   // Limpiar formulario
   usuarioElement.value = '';
@@ -4321,6 +4361,94 @@ function reasignarTicket(ticketId) {
     console.error('Bootstrap no está disponible');
     alert('Error: Bootstrap no está disponible');
   }
+}
+
+// Función para obtener usuarios staff específicos para un ticket
+function obtenerUsuariosStaffPorTicket(ticketId, selectElement) {
+  console.log('Obteniendo usuarios staff para ticket:', ticketId);
+  
+  // Obtener el token CSRF
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  
+  fetch(`{% url "obtener_usuarios_staff_por_ticket" %}?ticket_id=${ticketId}`, {
+    method: 'GET',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Error en la respuesta del servidor');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Limpiar opciones existentes (mantener la primera opción vacía)
+      selectElement.innerHTML = '<option value="">Seleccionar usuario...</option>';
+      
+      // Agregar las nuevas opciones
+      data.usuarios.forEach(usuario => {
+        const option = document.createElement('option');
+        option.value = usuario.id;
+        option.textContent = `${usuario.nombre} (${usuario.email})`;
+        selectElement.appendChild(option);
+      });
+      
+      console.log(`Usuarios staff cargados: ${data.usuarios.length}`);
+    } else {
+      console.error('Error obteniendo usuarios staff:', data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    console.error('Error obteniendo usuarios staff para ticket:', error.message);
+  });
+}
+
+// Función para obtener todos los usuarios staff (sin excluir a nadie)
+function obtenerTodosUsuariosStaff(selectElement) {
+  console.log('Obteniendo todos los usuarios staff');
+  
+  // Obtener el token CSRF
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  
+  fetch('{% url "obtener_usuarios_staff" %}', {
+    method: 'GET',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Error en la respuesta del servidor');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Limpiar opciones existentes (mantener la primera opción vacía)
+      selectElement.innerHTML = '<option value="">Seleccionar usuario...</option>';
+      
+      // Agregar las nuevas opciones
+      data.usuarios.forEach(usuario => {
+        const option = document.createElement('option');
+        option.value = usuario.id;
+        option.textContent = `${usuario.nombre} (${usuario.email})`;
+        selectElement.appendChild(option);
+      });
+      
+      console.log(`Todos los usuarios staff cargados: ${data.usuarios.length}`);
+    } else {
+      console.error('Error obteniendo todos los usuarios staff:', data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    console.error('Error obteniendo todos los usuarios staff:', error.message);
+  });
 }
 
 // Función para confirmar reasignación

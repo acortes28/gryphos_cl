@@ -4127,11 +4127,19 @@ def plataforma_soporte_ajax(request, curso_id):
                     
                     comentario_form = ComentarioTicketForm()
                     admin_form = TicketSoporteAdminForm(instance=ticket) if request.user.is_staff else None
+                    usuario_creador = ticket.usuario.id
                     
-                    # Obtener usuarios staff para reasignación
-                    usuarios_staff = CustomUser.objects.filter(
-                        models.Q(is_staff=True) | models.Q(is_superuser=True)
-                    ).exclude(id=request.user.id).order_by('first_name', 'last_name', 'username')
+                    # Obtener usuarios staff para reasignación, excluyendo al usuario actualmente asignado
+                    if ticket.asignado_a:
+                        # Si el ticket está asignado, excluir al usuario asignado actualmente
+                        usuarios_staff = CustomUser.objects.filter(
+                            models.Q(is_staff=True) | models.Q(is_superuser=True)
+                        ).exclude(id=ticket.asignado_a.id).order_by('first_name', 'last_name', 'username')
+                    else:
+                        # Si el ticket no está asignado, traer todos los usuarios staff
+                        usuarios_staff = CustomUser.objects.filter(
+                            models.Q(is_staff=True) | models.Q(is_superuser=True)
+                        ).order_by('first_name', 'last_name', 'username')
                     
                     context = {
                         'curso': curso,
@@ -4183,11 +4191,11 @@ def plataforma_soporte_ajax(request, curso_id):
             tickets_resueltos = tickets.filter(estado='resuelto').count()
             tickets_cerrados = tickets.filter(estado='cerrado').count()
             
-            # Obtener usuarios staff para reasignación (incluyendo al usuario actual para asignaciones iniciales)
+            # Obtener usuarios staff para asignación (incluyendo al usuario actual para asignaciones iniciales)
             usuarios_staff = CustomUser.objects.filter(
                 models.Q(is_staff=True) | models.Q(is_superuser=True)
             ).order_by('first_name', 'last_name', 'username')
-            
+
             context = {
                 'curso': curso,
                 'tickets': tickets,
@@ -5019,6 +5027,60 @@ def reasignar_ticket(request):
 
 
 @login_required
+def obtener_usuarios_staff_por_ticket(request):
+    """
+    Vista AJAX para obtener la lista de usuarios admin/staff para un ticket específico,
+    excluyendo al usuario actualmente asignado
+    """
+    try:
+        # Verificar que el usuario sea admin/staff
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para ver usuarios staff'}, status=403)
+        
+        ticket_id = request.GET.get('ticket_id')
+        if not ticket_id:
+            return JsonResponse({'error': 'ID de ticket no proporcionado'}, status=400)
+        
+        # Obtener el ticket
+        ticket = TicketSoporte.objects.get(id=ticket_id)
+        
+        # Obtener usuarios staff para asignación/reasignación
+        # Para asignación inicial: incluir todos los usuarios staff
+        # Para reasignación: excluir al usuario actualmente asignado
+        if ticket.asignado_a:
+            # Si el ticket está asignado, es una reasignación - excluir al usuario asignado actualmente
+            usuarios_staff = CustomUser.objects.filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True)
+            ).exclude(id=ticket.asignado_a.id).order_by('first_name', 'last_name', 'username')
+        else:
+            # Si el ticket no está asignado, es una asignación inicial - incluir todos los usuarios staff
+            usuarios_staff = CustomUser.objects.filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True)
+            ).order_by('first_name', 'last_name', 'username')
+        
+        # Preparar datos para respuesta JSON
+        usuarios_data = []
+        for usuario in usuarios_staff:
+            usuarios_data.append({
+                'id': usuario.id,
+                'nombre': usuario.get_full_name() or usuario.username,
+                'email': usuario.email,
+                'username': usuario.username
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'usuarios': usuarios_data
+        })
+        
+    except TicketSoporte.DoesNotExist:
+        return JsonResponse({'error': 'El ticket no existe'}, status=404)
+    except Exception as e:
+        logger.debug(f"Error obteniendo usuarios staff para ticket: {e}")
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+
+
+@login_required
 def obtener_usuarios_staff(request):
     """
     Vista AJAX para obtener la lista de usuarios admin/staff para reasignación
@@ -5028,10 +5090,10 @@ def obtener_usuarios_staff(request):
         if not (request.user.is_staff or request.user.is_superuser):
             return JsonResponse({'error': 'No tienes permisos para ver usuarios staff'}, status=403)
         
-        # Obtener usuarios admin/staff (excluyendo al usuario actual)
+        # Obtener todos los usuarios admin/staff (sin excluir a nadie para asignación inicial)
         usuarios_staff = CustomUser.objects.filter(
             models.Q(is_staff=True) | models.Q(is_superuser=True)
-        ).exclude(id=request.user.id).order_by('first_name', 'last_name', 'username')
+        ).order_by('first_name', 'last_name', 'username')
         
         usuarios_data = []
         for usuario in usuarios_staff:
