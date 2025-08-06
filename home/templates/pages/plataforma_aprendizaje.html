@@ -1360,6 +1360,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Manejo específico para botones de calificaciones
     if (e.target.matches('button[onclick*="cargarEliminarEvaluacion"]')) {
+      // Verificar si el botón ya tiene un onclick que maneja la funcionalidad
+      const onclickAttr = e.target.getAttribute('onclick');
+      if (onclickAttr && onclickAttr.includes('cargarEliminarEvaluacion')) {
+        // El botón ya tiene un onclick, no ejecutar el event listener
+        return;
+      }
+      
       e.preventDefault();
       const evaluacionId = e.target.getAttribute('onclick').match(/cargarEliminarEvaluacion\((\d+)\)/)?.[1];
       if (evaluacionId) {
@@ -1367,6 +1374,13 @@ document.addEventListener('DOMContentLoaded', function() {
         cargarEliminarEvaluacion(evaluacionId);
       }
     } else if (e.target.matches('button[onclick*="cargarCalificar"]')) {
+      // Verificar si el botón ya tiene un onclick que maneja la funcionalidad
+      const onclickAttr = e.target.getAttribute('onclick');
+      if (onclickAttr && onclickAttr.includes('cargarCalificar')) {
+        // El botón ya tiene un onclick, no ejecutar el event listener
+        return;
+      }
+      
       e.preventDefault();
       const evaluacionId = e.target.getAttribute('onclick').match(/cargarCalificar\((\d+)\)/)?.[1];
       if (evaluacionId) {
@@ -1374,6 +1388,13 @@ document.addEventListener('DOMContentLoaded', function() {
         cargarCalificar(evaluacionId);
       }
     } else if (e.target.matches('button[onclick*="cargarEditarEvaluacion"]')) {
+      // Verificar si el botón ya tiene un onclick que maneja la funcionalidad
+      const onclickAttr = e.target.getAttribute('onclick');
+      if (onclickAttr && onclickAttr.includes('cargarEditarEvaluacion')) {
+        // El botón ya tiene un onclick, no ejecutar el event listener
+        return;
+      }
+      
       e.preventDefault();
       const evaluacionId = e.target.getAttribute('onclick').match(/cargarEditarEvaluacion\((\d+)\)/)?.[1];
       if (evaluacionId) {
@@ -2071,7 +2092,26 @@ function inicializarFormularioEditarEvaluacion() {
       // Obtener el curso_id y evaluacion_id de la URL actual
       const urlParams = new URLSearchParams(window.location.search);
       const cursoId = window.location.pathname.split('/')[2];
-      const evaluacionId = window.location.pathname.split('/')[5];
+      const evaluacionId = urlParams.get('evaluacion_id');
+      
+      console.log('🔍 DEBUG - Editar evaluación:');
+      console.log('cursoId:', cursoId);
+      console.log('evaluacionId:', evaluacionId);
+      console.log('URL completa:', `/curso/${cursoId}/plataforma/calificaciones/editar/${evaluacionId}/ajax/`);
+      
+      // Verificar que el evaluacionId sea válido
+      if (!evaluacionId) {
+        console.error('Error: evaluacionId es null o undefined');
+        mensajeDiv.innerHTML = `
+          <div class="alert alert-danger alert-dismissible">
+            <i class="fas fa-exclamation-triangle me-2"></i>Error: No se pudo obtener el ID de la evaluación. Por favor, recarga la página e intenta nuevamente.
+            <button type="button" class="btn-close" aria-label="Cerrar">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+        `;
+        return;
+      }
       
       fetch(`/curso/${cursoId}/plataforma/calificaciones/editar/${evaluacionId}/ajax/`, {
         method: 'POST',
@@ -2080,23 +2120,19 @@ function inicializarFormularioEditarEvaluacion() {
         },
         body: formData
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
         if (data.success) {
-          // Mostrar mensaje de éxito
-          mensajeDiv.innerHTML = `
-            <div class="alert alert-success alert-dismissible">
-              <i class="fas fa-check-circle me-2"></i>${data.message}
-              <button type="button" class="btn-close" aria-label="Cerrar">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-          `;
+          // Mostrar alert de éxito
+          alert(data.message);
           
-          // Redirigir después de 2 segundos
-          setTimeout(() => {
-            cargarCalificaciones();
-          }, 2000);
+          // Redirigir inmediatamente
+          cargarCalificaciones();
         } else {
           // Mostrar errores
           let errorHtml = '<div class="alert alert-danger alert-dismissible"><ul class="mb-0">';
@@ -2115,9 +2151,19 @@ function inicializarFormularioEditarEvaluacion() {
       })
       .catch(error => {
         console.error('Error:', error);
+        let errorMessage = 'Error al guardar la evaluación. Por favor, intenta nuevamente.';
+        
+        if (error.message.includes('Unexpected token')) {
+          errorMessage = 'Error: El servidor devolvió una respuesta HTML en lugar de JSON. Esto puede indicar un error 404 o 500 en el servidor.';
+        } else if (error.message.includes('HTTP error! status: 404')) {
+          errorMessage = 'Error 404: La URL de la evaluación no se encontró. Verifica que el ID de la evaluación sea correcto.';
+        } else if (error.message.includes('HTTP error! status: 500')) {
+          errorMessage = 'Error 500: Error interno del servidor. Por favor, contacta al administrador.';
+        }
+        
         mensajeDiv.innerHTML = `
           <div class="alert alert-danger alert-dismissible">
-            <i class="fas fa-exclamation-triangle me-2"></i>Error al guardar la evaluación. Por favor, intenta nuevamente.
+            <i class="fas fa-exclamation-triangle me-2"></i>${errorMessage}
             <button type="button" class="btn-close" aria-label="Cerrar">
               <span aria-hidden="true">&times;</span>
             </button>
@@ -2266,6 +2312,11 @@ function cargarCrearEvaluacion() {
         url.searchParams.set('seccion', 'calificaciones');
         url.searchParams.set('action', 'crear_evaluacion');
         window.history.pushState({}, '', url);
+        
+        // Inicializar el formulario después de cargar el contenido
+        setTimeout(() => {
+          inicializarFormularioCrearEvaluacion();
+        }, 100);
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -2335,7 +2386,7 @@ function cargarEliminarEvaluacion(evaluacionId) {
         
 
         
-                // Inicializar funciones de eliminación después de cargar el contenido
+        // Inicializar funciones de eliminación después de cargar el contenido
         setTimeout(() => {
           inicializarEliminacionSiExiste();
         }, 100);
@@ -2417,6 +2468,105 @@ function cargarCalificaciones() {
     });
 }
 
+// Función para manejar el formulario de crear evaluación
+function inicializarFormularioCrearEvaluacion() {
+  const form = document.getElementById('form-crear-evaluacion');
+  if (form) {
+    // Remover event listeners anteriores para evitar duplicados
+    form.removeEventListener('submit', form._submitHandler);
+    
+    // Crear nuevo handler
+    form._submitHandler = function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const mensajeDiv = document.getElementById('mensaje-crear-evaluacion');
+      const submitBtn = document.getElementById('btn-crear-evaluacion');
+      
+      // Limpiar mensajes anteriores
+      if (mensajeDiv) {
+        mensajeDiv.innerHTML = '';
+      }
+      
+      // Mostrar indicador de carga
+      if (submitBtn) {
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creando...';
+        submitBtn.disabled = true;
+        
+        // Hacer la petición AJAX
+        fetch(`{% url 'crear_evaluacion_ajax' curso.id %}?action=crear_evaluacion`, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Mostrar mensaje de éxito con alert
+            alert(data.message);
+            
+            // Redirigir inmediatamente después del alert
+            cargarCalificaciones();
+          } else {
+            // Mostrar errores
+            if (mensajeDiv) {
+              let errorHtml = '<div class="alert alert-danger alert-dismissible"><ul class="mb-0">';
+              if (data.errors) {
+                // Limpiar errores anteriores de los campos
+                form.querySelectorAll('.text-danger').forEach(el => el.remove());
+                
+                for (const field in data.errors) {
+                  data.errors[field].forEach(error => {
+                    errorHtml += `<li>${error}</li>`;
+                    
+                    // Mostrar error específico en el campo
+                    const fieldElement = form.querySelector(`[name="${field}"]`);
+                    if (fieldElement) {
+                      const errorDiv = document.createElement('div');
+                      errorDiv.className = 'text-danger small mt-1';
+                      errorDiv.textContent = error;
+                      fieldElement.parentNode.appendChild(errorDiv);
+                    }
+                  });
+                }
+              } else if (data.error) {
+                errorHtml += `<li>${data.error}</li>`;
+              }
+              errorHtml += '</ul><button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
+              mensajeDiv.innerHTML = errorHtml;
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          if (mensajeDiv) {
+            mensajeDiv.innerHTML = `
+              <div class="alert alert-danger alert-dismissible">
+                <i class="fas fa-exclamation-triangle me-2"></i>Error al crear la evaluación. Por favor, intenta nuevamente.
+                <button type="button" class="btn-close" aria-label="Cerrar">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+            `;
+          }
+        })
+        .finally(() => {
+          // Restaurar el botón
+          if (submitBtn) {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+          }
+        });
+      }
+    };
+    
+    form.addEventListener('submit', form._submitHandler);
+  }
+}
+
 // ============================================================================
 // FUNCIONES PARA EL SISTEMA DE ELIMINACIÓN DE EVALUACIONES
 // ============================================================================
@@ -2471,22 +2621,20 @@ function inicializarFormularioEliminacion() {
         document.getElementById('loading').classList.remove('show');
         
         if (data.success) {
-          // Mostrar mensaje de éxito
-          mostrarMensajeEliminacion('success', data.message);
+          // Mostrar mensaje de éxito con alert
+          alert(data.message);
           
-          // Recargar la lista de evaluaciones
-          setTimeout(() => {
-            cargarCalificaciones();
-          }, 1500);
+          // Recargar la lista de evaluaciones inmediatamente
+          cargarCalificaciones();
         } else {
-          // Mostrar mensaje de error
-          mostrarMensajeEliminacion('error', data.error || 'Error al eliminar la evaluación');
+          // Mostrar mensaje de error con alert
+          alert(data.error || 'Error al eliminar la evaluación');
         }
       })
       .catch(error => {
         document.getElementById('loading').classList.remove('show');
         console.error('Error:', error);
-        mostrarMensajeEliminacion('error', 'Error al eliminar la evaluación');
+        alert('Error al eliminar la evaluación');
       });
     };
     
@@ -2494,27 +2642,7 @@ function inicializarFormularioEliminacion() {
   }
 }
 
-// Función para mostrar mensajes en la vista de eliminación
-function mostrarMensajeEliminacion(tipo, mensaje) {
-  // Crear elemento de mensaje
-  const mensajeDiv = document.createElement('div');
-  mensajeDiv.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
-  mensajeDiv.innerHTML = `
-    ${mensaje}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  `;
-  
-  // Insertar al inicio del contenido
-  const contenido = document.querySelector('.eliminar-evaluacion-content');
-  if (contenido) {
-    contenido.insertBefore(mensajeDiv, contenido.firstChild);
-    
-    // Auto-ocultar después de 5 segundos
-    setTimeout(() => {
-      mensajeDiv.remove();
-    }, 5000);
-  }
-}
+// Función para mostrar mensajes en la vista de eliminación (obsoleta - ahora usa alert)
 
 // Función para inicializar automáticamente cuando se detecta contenido de eliminación
 function inicializarEliminacionSiExiste() {

@@ -12,26 +12,26 @@
         <h4 class="mb-3">
           <i class="fas fa-chart-bar me-2"></i>Estadísticas Generales del Curso
         </h4>
-        <div class="row">
-          <div class="col-md-3 mb-3">
+        <div class="row g-3">
+          <div class="col-6 col-md-3 mb-3">
             <div class="stats-card">
               <div class="stat-value">{{ estadisticas.promedio_general|floatformat:1 }}</div>
               <div class="stat-label">Promedio General</div>
             </div>
           </div>
-          <div class="col-md-3 mb-3">
+          <div class="col-6 col-md-3 mb-3">
             <div class="stats-card">
               <div class="stat-value">{{ estadisticas.nota_minima|floatformat:1 }}</div>
               <div class="stat-label">Nota Mínima</div>
             </div>
           </div>
-          <div class="col-md-3 mb-3">
+          <div class="col-6 col-md-3 mb-3">
             <div class="stats-card">
               <div class="stat-value">{{ estadisticas.nota_maxima|floatformat:1 }}</div>
               <div class="stat-label">Nota Máxima</div>
             </div>
           </div>
-          <div class="col-md-3 mb-3">
+          <div class="col-6 col-md-3 mb-3">
             <div class="stats-card">
               <div class="stat-value">{{ estadisticas.total_estudiantes }}</div>
               <div class="stat-label">Total Estudiantes</div>
@@ -43,21 +43,21 @@
     
     <!-- Lista de Evaluaciones -->
     <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-          <h4 class="mb-0">
+              <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+          <h4 class="mb-3 mb-md-0">
             <i class="fas fa-list me-2"></i>Evaluaciones del Curso
           </h4>
-          <div class="d-flex gap-2">
-            <button onclick="cargarEstadisticasCalificaciones()" class="btn btn-info">
+          <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
+            <button onclick="cargarEstadisticasCalificaciones()" class="btn btn-info btn-sm">
               <i class="fas fa-chart-bar me-1"></i>Ver Estadísticas
             </button>
             {% if user.is_staff %}
-              <button onclick="cargarRubricasCalificaciones()" class="btn btn-warning">
+              <button onclick="cargarRubricasCalificaciones()" class="btn btn-warning btn-sm">
                 <i class="fas fa-list-check me-1"></i>Ver Rúbricas
               </button>
-                          <button onclick="cargarCrearEvaluacion()" class="btn btn-primary">
-              <i class="fas fa-plus me-2"></i>Nueva Evaluación
-            </button>
+              <button onclick="cargarCrearEvaluacion()" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i>Nueva Evaluación
+              </button>
             {% endif %}
           </div>
         </div>
@@ -87,57 +87,57 @@
 
             
             {% for evaluacion in evaluaciones %}
-              <div class="col-md-6 mb-3">
+              <div class="col-12 col-lg-6 mb-3">
                 <div class="evaluacion-card">
 
                   <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h6 class="mb-1">{{ evaluacion.nombre }}</h6>
-                    <span class="badge bg-primary">{{ evaluacion.get_tipo_display }}</span>
+                    <h6 class="mb-1 text-break">{{ evaluacion.nombre }}</h6>
+                    <span class="badge bg-primary ms-2">{{ evaluacion.get_tipo_display }}</span>
                   </div>
                   <p class="text-muted small mb-2">
                     <i class="fas fa-calendar me-1"></i>{{ evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ evaluacion.fecha_fin|date:"d/m/Y" }}
                   </p>
-                  <div class="row text-center mb-3">
-                    <div class="col-3">
-                      <small class="text-muted">Nota Máxima</small>
+                  <div class="row text-center mb-3 g-2">
+                    <div class="col-6 col-sm-3">
+                      <small class="text-muted d-block">Nota Máxima</small>
                       <div class="fw-bold">{{ evaluacion.nota_maxima }}</div>
                     </div>
-                    <div class="col-3">
-                      <small class="text-muted">Ponderación</small>
+                    <div class="col-6 col-sm-3">
+                      <small class="text-muted d-block">Ponderación</small>
                       <div class="fw-bold">{{ evaluacion.ponderacion }}%</div>
                     </div>
-                    <div class="col-3">
-                      <small class="text-muted">Entregas</small>
+                    <div class="col-6 col-sm-3">
+                      <small class="text-muted d-block">Entregas</small>
                       <div class="fw-bold">{{ evaluacion.stats_entregas.estudiantes_con_entregas }}/{{ evaluacion.stats_entregas.total_estudiantes }}</div>
                     </div>
-                    <div class="col-3">
-                      <small class="text-muted">Calificadas</small>
+                    <div class="col-6 col-sm-3">
+                      <small class="text-muted d-block">Calificadas</small>
                       <div class="fw-bold">{{ evaluacion.stats_entregas.estudiantes_calificados }}/{{ evaluacion.stats_entregas.estudiantes_con_entregas }}</div>
                     </div>
                   </div>
                   {% if evaluacion.descripcion %}
                     <p class="text-muted small mb-3">{{ evaluacion.descripcion|truncatewords:20 }}</p>
                   {% endif %}
-                  <div class="d-flex gap-2">
+                  <div class="d-flex flex-column flex-sm-row gap-2 mb-3">
                     {% if evaluacion.stats_entregas.estudiantes_con_entregas > 0 %}
-                      <button onclick="cargarCalificar({{ evaluacion.id }})" class="btn btn-sm btn-outline-primary">
+                      <button onclick="cargarCalificar({{ evaluacion.id }})" class="btn btn-sm btn-outline-primary flex-fill">
                         <i class="fas fa-edit me-1"></i>{% if evaluacion.stats_entregas.estudiantes_calificados > 0 %}Editar Calificaciones{% else %}Calificar{% endif %}
                       </button>
                     {% else %}
-                      <button class="btn btn-sm btn-outline-secondary" disabled title="No hay entregas para calificar">
+                      <button class="btn btn-sm btn-outline-secondary flex-fill" disabled title="No hay entregas para calificar">
                         <i class="fas fa-edit me-1"></i>Sin Entregas
                       </button>
                     {% endif %}
-                    <button onclick="cargarEditarEvaluacion({{ evaluacion.id }})" class="btn btn-sm btn-outline-warning">
+                    <button onclick="cargarEditarEvaluacion({{ evaluacion.id }})" class="btn btn-sm btn-outline-warning flex-fill">
                       <i class="fas fa-edit me-1"></i>Editar
                     </button>
-                    <button onclick="cargarEliminarEvaluacion({{ evaluacion.id }})" class="btn btn-sm btn-outline-danger">
+                    <button onclick="cargarEliminarEvaluacion({{ evaluacion.id }})" class="btn btn-sm btn-outline-danger flex-fill">
                       <i class="fas fa-trash-alt me-1"></i>Eliminar
                     </button>
                   </div>
                   
-                  <!-- Botón Crear Rubrica en la esquina inferior derecha -->
-                  <div class="position-absolute bottom-0 end-0 p-3">
+                  <!-- Botón Crear Rubrica -->
+                  <div class="text-center">
                     <button onclick="cargarRubrica({{ evaluacion.id }})" class="btn btn-sm btn-outline-success" title="Crear Rúbrica para esta evaluación">
                       <i class="fas fa-plus-circle me-1"></i>Abrir Rúbrica
                     </button>
@@ -164,15 +164,12 @@
   <div class="row">
     <!-- Botones de navegación para estudiantes -->
     <div class="col-12 mb-4">
-      <div class="d-flex justify-content-between align-items-center">
-        <h4 class="mb-0">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
+        <h4 class="mb-3 mb-md-0">
           <i class="fas fa-chart-line me-2"></i>Mis Calificaciones
         </h4>
         <div class="d-flex gap-2">
-          <button onclick="cargarEstadisticasCalificaciones()" class="btn btn-info">
-            <i class="fas fa-chart-bar me-1"></i>Ver Estadísticas
-          </button>
-          <button onclick="cargarRubricasCalificaciones()" class="btn btn-warning">
+          <button onclick="cargarRubricasCalificaciones()" class="btn btn-warning btn-sm">
             <i class="fas fa-list-check me-1"></i>Ver Rúbricas
           </button>
         </div>
@@ -185,9 +182,9 @@
         <h4 class="mb-3">
           <i class="fas fa-user-chart me-2"></i>Mis Estadísticas
         </h4>
-        <div class="row">
+        <div class="row g-3">
           {% if estadisticas_estudiante.promedio_ponderado %}
-            <div class="col-md-6 mb-3">
+            <div class="col-12 col-md-6 mb-3">
               <div class="stats-card">
                 <div class="stat-value">{{ estadisticas_estudiante.promedio_ponderado|floatformat:1 }}</div>
                 <div class="stat-label">Mi Promedio Ponderado</div>
@@ -195,7 +192,7 @@
               </div>
             </div>
           {% endif %}
-          <div class="col-md-{% if estadisticas_estudiante.promedio_ponderado %}6{% else %}12{% endif %} mb-3">
+          <div class="col-12 col-md-{% if estadisticas_estudiante.promedio_ponderado %}6{% else %}12{% endif %} mb-3">
             <div class="stats-card">
               <div class="stat-value">{{ estadisticas_estudiante.evaluaciones_calificadas }}/{{ estadisticas_estudiante.total_evaluaciones }}</div>
               <div class="stat-label">Evaluaciones Calificadas</div>
@@ -219,9 +216,9 @@
           <h4 class="mb-3">
             <i class="fas fa-chart-pie me-2"></i>Promedios por Tipo de Evaluación
           </h4>
-          <div class="row">
+          <div class="row g-3">
             {% for tipo, datos in promedios_por_tipo.items %}
-              <div class="col-md-4 mb-3">
+              <div class="col-12 col-sm-6 col-lg-4 mb-3">
                 <div class="card border-0 shadow-sm">
                   <div class="card-body text-center">
                     <h6 class="card-title text-primary">{{ tipo }}</h6>
@@ -246,12 +243,12 @@
         </div>
         
         {% if calificaciones_usuario %}
-          <div class="row">
+          <div class="row g-3">
             {% for calificacion in calificaciones_usuario %}
-              <div class="col-md-6 mb-3">
+              <div class="col-12 col-lg-6 mb-3">
                 <div class="calificacion-item">
                   <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h6 class="mb-1">{{ calificacion.evaluacion.nombre }}</h6>
+                    <h6 class="mb-1 text-break">{{ calificacion.evaluacion.nombre }}</h6>
                     {% if calificacion.nota %}
                       {% if calificacion.nota >= 7.0 %}
                         <span class="nota-badge nota-excelente">{{ calificacion.nota }}</span>
@@ -266,7 +263,7 @@
                       <span class="badge bg-secondary">Sin calificar</span>
                     {% endif %}
                   </div>
-                  <div class="row text-muted small mb-2">
+                  <div class="row text-muted small mb-2 g-2">
                     <div class="col-6">
                       <i class="fas fa-tag me-1"></i>{{ calificacion.evaluacion.get_tipo_display }}
                     </div>
@@ -274,7 +271,7 @@
                       <i class="fas fa-calendar me-1"></i>{{ calificacion.evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ calificacion.evaluacion.fecha_fin|date:"d/m/Y" }}
                     </div>
                   </div>
-                  <div class="row text-muted small mb-2">
+                  <div class="row text-muted small mb-2 g-2">
                     <div class="col-6">
                       <i class="fas fa-star me-1"></i>Máx: {{ calificacion.evaluacion.nota_maxima }}
                     </div>
@@ -290,10 +287,7 @@
                       </small>
                     </div>
                   {% endif %}
-                  <div class="mt-2 d-flex gap-1">
-                    <button onclick="cargarDetalleEvaluacion({{ calificacion.evaluacion.id }})" class="btn btn-sm btn-outline-info">
-                      <i class="fas fa-clipboard-list me-1"></i>Ver Evaluación
-                    </button>
+                  <div class="mt-2 d-flex justify-content-center">
                     <button onclick="window.location.href='{% url 'ver_calificacion_detalle' curso.id calificacion.id %}'" class="btn btn-sm btn-outline-primary">
                       <i class="fas fa-eye me-1"></i>Ver Detalle
                     </button>
@@ -320,6 +314,7 @@
   border-radius: 10px;
   padding: 20px;
   margin-bottom: 20px;
+  height: 100%;
 }
 
 .stats-card .stat-value {
@@ -351,6 +346,7 @@
   color: #333 !important;
   font-size: 14px !important;
   font-weight: normal !important;
+  height: 100%;
 }
 
 .evaluacion-card:hover {
@@ -371,6 +367,7 @@
   padding: 15px;
   margin-bottom: 10px;
   border-left: 4px solid #007bff;
+  height: 100%;
 }
 
 .nota-badge {
@@ -391,5 +388,49 @@
   padding: 30px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   margin-bottom: 20px;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .stats-card .stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .stats-card .stat-label {
+    font-size: 0.8rem;
+  }
+  
+  .evaluacion-card {
+    padding: 20px !important;
+    min-height: 180px !important;
+  }
+  
+  .calificacion-item {
+    padding: 12px;
+  }
+  
+  .nota-badge {
+    font-size: 1rem;
+    padding: 4px 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .stats-card {
+    padding: 15px;
+  }
+  
+  .stats-card .stat-value {
+    font-size: 1.3rem;
+  }
+  
+  .evaluacion-card {
+    padding: 15px !important;
+    min-height: 160px !important;
+  }
+  
+  .section-content {
+    padding: 20px;
+  }
 }
 </style>

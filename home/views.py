@@ -5755,12 +5755,6 @@ def plataforma_calificaciones_ajax(request, curso_id):
                 if not request.user.is_staff and evaluacion.creado_por != request.user:
                     return JsonResponse({'error': 'No tienes permisos para ver esta rúbrica'}, status=403)
                 
-                # Obtener la rúbrica
-                try:
-                    rubrica = evaluacion.rubrica
-                except Rubrica.DoesNotExist:
-                    return JsonResponse({'error': 'No se encontró una rúbrica para esta evaluación'}, status=404)
-                
                 # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
                 from datetime import date
                 hoy = date.today()
@@ -5771,6 +5765,27 @@ def plataforma_calificaciones_ajax(request, curso_id):
                     puede_editar = False
                     mensaje_restriccion = f'La evaluación comenzó el {evaluacion.fecha_inicio.strftime("%d/%m/%Y")}. La rúbrica no se puede editar después de esta fecha.'
                 
+                # Obtener la rúbrica (si existe)
+                rubrica = None
+                try:
+                    rubrica = evaluacion.rubrica
+                except Rubrica.DoesNotExist:
+                    # Si no existe rúbrica, mostrar mensaje informativo
+                    context = {
+                        'curso': curso,
+                        'evaluacion': evaluacion,
+                        'rubrica': None,
+                        'user': request.user,
+                        'puede_editar': puede_editar,
+                        'mensaje_restriccion': mensaje_restriccion,
+                        'mostrar_rubrica': True,
+                        'sin_rubrica': True,
+                    }
+                    
+                    html = render_to_string('pages/plataforma_calificaciones_rubrica_content.html', context, request=request)
+                    return JsonResponse({'html': html})
+                
+                # Si existe la rúbrica, mostrar normalmente
                 context = {
                     'curso': curso,
                     'evaluacion': evaluacion,
@@ -5779,6 +5794,7 @@ def plataforma_calificaciones_ajax(request, curso_id):
                     'puede_editar': puede_editar,
                     'mensaje_restriccion': mensaje_restriccion,
                     'mostrar_rubrica': True,
+                    'sin_rubrica': False,
                 }
                 
                 html = render_to_string('pages/plataforma_calificaciones_rubrica_content.html', context, request=request)
@@ -6171,7 +6187,7 @@ def editar_evaluacion_ajax(request, curso_id, evaluacion_id):
             
             return JsonResponse({
                 'success': True,
-                'message': f'Evaluación "{evaluacion.nombre}" actualizada exitosamente.'
+                'message': 'Evaluación actualizada exitosamente'
             })
         else:
             return JsonResponse({
@@ -6287,14 +6303,15 @@ def crear_evaluacion_ajax(request, curso_id):
                         'redirect_url': reverse('plataforma_calificaciones', kwargs={'curso_id': curso_id})
                     })
                 else:
-                    # Formulario con errores
-                    context = {
-                        'curso': curso,
-                        'form': form,
-                        'user': request.user,
-                    }
-                    html = render_to_string('pages/plataforma_calificaciones_crear_evaluacion_content.html', context, request=request)
-                    return JsonResponse({'html': html})
+                    # Formulario con errores - retornar errores en formato JSON
+                    errors = {}
+                    for field, field_errors in form.errors.items():
+                        errors[field] = [str(error) for error in field_errors]
+                    
+                    return JsonResponse({
+                        'success': False,
+                        'errors': errors
+                    })
             else:
                 # Formulario inicial
                 form = EvaluacionForm(curso=curso)
