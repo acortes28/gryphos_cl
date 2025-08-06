@@ -51,7 +51,6 @@ urlpatterns = [
     # Calificaciones URLs
     path('curso/<int:curso_id>/calificaciones/', views.plataforma_calificaciones, name='plataforma_calificaciones'),
     path('curso/<int:curso_id>/plataforma/calificaciones/ajax/', views.plataforma_calificaciones_ajax, name='plataforma_calificaciones_ajax'),
-    path('curso/<int:curso_id>/plataforma/calificaciones/', views.plataforma_calificaciones_spa, name='plataforma_calificaciones_spa'),
     path('curso/<int:curso_id>/calificaciones/crear-evaluacion/', views.crear_evaluacion, name='crear_evaluacion'),
     path('curso/<int:curso_id>/calificaciones/calificar/<int:evaluacion_id>/', views.calificar_estudiante, name='calificar_estudiante'),
     path('curso/<int:curso_id>/calificaciones/calificar/<int:evaluacion_id>/ajax/', views.calificar_estudiante_ajax, name='calificar_estudiante_ajax'),
@@ -71,9 +70,9 @@ urlpatterns = [
     path('debug-calificaciones/<int:curso_id>/', views.debug_calificaciones, name='debug_calificaciones'),
     
     # Rúbricas URLs
+    path('curso/<int:curso_id>/calificaciones/agregar-criterio/<int:evaluacion_id>/', views.agregar_criterio_rubrica, name='agregar_criterio_rubrica'),
     path('curso/<int:curso_id>/calificaciones/crear-rubrica/<int:evaluacion_id>/', views.crear_rubrica, name='crear_rubrica'),
     path('curso/<int:curso_id>/calificaciones/editar-rubrica/<int:evaluacion_id>/', views.editar_rubrica, name='editar_rubrica'),
-    path('curso/<int:curso_id>/calificaciones/agregar-criterio/<int:evaluacion_id>/', views.agregar_criterio_rubrica, name='agregar_criterio_rubrica'),
     path('curso/<int:curso_id>/calificaciones/obtener-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.obtener_criterio_rubrica, name='obtener_criterio_rubrica'),
     path('curso/<int:curso_id>/calificaciones/editar-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.editar_criterio_rubrica, name='editar_criterio_rubrica'),
     path('curso/<int:curso_id>/calificaciones/eliminar-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.eliminar_criterio_rubrica, name='eliminar_criterio_rubrica'),

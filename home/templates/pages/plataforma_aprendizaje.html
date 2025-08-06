@@ -1,6 +1,9 @@
 {% extends 'layouts/base_background.html' %}
 {% load static %}
 {% load custom_filters %}
+
+{% csrf_token %}
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 {% block title %} {{ curso.nombre }} - Plataforma de Aprendizaje {% endblock title %}
 {% block body %} class="about-us bg-gray-200" {% endblock body %}
 
@@ -1711,14 +1714,12 @@ function evaluarEntrega(button) {
   const entregaId = button.getAttribute('data-entrega-id');
   const evaluacionId = button.getAttribute('data-evaluacion-id');
   const estudianteId = button.getAttribute('data-estudiante-id');
-  // Obtener el curso_id de la URL actual
-  const urlParams = new URLSearchParams(window.location.search);
-  const cursoId = urlParams.get('curso_id') || window.location.pathname.split('/')[2];
   
-  console.log('Evaluando entrega:', { entregaId, evaluacionId, estudianteId, cursoId });
+  console.log('Evaluando entrega:', { entregaId, evaluacionId, estudianteId });
   
-  // Redirigir a la página de calificar estudiante con el estudiante precargado
-  window.location.href = `/curso/${cursoId}/calificaciones/calificar/${evaluacionId}/?estudiante=${estudianteId}`;
+  // Usar el mismo patrón que cargarCalificar para mantener consistencia SPA
+  // Pasar el estudianteId para precargar el estudiante específico
+  cargarCalificar(evaluacionId, estudianteId);
 }
 
 function abrirModalReemplazar(button) {
@@ -2222,11 +2223,17 @@ function inicializarCamposFecha() {
 }
 
 // Función para cargar vista de calificar estudiantes
-function cargarCalificar(evaluacionId) {
+function cargarCalificar(evaluacionId, estudianteId = null) {
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
   
-  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_calificar&evaluacion_id=${evaluacionId}`, {
+  // Construir URL con parámetros
+  let url = `{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_calificar&evaluacion_id=${evaluacionId}`;
+  if (estudianteId) {
+    url += `&estudiante_id=${estudianteId}`;
+  }
+  
+  fetch(url, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     }
@@ -2258,7 +2265,22 @@ function cargarCalificar(evaluacionId) {
         url.searchParams.set('seccion', 'calificaciones');
         url.searchParams.set('action', 'ver_calificar');
         url.searchParams.set('evaluacion_id', evaluacionId);
+        if (estudianteId) {
+          url.searchParams.set('estudiante_id', estudianteId);
+        }
         window.history.pushState({}, '', url);
+        
+        // Ejecutar cálculo de nota después de cargar el contenido
+        // Esto es necesario cuando se precarga un estudiante
+        setTimeout(() => {
+          if (typeof calcularNota === 'function') {
+            console.log('Ejecutando cálculo de nota después de cargar contenido...');
+            console.log('Estudiante precargado:', estudianteId);
+            calcularNota();
+          } else {
+            console.warn('Función calcularNota no está disponible');
+          }
+        }, 500); // Aumentar el timeout para asegurar que el DOM esté completamente cargado
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -2692,6 +2714,8 @@ function iniciarObserverEliminacion() {
 let esperablesList = [];
 let esperablesListEditar = [];
 
+
+
 // Funciones para el modal de criterios
 function abrirModalAgregarCriterio() {
   // Limpiar la lista de esperables
@@ -3005,11 +3029,37 @@ function guardarCriterio() {
   // Limpiar esperables existentes del FormData y agregar solo los de la lista
   formData.delete('esperables[]');
   esperablesList.forEach((esperable, index) => {
-    formData.append('esperables[]', JSON.stringify(esperable));
+    const esperableJson = JSON.stringify(esperable);
+    console.log(`Esperable ${index} JSON:`, esperableJson);
+    formData.append('esperables[]', esperableJson);
   });
   
   // Enviar datos vía AJAX
-  fetch(`{% url 'agregar_criterio_rubrica' curso.id 0 %}`.replace('0', '{{ evaluacion.id }}'), {
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  const url = `/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/agregar-criterio/${evaluacionId}/`;
+  console.log('URL a enviar:', url);
+  console.log('Datos a enviar:', {
+    nombre: formData.get('nombre'),
+    objetivo: formData.get('objetivo'),
+    puntaje: formData.get('puntaje'),
+    esperables: esperablesList
+  });
+  
+  // Log de todos los datos del FormData
+  console.log('FormData completo:');
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}:`, value);
+  }
+  
+  fetch(url, {
     method: 'POST',
     headers: {
       'X-Requested-With': 'XMLHttpRequest',
@@ -3047,7 +3097,16 @@ function guardarCriterio() {
 
 function editarCriterio(criterioId) {
   // Cargar los datos del criterio
-  fetch(`{% url 'obtener_criterio_rubrica' curso.id 0 0 %}`.replace('0/0', '{{ evaluacion.id }}/' + criterioId), {
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  fetch(`/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/obtener-criterio/${evaluacionId}/${criterioId}/`, {
     method: 'GET',
     headers: {
       'X-Requested-With': 'XMLHttpRequest',
@@ -3115,7 +3174,16 @@ function guardarCriterioEditado() {
   });
   
   // Enviar datos vía AJAX
-  fetch(`{% url 'editar_criterio_rubrica' curso.id 0 0 %}`.replace('0/0', '{{ evaluacion.id }}/' + criterioId), {
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  fetch(`/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/editar-criterio/${evaluacionId}/${criterioId}/`, {
     method: 'POST',
     headers: {
       'X-Requested-With': 'XMLHttpRequest',
@@ -3170,7 +3238,16 @@ function eliminarCriterio(criterioId) {
 function confirmarEliminarCriterio() {
   const criterioId = document.getElementById('modalConfirmarEliminarCriterio').getAttribute('data-criterio-id');
   
-  fetch(`{% url 'eliminar_criterio_rubrica' curso.id 0 0 %}`.replace('0/0', '{{ evaluacion.id }}/' + criterioId), {
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  fetch(`/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/eliminar-criterio/${evaluacionId}/${criterioId}/`, {
     method: 'POST',
     headers: {
       'X-Requested-With': 'XMLHttpRequest',
@@ -5304,6 +5381,7 @@ document.addEventListener('keydown', function(event) {
 // Función para calcular la nota automáticamente
 function calcularNota() {
   console.log('Función calcularNota() ejecutada');
+  console.log('DOM completamente cargado:', document.readyState);
   
   // Buscar el campo de nota de múltiples formas
   let notaField = document.getElementById('id_nota_calculada');
@@ -5329,20 +5407,37 @@ function calcularNota() {
     notaField.placeholder = 'Calculando...';
   }
   
-  const evaluacionNotaMaxima = parseFloat('{{ evaluacion.nota_maxima|default:7.0 }}');
+  // Obtener la nota máxima de la evaluación desde el contexto o usar un valor por defecto
+  let evaluacionNotaMaxima = 7.0; // Valor por defecto
+  
+  // Intentar obtener la nota máxima del contexto de la evaluación
+  try {
+    // Buscar información de la evaluación en el DOM
+    const evaluacionInfo = document.querySelector('form[data-evaluacion-nota-maxima]');
+    if (evaluacionInfo) {
+      evaluacionNotaMaxima = parseFloat(evaluacionInfo.getAttribute('data-evaluacion-nota-maxima'));
+    }
+  } catch (e) {
+    console.log('No se pudo obtener la nota máxima de la evaluación, usando valor por defecto:', evaluacionNotaMaxima);
+  }
+  
+  console.log('Nota máxima de la evaluación:', evaluacionNotaMaxima);
   let sumaPuntajesObtenidos = 0;
   let sumaPuntajesMaximos = 0;
   
   // Obtener todos los campos de criterio (buscar por ID y por nombre)
   let criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
+  console.log('Campos de criterio por ID:', criterioFields.length);
   if (criterioFields.length === 0) {
     criterioFields = document.querySelectorAll('select[name^="criterio_"]');
+    console.log('Campos de criterio por nombre:', criterioFields.length);
   }
   if (criterioFields.length === 0) {
     // Buscar cualquier select que tenga atributos de criterio
     criterioFields = document.querySelectorAll('select[data-criterio-id]');
+    console.log('Campos de criterio por data-attribute:', criterioFields.length);
   }
-  console.log('Campos de criterio encontrados en calcularNota:', criterioFields.length);
+  console.log('Total de campos de criterio encontrados en calcularNota:', criterioFields.length);
   
   criterioFields.forEach(function(field) {
     console.log('Procesando campo:', field.id, 'Valor seleccionado:', field.value);
@@ -5396,19 +5491,24 @@ function calcularNota() {
   console.log('Puntajes obtenidos:', sumaPuntajesObtenidos);
   console.log('Puntajes máximos:', sumaPuntajesMaximos);
   console.log('Nota calculada:', notaCalculada.toFixed(1));
+  console.log('Campo de nota actualizado:', notaField ? notaField.value : 'No encontrado');
 }
 
 // Inicialización específica para formularios de calificación
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Inicializando sistema de calificaciones...');
   
-  // Verificar si estamos en una página de calificación
-  const isCalificacionPage = document.getElementById('btn-guardar-calificacion') !== null;
+  // Verificar si estamos en una página de calificación (múltiples indicadores)
+  const isCalificacionPage = document.getElementById('btn-guardar-calificacion') !== null ||
+                            document.querySelector('form[data-evaluacion-nota-maxima]') !== null ||
+                            document.querySelector('select[id^="id_criterio_"]') !== null ||
+                            document.querySelector('select[name^="criterio_"]') !== null ||
+                            document.querySelector('.nota-calculada-container') !== null;
   
   if (isCalificacionPage) {
     console.log('Página de calificación detectada en template padre');
     
-    // Solo configurar event listeners para campos de criterio (no para el botón)
+    // Configurar event listeners para campos de criterio
     const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
     criterioFields.forEach(function(field) {
       field.addEventListener('change', function() {
@@ -5432,13 +5532,170 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
     
-    // Calcular nota inicial
+    // Calcular nota inicial después de un breve delay para asegurar que todos los elementos estén cargados
     if (typeof calcularNota === 'function') {
       setTimeout(() => {
+        console.log('Calculando nota inicial en página de calificación...');
         calcularNota();
-      }, 100);
+      }, 200);
     }
   }
+});
+
+// Función para calcular la nota automáticamente
+function calcularNota() {
+  console.log('Función calcularNota() ejecutada en calificar estudiante');
+  
+  // Buscar el campo de nota de múltiples formas
+  let notaField = document.getElementById('id_nota_calculada');
+  if (!notaField) {
+    notaField = document.querySelector('input[name="nota"]');
+  }
+  if (!notaField) {
+    notaField = document.querySelector('input[type="number"][readonly]');
+  }
+  if (!notaField) {
+    notaField = document.querySelector('.nota-calculada-value input');
+  }
+  if (!notaField) {
+    // Buscar cualquier campo de nota en la página
+    const allNotaFields = document.querySelectorAll('input[type="number"], input[name="nota"]');
+    if (allNotaFields.length > 0) {
+      notaField = allNotaFields[0];
+    }
+  }
+  console.log('Campo de nota encontrado:', notaField);
+  
+  if (notaField) {
+    notaField.placeholder = 'Calculando...';
+  }
+  
+  // Obtener la nota máxima de la evaluación desde el contexto o usar un valor por defecto
+  let evaluacionNotaMaxima = 7.0; // Valor por defecto
+  
+  // Intentar obtener la nota máxima del contexto de la evaluación
+  try {
+    // Buscar información de la evaluación en el DOM
+    const evaluacionInfo = document.querySelector('form[data-evaluacion-nota-maxima]');
+    if (evaluacionInfo) {
+      evaluacionNotaMaxima = parseFloat(evaluacionInfo.getAttribute('data-evaluacion-nota-maxima'));
+    }
+  } catch (e) {
+    console.log('No se pudo obtener la nota máxima de la evaluación, usando valor por defecto:', evaluacionNotaMaxima);
+  }
+  
+  console.log('Nota máxima de la evaluación:', evaluacionNotaMaxima);
+  let sumaPuntajesObtenidos = 0;
+  let sumaPuntajesMaximos = 0;
+  
+  // Obtener todos los campos de criterio (buscar por ID y por nombre)
+  let criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
+  console.log('Campos de criterio por ID:', criterioFields.length);
+  if (criterioFields.length === 0) {
+    criterioFields = document.querySelectorAll('select[name^="criterio_"]');
+    console.log('Campos de criterio por nombre:', criterioFields.length);
+  }
+  if (criterioFields.length === 0) {
+    // Buscar cualquier select que tenga atributos de criterio
+    criterioFields = document.querySelectorAll('select[data-criterio-id]');
+    console.log('Campos de criterio por data-attribute:', criterioFields.length);
+  }
+  console.log('Total de campos de criterio encontrados en calcularNota:', criterioFields.length);
+  
+  criterioFields.forEach(function(field) {
+    console.log('Procesando campo:', field.id, 'Valor seleccionado:', field.value);
+    const selectedOption = field.options[field.selectedIndex];
+    if (selectedOption && selectedOption.value !== '') {
+      // Extraer el puntaje del texto de la opción (formato: "25.00 pts - Logrado - Descripción")
+      const optionText = selectedOption.text;
+      console.log('Texto de la opción:', optionText);
+      const puntajeMatch = optionText.match(/(\d+\.?\d*)\s+pts/);
+      if (puntajeMatch) {
+        const puntaje = parseFloat(puntajeMatch[1]);
+        sumaPuntajesObtenidos += puntaje;
+        console.log('Puntaje extraído:', puntaje);
+      }
+    }
+    
+    // Obtener el puntaje máximo del criterio desde el atributo data
+    const puntajeMaximo = parseFloat(field.getAttribute('data-criterio-puntaje-maximo') || 0);
+    sumaPuntajesMaximos += puntajeMaximo;
+    console.log('Puntaje máximo del criterio:', puntajeMaximo);
+  });
+  
+  // Calcular la nota según la fórmula
+  let notaCalculada = 0;
+  if (sumaPuntajesMaximos > 0) {
+    notaCalculada = (evaluacionNotaMaxima * sumaPuntajesObtenidos) / sumaPuntajesMaximos;
+  }
+  
+  // Actualizar el campo de nota con animación
+  if (notaField) {
+    // Agregar clase para animación
+    notaField.classList.add('nota-updating');
+    
+    // Actualizar valor
+    notaField.value = notaCalculada.toFixed(1);
+    
+    // Actualizar también el campo oculto para el formulario
+    const notaHidden = document.getElementById('nota_hidden');
+    if (notaHidden) {
+      notaHidden.value = notaField.value;
+      console.log('Campo oculto actualizado con nota:', notaHidden.value);
+    }
+    
+    // Remover clase después de la animación
+    setTimeout(() => {
+      notaField.classList.remove('nota-updating');
+    }, 300);
+  }
+  
+  // Mostrar información de debug (opcional)
+  console.log('Puntajes obtenidos:', sumaPuntajesObtenidos);
+  console.log('Puntajes máximos:', sumaPuntajesMaximos);
+  console.log('Nota calculada:', notaCalculada.toFixed(1));
+  console.log('Campo de nota actualizado:', notaField ? notaField.value : 'No encontrado');
+}
+
+// Inicialización específica para la página de calificar estudiante
+console.log("Se esta cargando el script específico para la página de calificar estudiante");
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Inicializando página de calificar estudiante...');
+  
+  // Configurar event listeners para campos de criterio
+  const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
+  criterioFields.forEach(function(field) {
+    field.addEventListener('change', function() {
+      console.log('Campo de criterio cambiado:', field.id, field.value);
+      if (typeof calcularNota === 'function') {
+        calcularNota();
+      }
+    });
+  });
+  
+  // Event listener global para capturar todos los cambios en campos de criterio
+  document.addEventListener('change', function(event) {
+    if (event.target.tagName === 'SELECT' && 
+        (event.target.id.startsWith('id_criterio_') || 
+         event.target.name.startsWith('criterio_') || 
+         event.target.hasAttribute('data-criterio-id'))) {
+      console.log('Event listener global detectó cambio en:', event.target.id, event.target.name, 'Valor:', event.target.value);
+      if (typeof calcularNota === 'function') {
+        calcularNota();
+      }
+    }
+  });
+  
+  // Calcular nota inicial después de un breve delay
+  setTimeout(() => {
+    console.log('Calculando nota inicial en página de calificar estudiante...');
+    if (typeof calcularNota === 'function') {
+      calcularNota();
+    } else {
+      console.warn('Función calcularNota no está disponible');
+    }
+  }, 200);
 });
 
 // Event listeners para admin

@@ -4609,6 +4609,13 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
     """
     Vista AJAX para agregar un criterio a una rúbrica
     """
+    logger.info(f"=== AGREGAR CRITERIO RUBRICA LLAMADA ===")
+    logger.info(f"URL: {request.path}")
+    logger.info(f"URL completa: {request.build_absolute_uri()}")
+    logger.info(f"Método: {request.method}")
+    logger.info(f"Curso ID: {curso_id}")
+    logger.info(f"Evaluación ID: {evaluacion_id}")
+    logger.info(f"Usuario: {request.user}")
     logger.info(f"Agregando criterio - Curso: {curso_id}, Evaluación: {evaluacion_id}")
     
     if request.method != 'POST':
@@ -4636,8 +4643,14 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
         try:
             rubrica = evaluacion.rubrica
         except Rubrica.DoesNotExist:
-            logger.error(f"No se encontró rúbrica para evaluación {evaluacion_id}")
-            return JsonResponse({'error': 'No se encontró una rúbrica para esta evaluación'}, status=404)
+            logger.info(f"No se encontró rúbrica para evaluación {evaluacion_id}, creando una nueva")
+            # Crear una rúbrica automáticamente si no existe
+            rubrica = Rubrica.objects.create(
+                evaluacion=evaluacion,
+                nombre=f"Rúbrica de {evaluacion.nombre}",
+                descripcion=f"Rúbrica automáticamente generada para la evaluación '{evaluacion.nombre}'"
+            )
+            logger.info(f"Rúbrica creada con ID: {rubrica.id}")
         
         # Obtener datos del formulario
         nombre = request.POST.get('nombre')
@@ -4674,10 +4687,19 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
         # Crear los esperables
         esperables_creados = 0
         for i, esperable_data in enumerate(esperables_data):
+            logger.info(f"Procesando esperable {i}: {esperable_data}")
             if esperable_data.strip():  # Solo crear si no está vacío
                 # Parsear el esperable que viene en formato JSON
                 try:
-                    esperable_obj = json.loads(esperable_data)
+                    # Limpiar el string de posibles caracteres de escape
+                    esperable_data_clean = esperable_data.strip()
+                    if esperable_data_clean.startswith('"') and esperable_data_clean.endswith('"'):
+                        esperable_data_clean = esperable_data_clean[1:-1]
+                    
+                    logger.info(f"Esperable {i} limpio: {esperable_data_clean}")
+                    esperable_obj = json.loads(esperable_data_clean)
+                    logger.info(f"Esperable {i} parseado: {esperable_obj}")
+                    
                     Esperable.objects.create(
                         criterio=criterio,
                         nivel=esperable_obj.get('nivel', f"Nivel {i+1}"),
@@ -4686,8 +4708,10 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
                         orden=i+1
                     )
                     esperables_creados += 1
+                    logger.info(f"Esperable {i} creado exitosamente")
                 except (json.JSONDecodeError, TypeError) as e:
                     logger.warning(f"Error parsing esperable {i}: {e}")
+                    logger.warning(f"Esperable data original: {esperable_data}")
                     # Fallback para formato antiguo
                     Esperable.objects.create(
                         criterio=criterio,
@@ -5561,6 +5585,7 @@ def plataforma_calificaciones_ajax(request, curso_id):
             from .forms import CalificacionForm
             
             evaluacion_id = request.GET.get('evaluacion_id')
+            estudiante_id = request.GET.get('estudiante_id')  # Nuevo parámetro para precargar estudiante
             if not evaluacion_id:
                 return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
             
@@ -5625,6 +5650,16 @@ def plataforma_calificaciones_ajax(request, curso_id):
                 
                 # Crear formulario de calificación
                 form = CalificacionForm(curso=curso, evaluacion=evaluacion, estudiantes_con_entregas=estudiantes_disponibles_para_calificar)
+                
+                # Si se proporciona un estudiante_id, precargar el formulario con ese estudiante
+                if estudiante_id:
+                    try:
+                        estudiante_precargado = User.objects.get(id=estudiante_id, cursos=curso)
+                        # Verificar que el estudiante tenga entrega para esta evaluación
+                        if estudiante_precargado.entregas.filter(evaluacion=evaluacion).exists():
+                            form.fields['estudiante'].initial = estudiante_precargado
+                    except User.DoesNotExist:
+                        pass  # Si el estudiante no existe, no precargar nada
                 
                 # Obtener criterios de la rúbrica si existe
                 criterios_rubrica = []

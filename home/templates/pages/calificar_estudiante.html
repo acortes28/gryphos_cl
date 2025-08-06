@@ -893,7 +893,7 @@
         </div>
       </div>
       
-      <form method="post" action="">
+      <form method="post" action="" data-evaluacion-nota-maxima="{{ evaluacion.nota_maxima|default:7.0 }}">
         {% csrf_token %}
         
         <!-- Campo de nota oculto para enviar con el formulario -->
@@ -1184,21 +1184,5 @@
 
 
 <!-- Script específico para la página de calificar estudiante -->
-<script>
-// Inicialización específica para la página de calificar estudiante
-console.log("Se esta cargando el script específico para la página de calificar estudiante");
 
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Inicializando página de calificar estudiante...');
-  // Calcular nota inicial después de un breve delay
-  setTimeout(() => {
-    console.log('Calculando nota inicial en página de calificar estudiante...');
-    if (typeof calcularNota === 'function') {
-      calcularNota();
-    } else {
-      console.warn('Función calcularNota no está disponible');
-    }
-  }, 100);
-});
-</script>
 
