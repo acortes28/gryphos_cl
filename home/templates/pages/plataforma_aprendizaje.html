@@ -1937,6 +1937,69 @@ function cargarDetalleEvaluacion(evaluacionId) {
     });
 }
 
+// Función para cargar detalle de calificación
+function cargarDetalleCalificacion(evaluacionId) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_detalle&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_detalle');
+        url.searchParams.set('evaluacion_id', evaluacionId);
+        window.history.pushState({}, '', url);
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando detalle de calificación:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      if (seccionCalificaciones) {
+        seccionCalificaciones.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el detalle de calificación</h4>
+            <p>Hubo un problema al cargar el detalle de calificación. Por favor, intenta nuevamente.</p>
+            <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </button>
+          </div>
+        `;
+        seccionCalificaciones.classList.add('active');
+      }
+    });
+}
+
 // Función para cargar rúbrica específica
 function cargarRubrica(evaluacionId) {
   // Mostrar loading

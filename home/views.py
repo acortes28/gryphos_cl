@@ -6094,6 +6094,110 @@ def plataforma_calificaciones_ajax(request, curso_id):
             else:
                 return JsonResponse({'error': 'ID de evaluación no proporcionado'}, status=400)
         
+        elif action == 'ver_detalle':
+            # Cargar detalle de una calificación específica
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Obtener la calificación del usuario para esta evaluación
+                try:
+                    calificacion = evaluacion.calificaciones.get(estudiante=request.user)
+                except Calificacion.DoesNotExist:
+                    return JsonResponse({'error': 'No tienes una calificación para esta evaluación'}, status=404)
+                
+                # Obtener la rúbrica asociada a la evaluación si existe
+                rubrica = None
+                resultado_rubrica = None
+                criterios_con_puntajes = []
+                
+                try:
+                    rubrica = evaluacion.rubrica
+                    if rubrica:
+                        # Obtener el resultado de la rúbrica para este estudiante
+                        try:
+                            resultado_rubrica = ResultadoRubrica.objects.get(
+                                rubrica=rubrica,
+                                estudiante=request.user
+                            )
+                            
+                            # Obtener los criterios con sus puntajes
+                            for criterio in rubrica.criterios.all():
+                                try:
+                                    puntaje_criterio = PuntajeCriterio.objects.get(
+                                        resultado_rubrica=resultado_rubrica,
+                                        criterio=criterio
+                                    )
+                                    
+                                    # Determinar el esperable correcto basado en el puntaje obtenido
+                                    esperable_correcto = None
+                                    puntaje_obtenido = puntaje_criterio.puntaje_obtenido
+                                    
+                                    # Buscar coincidencia exacta primero
+                                    for esperable in criterio.esperables.all():
+                                        if esperable.puntaje == puntaje_obtenido:
+                                            esperable_correcto = esperable
+                                            break
+                                    
+                                    # Si no hay coincidencia exacta, buscar el esperable más cercano
+                                    if esperable_correcto is None:
+                                        esperables_ordenados = list(criterio.esperables.all().order_by('puntaje'))
+                                        for i, esperable in enumerate(esperables_ordenados):
+                                            if esperable.puntaje >= puntaje_obtenido:
+                                                esperable_correcto = esperable
+                                                break
+                                        # Si no se encontró ninguno mayor o igual, usar el último
+                                        if esperable_correcto is None and esperables_ordenados:
+                                            esperable_correcto = esperables_ordenados[-1]
+                                    
+                                    criterios_con_puntajes.append({
+                                        'criterio': criterio,
+                                        'puntaje_obtenido': puntaje_criterio.puntaje_obtenido,
+                                        'esperable_seleccionado': esperable_correcto,
+                                        'comentarios': puntaje_criterio.comentarios,
+                                    })
+                                except PuntajeCriterio.DoesNotExist:
+                                    criterios_con_puntajes.append({
+                                        'criterio': criterio,
+                                        'puntaje_obtenido': 0,
+                                        'esperable_seleccionado': None,
+                                        'comentarios': '',
+                                    })
+                        except ResultadoRubrica.DoesNotExist:
+                            # Si no hay resultado de rúbrica, mostrar solo los criterios sin puntajes
+                            for criterio in rubrica.criterios.all():
+                                criterios_con_puntajes.append({
+                                    'criterio': criterio,
+                                    'puntaje_obtenido': 0,
+                                    'esperable_seleccionado': None,
+                                    'comentarios': '',
+                                })
+                except:
+                    pass
+                
+                context = {
+                    'curso': curso,
+                    'calificacion': calificacion,
+                    'rubrica': rubrica,
+                    'resultado_rubrica': resultado_rubrica,
+                    'criterios_con_puntajes': criterios_con_puntajes,
+                    'user': request.user,
+                }
+                
+                html = render_to_string('pages/plataforma_calificaciones_detalle_content.html', context, request=request)
+                return JsonResponse({'html': html})
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.debug(f"Error al cargar detalle de calificación: {str(e)}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': f'Error al cargar el detalle de calificación: {str(e)}'}, status=500)
+        
         # Vista principal de calificaciones (sin acción específica)
         context = {
             'curso': curso,
