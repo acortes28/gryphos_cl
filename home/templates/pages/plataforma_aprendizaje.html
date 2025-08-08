@@ -727,27 +727,27 @@
       Inicio
     </a>
     
-    <a href="{% url 'plataforma_foro' curso.id %}" data-seccion="foro" class="nav-link">
+    <a href="" data-seccion="foro" class="nav-link">
       <i class="fas fa-comments"></i>
       Foro
     </a>
     
-    <a href="{% url 'plataforma_aprendizaje' curso.id %}" data-seccion="recursos" class="nav-link">
+    <a href="" data-seccion="recursos" class="nav-link">
       <i class="fas fa-book"></i>
       Recursos
     </a>
     
-    <a href="{% url 'plataforma_entregas' curso.id %}" data-seccion="entregas" class="nav-link">
+    <a href="" data-seccion="entregas" class="nav-link">
       <i class="fas fa-upload"></i>
       Entregas
     </a>
     
-    <a href="{% url 'plataforma_calificaciones' curso.id %}" data-seccion="calificaciones" class="nav-link">
+    <a href="" data-seccion="calificaciones" class="nav-link">
       <i class="fas fa-chart-line"></i>
       Calificaciones
     </a>
     
-    <a href="{% url 'plataforma_soporte' curso.id %}" data-seccion="soporte" class="nav-link">
+    <a href="" data-seccion="soporte" class="nav-link">
       <i class="fas fa-headset"></i>
       Soporte al Estudiante
     </a>
@@ -836,9 +836,6 @@
         <i class="fas fa-comments fa-3x text-muted mb-3"></i>
         <h4>Foro de Discusión</h4>
         <p class="text-muted">Aquí podrás participar en discusiones con tus compañeros y profesores.</p>
-        <button class="btn btn-primary" onclick="cambiarSeccion('foro');">
-          <i class="fas fa-comments me-2"></i>Ir al Foro
-        </button>
       </div>
     </div>
     
@@ -846,7 +843,9 @@
     <div id="seccion-crear-post" class="section-content" style="display: none;">
       <!-- El contenido se cargará dinámicamente -->
     </div>
-    
+
+
+    <!-- Sección de Recursos -->
     <div id="seccion-recursos" class="section-content">
       <h4>Recursos de Aprendizaje</h4>
       <p>Accede a todos los materiales y recursos de tu curso.</p>
@@ -854,17 +853,16 @@
     </div>
     
 
-    
+    <!-- Sección de Soporte -->
     <div id="seccion-soporte" class="section-content">
       <div class="text-center py-5">
         <i class="fas text-muted mb-3"></i>
         <h4>Soporte al Estudiante</h4>
         <p class="text-muted">Aquí puedes crear tickets de soporte y ver el estado de tus consultas.</p>
-        <button class="btn btn-primary" onclick="cargarSoporteContenido();">
-          <i class="fas fa-headset me-2"></i>Ir al Soporte
-        </button>
       </div>
     </div>
+
+    <!-- Sección de Entregas -->
     <div id="seccion-entregas" class="section-content">
       <h4>Entregas de Evaluaciones</h4>
       <p>Aquí puedes ver tus entregas y subir archivos para las evaluaciones activas.</p>
@@ -961,9 +959,13 @@ function cambiarSeccion(seccion) {
   const titleElement = document.getElementById('section-title');
   titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
   
+  console.log(`Cambiando a sección: ${seccion}`);
+
   // Si es la sección del foro, cargar contenido dinámicamente
   if (seccion === 'foro') {
     cargarForoContenido();
+  } else if (seccion === 'recursos') {
+    cargarRecursosContenido();
   } else if (seccion === 'calificaciones') {
     // Verificar si hay parámetros específicos en la URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -971,7 +973,7 @@ function cambiarSeccion(seccion) {
     const evaluacionId = urlParams.get('evaluacion_id');
     
     let url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
-    
+    console.log("la accion es " + action)
     // Si hay una acción específica, agregarla a la URL
     if (action) {
       url += `?action=${action}`;
@@ -979,6 +981,8 @@ function cambiarSeccion(seccion) {
         url += `&evaluacion_id=${evaluacionId}`;
       }
     }
+
+    console.log(url);
     
     // Cargar contenido de calificaciones vía AJAX
     fetch(url, {
@@ -999,14 +1003,6 @@ function cambiarSeccion(seccion) {
       seccionCalificaciones.innerHTML = data.html;
       seccionCalificaciones.classList.add('active');
       document.getElementById('loading').classList.remove('show');
-        
-        // Hacer scroll hacia las evaluaciones después de cargar
-        setTimeout(() => {
-          const evaluacionCards = document.querySelectorAll('.evaluacion-card');
-          if (evaluacionCards.length > 0) {
-            evaluacionCards[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
-        }, 500);
         
         // Actualizar URL sin recargar
         const url = new URL(window.location);
@@ -1334,10 +1330,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Event delegation para botones de soporte y calificaciones
   document.addEventListener('click', function(e) {
     const action = e.target.closest('[data-action]')?.getAttribute('data-action');
-    
-    console.log('=== DEBUG CLICK EVENT ===');
-    console.log('Action detectada:', action);
-    console.log('Elemento clickeado:', e.target);
     
     if (action === 'crear-ticket') {
       e.preventDefault();
@@ -2593,8 +2585,12 @@ function inicializarFormularioCrearEvaluacion() {
             // Mostrar mensaje de éxito con alert
             alert(data.message);
             
-            // Redirigir inmediatamente después del alert
-            cargarCalificaciones();
+            // Redirigir a la URL especificada o cargar calificaciones
+            if (data.redirect_url) {
+              window.location.href = data.redirect_url;
+            } else {
+              cargarCalificaciones();
+            }
           } else {
             // Mostrar errores
             if (mensajeDiv) {
@@ -5888,6 +5884,63 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 200);
 });
+
+// Sección del módulo Recursos
+
+function cargarRecursosContenido() {
+
+  console.log("Cargando recursos del curso...");
+  let url = `{% url 'plataforma_recursos_ajax' curso.id %}`;
+
+  fetch(url, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+        .then(data => {
+        const seccionRecursos = document.getElementById('seccion-recursos');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        }); 
+        
+        // Actualizar contenido y mostrar sección de recursos
+        seccionRecursos.innerHTML = data.html;
+        seccionRecursos.classList.add('active');
+        document.getElementById('loading').classList.remove('show');
+          
+          // Actualizar URL sin recargar
+          const url = new URL(window.location);
+          url.searchParams.set('seccion', 'recursos');
+          // Mantener los parámetros específicos si existen
+          const evaluacionId = new URLSearchParams(window.location.search).get('evaluacion_id');
+          if (evaluacionId) {
+            url.searchParams.set('evaluacion_id', evaluacionId);
+          } else {
+            url.searchParams.delete('evaluacion_id');
+          }
+          url.searchParams.delete('action'); // Limpiar acción para evitar conflictos
+
+          // Actualizar la URL en el navegador
+          console.log('Actualizando URL a:', url.toString());
+
+          // Actualizar el título de la página
+          document.title = 'Recursos del Curso - ' + curso.nombre;
+          window.history.pushState({}, '', url);
+          })
+    .catch(error => {
+      console.error('Error cargando recursos:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+
+}
+
+
+function cargarFormularioCrearRecurso(){
+  return null
+}
 
 // Event listeners para admin
 </script>

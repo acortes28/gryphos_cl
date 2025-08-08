@@ -1,0 +1,90 @@
+{% extends 'pages/plataforma_aprendizaje.html' %}
+{% load static %}
+
+{% block section_content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <a href="{% url 'plataforma_recursos' curso.id %}" class="btn btn-outline-secondary btn-sm me-3">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+          </a>
+          <h4 class="mb-0">
+            <i class="fas fa-trash me-2"></i>Eliminar Recurso
+          </h4>
+        </div>
+      </div>
+      
+      <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+          <div class="card shadow-sm">
+            <div class="card-header bg-gradient-danger text-white">
+              <h6 class="mb-0">
+                <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Eliminación
+              </h6>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>¡Atención!</strong> Esta acción no se puede deshacer.
+              </div>
+              
+              <div class="mb-4">
+                <h5>¿Estás seguro de que quieres eliminar el siguiente recurso?</h5>
+                <div class="card bg-light">
+                  <div class="card-body">
+                    <h6 class="card-title">{{ recurso.nombre }}</h6>
+                    <p class="card-text text-muted">{{ recurso.descripcion|truncatewords:30 }}</p>
+                    <div class="row">
+                      <div class="col-md-6">
+                        <small class="text-muted">
+                          <i class="fas fa-tag me-1"></i>Tipo: {{ recurso.get_tipo_display_name }}
+                        </small>
+                      </div>
+                      <div class="col-md-6">
+                        <small class="text-muted">
+                          <i class="fas fa-calendar me-1"></i>Creado: {{ recurso.fecha_creacion|date:"d/m/Y H:i" }}
+                        </small>
+                      </div>
+                    </div>
+                    {% if recurso.tiene_archivo %}
+                      <div class="mt-2">
+                        <small class="text-muted">
+                          <i class="fas fa-file me-1"></i>Archivo: {{ recurso.get_nombre_archivo }}
+                          {% if recurso.get_tamano_archivo %}
+                            <span class="badge bg-secondary ms-1">{{ recurso.get_tamano_archivo }}</span>
+                          {% endif %}
+                        </small>
+                      </div>
+                    {% endif %}
+                    {% if recurso.tiene_enlace %}
+                      <div class="mt-2">
+                        <small class="text-muted">
+                          <i class="fas fa-link me-1"></i>Enlace externo disponible
+                        </small>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+              
+              <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-between">
+                  <a href="{% url 'plataforma_recursos' curso.id %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                  </a>
+                  <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash me-2"></i>Eliminar Recurso
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock section_content %} 

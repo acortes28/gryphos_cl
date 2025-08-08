@@ -1,0 +1,124 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %} {{ page_title }} {% endblock title %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4 class="mb-0">
+                                <i class="fas fa-graduation-cap me-2"></i>
+                                Mantenedor de Asignaturas
+                            </h4>
+                        </div>
+                        <div class="col-auto">
+                            <a href="{% url 'asignatura-create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Nueva Asignatura
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if asignaturas %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Área de Conocimiento</th>
+                                        <th>Créditos</th>
+                                        <th>Cursos</th>
+                                        <th>Evaluaciones</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for asignatura in asignaturas %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ asignatura.codigo }}</strong>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'asignatura-detail' asignatura.id %}" class="text-decoration-none">
+                                                {{ asignatura.nombre }}
+                                            </a>
+                                        </td>
+                                        <td>{{ asignatura.area_conocimiento|default:"-" }}</td>
+                                        <td>{{ asignatura.creditos|default:"-" }}</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ asignatura.get_cursos_count }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ asignatura.get_evaluaciones_count }}</span>
+                                        </td>
+                                        <td>
+                                            {% if asignatura.activa %}
+                                                <span class="badge bg-success">Activa</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactiva</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'asignatura-detail' asignatura.id %}" 
+                                                   class="btn btn-sm btn-outline-primary" 
+                                                   title="Ver detalle">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{% url 'asignatura-edit' asignatura.id %}" 
+                                                   class="btn btn-sm btn-outline-warning" 
+                                                   title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{% url 'copiar-evaluacion-asignatura' asignatura.id %}" 
+                                                   class="btn btn-sm btn-outline-info" 
+                                                   title="Copiar evaluaciones">
+                                                    <i class="fas fa-copy"></i>
+                                                </a>
+                                                {% if asignatura.get_cursos_count == 0 %}
+                                                <a href="{% url 'asignatura-delete' asignatura.id %}" 
+                                                   class="btn btn-sm btn-outline-danger" 
+                                                   title="Eliminar"
+                                                   onclick="return confirm('¿Estás seguro de que quieres eliminar esta asignatura?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-graduation-cap fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No hay asignaturas registradas</h5>
+                            <p class="text-muted">Comienza creando tu primera asignatura</p>
+                            <a href="{% url 'asignatura-create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Crear Primera Asignatura
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+    // Auto-hide messages after 5 seconds
+    setTimeout(function() {
+        $('.alert').fadeOut('slow');
+    }, 5000);
+</script>
+{% endblock javascripts %} 

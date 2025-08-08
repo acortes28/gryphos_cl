@@ -1,0 +1,270 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %} {{ page_title }} {% endblock title %}
+
+{% block extrastyle %}
+<style>
+    /* Estilos específicos para formularios del mantenedor de asignaturas */
+    .card-body .form-control {
+        border: 1px solid #d2d6da !important;
+        border-radius: 0.375rem !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.875rem !important;
+        line-height: 1.5 !important;
+        color: #495057 !important;
+        background-color: #fff !important;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+        display: block !important;
+        width: 100% !important;
+        appearance: none !important;
+    }
+    
+    .card-body .form-control:focus {
+        border-color: #5e72e4 !important;
+        outline: 0 !important;
+        box-shadow: 0 0 0 0.2rem rgba(94, 114, 228, 0.25) !important;
+        color: #495057 !important;
+        background-color: #fff !important;
+    }
+    
+    .card-body .form-control:disabled,
+    .card-body .form-control[readonly] {
+        background-color: #e9ecef !important;
+        opacity: 1 !important;
+    }
+    
+    /* Estilos para textarea */
+    .card-body textarea.form-control {
+        min-height: 100px !important;
+        resize: vertical !important;
+    }
+    
+    /* Estilos para labels */
+    .card-body .form-label {
+        font-weight: 600 !important;
+        color: #344767 !important;
+        margin-bottom: 0.5rem !important;
+        display: block !important;
+    }
+    
+    /* Estilos para el checkbox */
+    .card-body .form-check-input {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+        margin-top: 0.25rem !important;
+        border: 1px solid #d2d6da !important;
+        border-radius: 0.25rem !important;
+    }
+    
+    .card-body .form-check-input:checked {
+        background-color: #5e72e4 !important;
+        border-color: #5e72e4 !important;
+    }
+    
+    .card-body .form-check-input:focus {
+        border-color: #5e72e4 !important;
+        outline: 0 !important;
+        box-shadow: 0 0 0 0.2rem rgba(94, 114, 228, 0.25) !important;
+    }
+    
+    /* Estilos para mensajes de ayuda */
+    .card-body .form-text {
+        font-size: 0.75rem !important;
+        color: #6c757d !important;
+        margin-top: 0.25rem !important;
+    }
+    
+    /* Estilos para campos requeridos */
+    .card-body .form-control:required {
+        border-left: 3px solid #5e72e4 !important;
+    }
+    
+    /* Estilos para campos con error */
+    .card-body .form-control.is-invalid {
+        border-color: #dc3545 !important;
+    }
+    
+    .card-body .form-control.is-invalid:focus {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    }
+    
+    /* Override Material Kit styles */
+    .card-body .form-control:not(.input-group-dynamic .form-control):not(.input-group-static .form-control) {
+        border: 1px solid #d2d6da !important;
+        background-color: #fff !important;
+        color: #495057 !important;
+    }
+    
+    .card-body .form-control:not(.input-group-dynamic .form-control):not(.input-group-static .form-control):focus {
+        border-color: #5e72e4 !important;
+        box-shadow: 0 0 0 0.2rem rgba(94, 114, 228, 0.25) !important;
+    }
+</style>
+{% endblock extrastyle %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'asignaturas-list' %}">
+                            <i class="fas fa-graduation-cap me-1"></i>Asignaturas
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">Crear Nueva Asignatura</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>
+                        Crear Nueva Asignatura
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="codigo" class="form-label">
+                                        <strong>Código *</strong>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="codigo" 
+                                           name="codigo" 
+                                           required
+                                           placeholder="Ej: MAT101"
+                                           maxlength="20">
+                                    <small class="form-text text-muted">
+                                        Código único de la asignatura (máximo 20 caracteres)
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="nombre" class="form-label">
+                                        <strong>Nombre *</strong>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="nombre" 
+                                           name="nombre" 
+                                           required
+                                           placeholder="Ej: Matemáticas Básicas"
+                                           maxlength="200">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="descripcion" class="form-label">
+                                <strong>Descripción</strong>
+                            </label>
+                            <textarea class="form-control" 
+                                      id="descripcion" 
+                                      name="descripcion" 
+                                      rows="4"
+                                      placeholder="Descripción detallada de la asignatura..."></textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="area_conocimiento" class="form-label">
+                                        <strong>Área de Conocimiento</strong>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="area_conocimiento" 
+                                           name="area_conocimiento" 
+                                           placeholder="Ej: Ciencias Exactas"
+                                           maxlength="100">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="creditos" class="form-label">
+                                        <strong>Créditos</strong>
+                                    </label>
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="creditos" 
+                                           name="creditos" 
+                                           min="1"
+                                           max="999"
+                                           placeholder="Ej: 4">
+                                    <small class="form-text text-muted">
+                                        Número de créditos de la asignatura
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="activa" 
+                                       name="activa" 
+                                       checked>
+                                <label class="form-check-label" for="activa">
+                                    <strong>Asignatura Activa</strong>
+                                </label>
+                                <small class="form-text text-muted d-block">
+                                    Las asignaturas inactivas no aparecerán en las listas de selección
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'asignaturas-list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Crear Asignatura
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+    // Auto-hide messages after 5 seconds
+    setTimeout(function() {
+        $('.alert').fadeOut('slow');
+    }, 5000);
+
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const codigo = document.getElementById('codigo').value.trim();
+        const nombre = document.getElementById('nombre').value.trim();
+        
+        if (!codigo || !nombre) {
+            e.preventDefault();
+            alert('Por favor, completa todos los campos obligatorios.');
+            return false;
+        }
+        
+        // Validar que el código no contenga espacios
+        if (codigo.includes(' ')) {
+            e.preventDefault();
+            alert('El código no puede contener espacios.');
+            return false;
+        }
+    });
+</script>
+{% endblock javascripts %} 

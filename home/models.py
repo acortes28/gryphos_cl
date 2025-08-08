@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import JSONField
+import os
 
 class CustomUser(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
@@ -143,6 +144,9 @@ class Curso(models.Model):
     
     # Archivos del curso
     archivo_introductorio = models.FileField(upload_to='cursos/material_introductorio/', blank=True, null=True)
+    
+    # Relación con Asignatura
+    asignatura = models.ForeignKey('Asignatura', on_delete=models.SET_NULL, blank=True, null=True, related_name='cursos', help_text="Asignatura a la que pertenece este curso")
 
     def __str__(self):
         return self.nombre
@@ -844,3 +848,191 @@ class SubclasificacionTicket(models.Model):
     
     def __str__(self):
         return f"{self.clasificacion.nombre} - {self.nombre}"
+    
+class Recurso(models.Model):
+    """
+    Modelo para recursos de aprendizaje asociados a evaluaciones
+    """
+    TIPO_CHOICES = [
+        ('documento', 'Documento'),
+        ('video', 'Video'),
+        ('presentacion', 'Presentación'),
+        ('enlace', 'Enlace'),
+        ('imagen', 'Imagen'),
+        ('audio', 'Audio'),
+        ('otro', 'Otro'),
+    ]
+    
+    evaluacion = models.ForeignKey(Evaluacion, on_delete=models.CASCADE, related_name='recursos')
+    nombre = models.CharField(max_length=200, help_text="Nombre del recurso")
+    descripcion = models.TextField(help_text="Descripción del recurso")
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, help_text="Tipo de recurso")
+    archivo_adjunto = models.FileField(upload_to='recursos/', blank=True, null=True, help_text="Archivo adjunto del recurso")
+    enlace_externo = models.URLField(blank=True, null=True, help_text="Enlace externo (si aplica)")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    activo = models.BooleanField(default=True, help_text="Indica si el recurso está activo")
+    creado_por = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='recursos_creados', blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-fecha_creacion']
+        verbose_name = 'Recurso'
+        verbose_name_plural = 'Recursos'
+    
+    def __str__(self):
+        return f"{self.nombre} - {self.evaluacion.nombre}"
+    
+    def get_tipo_display_name(self):
+        """Retorna el nombre legible del tipo de recurso"""
+        return dict(self.TIPO_CHOICES).get(self.tipo, self.tipo)
+    
+    def get_icono_tipo(self):
+        """Retorna el ícono correspondiente al tipo de recurso"""
+        iconos = {
+            'documento': 'fas fa-file-alt',
+            'video': 'fas fa-video',
+            'presentacion': 'fas fa-presentation',
+            'enlace': 'fas fa-link',
+            'imagen': 'fas fa-image',
+            'audio': 'fas fa-music',
+            'otro': 'fas fa-file',
+        }
+        return iconos.get(self.tipo, 'fas fa-file')
+    
+    def tiene_archivo(self):
+        """Verifica si el recurso tiene un archivo adjunto"""
+        return bool(self.archivo_adjunto)
+    
+    def tiene_enlace(self):
+        """Verifica si el recurso tiene un enlace externo"""
+        return bool(self.enlace_externo)
+    
+    def get_nombre_archivo(self):
+        """Retorna el nombre del archivo adjunto"""
+        if self.archivo_adjunto:
+            return os.path.basename(self.archivo_adjunto.name)
+        return None
+    
+    def get_tamano_archivo(self):
+        """Retorna el tamaño del archivo en formato legible"""
+        if self.archivo_adjunto and hasattr(self.archivo_adjunto, 'size'):
+            size = self.archivo_adjunto.size
+            for unit in ['B', 'KB', 'MB', 'GB']:
+                if size < 1024.0:
+                    return f"{size:.1f} {unit}"
+                size /= 1024.0
+            return f"{size:.1f} TB"
+        return None
+
+class Asignatura(models.Model):
+    """
+    Modelo para agrupar cursos relacionados. Una asignatura puede tener múltiples cursos.
+    Permite copiar evaluaciones entre cursos de la misma asignatura.
+    """
+    nombre = models.CharField(max_length=200, help_text="Nombre de la asignatura")
+    codigo = models.CharField(max_length=20, unique=True, help_text="Código único de la asignatura")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la asignatura")
+    area_conocimiento = models.CharField(max_length=100, blank=True, null=True, help_text="Área de conocimiento de la asignatura")
+    creditos = models.PositiveIntegerField(blank=True, null=True, help_text="Número de créditos de la asignatura")
+    activa = models.BooleanField(default=True, help_text="Indica si la asignatura está activa")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    creado_por = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='asignaturas_creadas', blank=True, null=True)
+    
+    class Meta:
+        ordering = ['nombre']
+        verbose_name = 'Asignatura'
+        verbose_name_plural = 'Asignaturas'
+    
+    def __str__(self):
+        return f"{self.codigo} - {self.nombre}"
+    
+    def get_cursos_count(self):
+        """Retorna el número de cursos asociados a esta asignatura"""
+        return self.cursos.count()
+    
+    def get_evaluaciones_count(self):
+        """Retorna el número total de evaluaciones en todos los cursos de esta asignatura"""
+        return Evaluacion.objects.filter(curso__asignatura=self).count()
+    
+    def get_cursos_activos(self):
+        """Retorna solo los cursos activos de esta asignatura"""
+        return self.cursos.filter(activo=True)
+    
+    def copiar_evaluacion(self, evaluacion_origen, curso_destino, usuario_copia):
+        """
+        Copia una evaluación de un curso a otro dentro de la misma asignatura
+        """
+        from django.db import transaction
+        
+        if evaluacion_origen.curso.asignatura != self:
+            raise ValueError("La evaluación debe pertenecer a un curso de esta asignatura")
+        
+        if curso_destino.asignatura != self:
+            raise ValueError("El curso destino debe pertenecer a esta asignatura")
+        
+        if evaluacion_origen.curso == curso_destino:
+            raise ValueError("No se puede copiar una evaluación al mismo curso")
+        
+        with transaction.atomic():
+            # Crear nueva evaluación
+            nueva_evaluacion = Evaluacion.objects.create(
+                curso=curso_destino,
+                tipo=evaluacion_origen.tipo,
+                nombre=f"{evaluacion_origen.nombre}",
+                fecha_inicio=evaluacion_origen.fecha_inicio,
+                fecha_fin=evaluacion_origen.fecha_fin,
+                nota_maxima=evaluacion_origen.nota_maxima,
+                ponderacion=evaluacion_origen.ponderacion,
+                descripcion=evaluacion_origen.descripcion,
+                activa=evaluacion_origen.activa,
+                creado_por=usuario_copia
+            )
+            
+            # Copiar rúbrica si existe
+            if hasattr(evaluacion_origen, 'rubrica'):
+                rubrica_origen = evaluacion_origen.rubrica
+                nueva_rubrica = Rubrica.objects.create(
+                    evaluacion=nueva_evaluacion,
+                    nombre=rubrica_origen.nombre,
+                    descripcion=rubrica_origen.descripcion,
+                    objetivo=rubrica_origen.objetivo,
+                    aprendizaje_esperado=rubrica_origen.aprendizaje_esperado,
+                    activa=rubrica_origen.activa,
+                    creado_por=usuario_copia
+                )
+                
+                # Copiar criterios y esperables
+                for criterio_origen in rubrica_origen.criterios.all():
+                    nuevo_criterio = CriterioRubrica.objects.create(
+                        rubrica=nueva_rubrica,
+                        nombre=criterio_origen.nombre,
+                        objetivo=criterio_origen.objetivo,
+                        puntaje=criterio_origen.puntaje,
+                        orden=criterio_origen.orden
+                    )
+                    
+                    # Copiar esperables
+                    for esperable_origen in criterio_origen.esperables.all():
+                        Esperable.objects.create(
+                            criterio=nuevo_criterio,
+                            nivel=esperable_origen.nivel,
+                            descripcion=esperable_origen.descripcion,
+                            puntaje=esperable_origen.puntaje,
+                            orden=esperable_origen.orden
+                        )
+            
+            # Copiar recursos si existen
+            for recurso_origen in evaluacion_origen.recursos.all():
+                Recurso.objects.create(
+                    evaluacion=nueva_evaluacion,
+                    nombre=recurso_origen.nombre,
+                    descripcion=recurso_origen.descripcion,
+                    tipo=recurso_origen.tipo,
+                    archivo_adjunto=recurso_origen.archivo_adjunto,
+                    enlace_externo=recurso_origen.enlace_externo,
+                    activo=recurso_origen.activo,
+                    creado_por=usuario_copia
+                )
+            
+            return nueva_evaluacion

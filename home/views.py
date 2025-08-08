@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from home.service.recursos_views import PlataformaRecursosView
 from django.utils import timezone
 from django.db import models
 import time
@@ -9,7 +10,7 @@ from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket, Asignatura
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -1286,47 +1287,6 @@ def plataforma_aprendizaje(request, curso_id):
 
 
 @login_required
-def plataforma_foro(request, curso_id):
-    """
-    Vista para el foro dentro de la plataforma de aprendizaje
-    """
-    try:
-        curso = Curso.objects.get(id=curso_id, activo=True)
-        
-        # Verificar que el usuario esté inscrito en el curso
-        if curso not in request.user.cursos.all():
-            messages.error(request, 'No tienes acceso a este curso. Debes estar inscrito para ver su contenido.')
-            return redirect('user_space')
-        
-        # Obtener posts del curso
-        posts = Post.objects.filter(curso=curso, is_active=True).order_by('-created_at')
-        
-        # Filtros
-        category_filter = request.GET.get('category')
-        if category_filter:
-            posts = posts.filter(category=category_filter)
-        
-        context = {
-            'curso': curso,
-            'posts': posts,
-            'categories': Post.CATEGORY_CHOICES,
-            'current_category': category_filter,
-        }
-        
-        # Si es una petición AJAX, devolver solo el contenido
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            html = render_to_string('pages/plataforma_foro_content.html', context, request=request)
-            return JsonResponse({'html': html})
-        
-        # Si no es AJAX, renderizar la página completa
-        return render(request, 'pages/plataforma_foro.html', context)
-        
-    except Curso.DoesNotExist:
-        messages.error(request, 'El curso no existe o no está disponible.')
-        return redirect('user_space')
-
-
-@login_required
 def plataforma_foro_post_detail(request, curso_id, post_id):
     """
     Vista para ver un post individual dentro de la plataforma
@@ -2369,143 +2329,6 @@ def plataforma_foro_ajax(request, curso_id):
 # ============================================================================
 # VISTAS DEL SISTEMA DE CALIFICACIONES
 # ============================================================================
-
-@login_required
-def plataforma_calificaciones(request, curso_id):
-    """
-    Vista principal de calificaciones para la plataforma de aprendizaje
-    """
-    curso = get_object_or_404(Curso, id=curso_id)
-    
-    # Verificar que el usuario esté inscrito en el curso
-    if not request.user.cursos.filter(id=curso_id).exists():
-        messages.error(request, 'No tienes acceso a este curso.')
-        return redirect('user_space')
-    
-    context = {
-        'curso': curso,
-        'user': request.user,
-    }
-    
-    if request.user.is_staff:
-        # Vista para Staff/Admin
-        evaluaciones = Evaluacion.objects.filter(curso=curso).order_by('-fecha_creacion')
-        context['evaluaciones'] = evaluaciones
-        
-        # Estadísticas generales del curso
-        calificaciones_curso = Calificacion.objects.filter(evaluacion__curso=curso, nota__isnull=False)
-        if calificaciones_curso.exists():
-            estadisticas = {
-                'promedio_general': calificaciones_curso.aggregate(Avg('nota'))['nota__avg'],
-                'nota_minima': calificaciones_curso.aggregate(Min('nota'))['nota__min'],
-                'nota_maxima': calificaciones_curso.aggregate(Max('nota'))['nota__max'],
-                'total_estudiantes': curso.usuarios.filter(is_staff=False, is_superuser=False).count(),
-            }
-            context['estadisticas'] = estadisticas
-        
-        # Estadísticas de entregas por evaluación
-        for evaluacion in evaluaciones:
-            total_estudiantes = curso.usuarios.filter(is_staff=False, is_superuser=False).count()
-            estudiantes_con_entregas = evaluacion.entregas.values('estudiante').distinct().count()
-            estudiantes_calificados = evaluacion.calificaciones.count()
-            
-            evaluacion.stats_entregas = {
-                'total_estudiantes': total_estudiantes,
-                'estudiantes_con_entregas': estudiantes_con_entregas,
-                'estudiantes_sin_entregas': total_estudiantes - estudiantes_con_entregas,
-                'estudiantes_calificados': estudiantes_calificados,
-                'estudiantes_pendientes_calificacion': estudiantes_con_entregas - estudiantes_calificados
-            }
-        
-        # Agregar información sobre la nueva funcionalidad
-        context['info_entregas'] = {
-            'mensaje': '💡 Solo se pueden calificar estudiantes que hayan entregado su trabajo. Desde la primera entrega se puede acceder a calificar una evaluación.',
-            'total_evaluaciones': evaluaciones.count(),
-            'evaluaciones_con_entregas': sum(1 for e in evaluaciones if e.stats_entregas['estudiantes_con_entregas'] > 0)
-            #'evaluaciones_sin_entregas': sum(1 for e in evaluaciones if e.stats_entregas['estudiantes_con_entregas'] == 0)
-        }
-        
-    else:
-        # Vista para Estudiantes
-        calificaciones_usuario = Calificacion.objects.filter(
-            evaluacion__curso=curso,
-            estudiante=request.user
-        ).order_by('-fecha_calificacion')
-        context['calificaciones_usuario'] = calificaciones_usuario
-        
-        # Verificar si se solicita ver rúbricas
-        mostrar_rubricas = request.GET.get('seccion') == 'rubricas'
-        context['mostrar_rubricas'] = mostrar_rubricas
-        
-        if mostrar_rubricas:
-            # Obtener todas las evaluaciones del curso que tengan rúbricas
-            evaluaciones_con_rubricas = []
-            evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
-            
-            for evaluacion in evaluaciones:
-                try:
-                    rubrica = evaluacion.rubrica
-                    if rubrica and rubrica.activa:
-                        evaluaciones_con_rubricas.append({
-                            'evaluacion': evaluacion,
-                            'rubrica': rubrica
-                        })
-                except:
-                    continue
-            
-            context['evaluaciones_con_rubricas'] = evaluaciones_con_rubricas
-        
-        # Estadísticas personales del estudiante
-        calificaciones_con_nota = calificaciones_usuario.filter(nota__isnull=False)
-        total_evaluaciones = Evaluacion.objects.filter(curso=curso).count()
-        
-        if calificaciones_con_nota.exists():
-            # Calcular promedio ponderado
-            suma_ponderada = 0
-            suma_ponderaciones = 0
-            evaluaciones_calificadas = 0
-            
-            for calificacion in calificaciones_con_nota:
-                # Calcular nota ponderada: nota * ponderacion
-                nota_ponderada = calificacion.nota * calificacion.evaluacion.ponderacion
-                suma_ponderada += nota_ponderada
-                suma_ponderaciones += calificacion.evaluacion.ponderacion
-                evaluaciones_calificadas += 1
-            
-            # Calcular promedio ponderado solo si todas las evaluaciones están calificadas y la suma de ponderaciones es 100%
-            promedio_ponderado = None
-            if evaluaciones_calificadas == total_evaluaciones and suma_ponderaciones == 100:
-                promedio_ponderado = suma_ponderada / 100
-            
-            estadisticas_estudiante = {
-                'promedio_ponderado': promedio_ponderado,
-                'evaluaciones_calificadas': evaluaciones_calificadas,
-                'total_evaluaciones': total_evaluaciones,
-                'suma_ponderaciones': suma_ponderaciones,
-            }
-            context['estadisticas_estudiante'] = estadisticas_estudiante
-        
-        # Promedios por tipo de evaluación
-        promedios_por_tipo = {}
-        for calificacion in calificaciones_con_nota:
-            tipo = calificacion.evaluacion.get_tipo_display()
-            if tipo not in promedios_por_tipo:
-                promedios_por_tipo[tipo] = {
-                    'notas': [],
-                    'ponderaciones': []
-                }
-            promedios_por_tipo[tipo]['notas'].append(calificacion.nota)
-            promedios_por_tipo[tipo]['ponderaciones'].append(calificacion.evaluacion.ponderacion)
-        
-        # Calcular promedios
-        for tipo, datos in promedios_por_tipo.items():
-            if datos['notas']:
-                datos['promedio'] = sum(datos['notas']) / len(datos['notas'])
-                datos['ponderacion_promedio'] = sum(datos['ponderaciones']) / len(datos['ponderaciones'])
-        
-        context['promedios_por_tipo'] = promedios_por_tipo
-    
-    return render(request, 'pages/plataforma_calificaciones.html', context)
 
 @login_required
 def crear_evaluacion(request, curso_id):
@@ -5608,6 +5431,7 @@ def plataforma_calificaciones_ajax(request, curso_id):
         logger.debug(f"DEBUG: es_staff: {request.user.is_staff}")
         
         curso = Curso.objects.get(id=curso_id, activo=True)
+
         logger.debug(f"DEBUG: Curso encontrado: {curso.nombre}")
         
         # Verificar que el usuario esté inscrito en el curso
@@ -6541,3 +6365,219 @@ def crear_evaluacion_ajax(request, curso_id):
     except Exception as e:
         logger.error(f"Error en crear_evaluacion_ajax: {str(e)}")
         return JsonResponse({'error': f'Error interno del servidor: {str(e)}'}, status=500)
+
+# ============================================================================
+# VISTAS DEL SISTEMA DE RECURSOS
+# ============================================================================
+
+@login_required
+def plataforma_recursos_ajax(request, curso_id):
+    try:
+        plataforma_recursos = PlataformaRecursosView()
+        return plataforma_recursos.plataforma_recursos_ajax(request, curso_id)
+    except:
+        logger.error("Ocurrio un error al tratar de ejecutar plataforma_recursos_ajax")
+        return JsonResponse({'error': 'Ocurrió un error al procesar la solicitud'}, status=500)
+
+# ============================================================================
+# VISTAS PARA EL MANTENEDOR DE ASIGNATURAS
+# ============================================================================
+
+@login_required
+def asignaturas_list(request):
+    """
+    Vista para listar todas las asignaturas (solo para admin/staff)
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    asignaturas = Asignatura.objects.all().prefetch_related('cursos')
+    
+    context = {
+        'asignaturas': asignaturas,
+        'page_title': 'Mantenedor de Asignaturas',
+    }
+    
+    return render(request, 'pages/asignaturas_list.html', context)
+
+@login_required
+def asignatura_detail(request, asignatura_id):
+    """
+    Vista para mostrar el detalle de una asignatura y sus cursos
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    asignatura = get_object_or_404(Asignatura, id=asignatura_id)
+    cursos = asignatura.cursos.all().prefetch_related('evaluaciones')
+    
+    context = {
+        'asignatura': asignatura,
+        'cursos': cursos,
+        'page_title': f'Detalle de Asignatura: {asignatura.nombre}',
+    }
+    
+    return render(request, 'pages/asignatura_detail.html', context)
+
+@login_required
+def asignatura_create(request):
+    """
+    Vista para crear una nueva asignatura
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    if request.method == 'POST':
+        # Procesar formulario de creación
+        nombre = request.POST.get('nombre')
+        codigo = request.POST.get('codigo')
+        descripcion = request.POST.get('descripcion')
+        area_conocimiento = request.POST.get('area_conocimiento')
+        creditos = request.POST.get('creditos')
+        
+        if nombre and codigo:
+            # Verificar que el código no exista
+            if Asignatura.objects.filter(codigo=codigo).exists():
+                messages.error(request, 'Ya existe una asignatura con ese código.')
+            else:
+                asignatura = Asignatura.objects.create(
+                    nombre=nombre,
+                    codigo=codigo,
+                    descripcion=descripcion,
+                    area_conocimiento=area_conocimiento,
+                    creditos=creditos if creditos else None,
+                    creado_por=request.user
+                )
+                messages.success(request, f'Asignatura "{asignatura.nombre}" creada exitosamente.')
+                return redirect('asignatura-detail', asignatura_id=asignatura.id)
+        else:
+            messages.error(request, 'El nombre y código son campos obligatorios.')
+    
+    context = {
+        'page_title': 'Crear Nueva Asignatura',
+    }
+    
+    return render(request, 'pages/asignatura_create.html', context)
+
+@login_required
+def asignatura_edit(request, asignatura_id):
+    """
+    Vista para editar una asignatura existente
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    asignatura = get_object_or_404(Asignatura, id=asignatura_id)
+    
+    if request.method == 'POST':
+        # Procesar formulario de edición
+        nombre = request.POST.get('nombre')
+        codigo = request.POST.get('codigo')
+        descripcion = request.POST.get('descripcion')
+        area_conocimiento = request.POST.get('area_conocimiento')
+        creditos = request.POST.get('creditos')
+        activa = request.POST.get('activa') == 'on'
+        
+        if nombre and codigo:
+            # Verificar que el código no exista en otra asignatura
+            if Asignatura.objects.filter(codigo=codigo).exclude(id=asignatura_id).exists():
+                messages.error(request, 'Ya existe otra asignatura con ese código.')
+            else:
+                asignatura.nombre = nombre
+                asignatura.codigo = codigo
+                asignatura.descripcion = descripcion
+                asignatura.area_conocimiento = area_conocimiento
+                asignatura.creditos = creditos if creditos else None
+                asignatura.activa = activa
+                asignatura.save()
+                
+                messages.success(request, f'Asignatura "{asignatura.nombre}" actualizada exitosamente.')
+                return redirect('asignatura-detail', asignatura_id=asignatura.id)
+        else:
+            messages.error(request, 'El nombre y código son campos obligatorios.')
+    
+    context = {
+        'asignatura': asignatura,
+        'page_title': f'Editar Asignatura: {asignatura.nombre}',
+    }
+    
+    return render(request, 'pages/asignatura_edit.html', context)
+
+@login_required
+def copiar_evaluacion_asignatura(request, asignatura_id):
+    """
+    Vista para copiar una evaluación entre cursos de la misma asignatura
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    asignatura = get_object_or_404(Asignatura, id=asignatura_id)
+    
+    if request.method == 'POST':
+        evaluacion_id = request.POST.get('evaluacion_id')
+        curso_destino_id = request.POST.get('curso_destino_id')
+        
+        if evaluacion_id and curso_destino_id:
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id)
+                curso_destino = Curso.objects.get(id=curso_destino_id)
+                
+                # Verificar que ambos pertenezcan a la misma asignatura
+                if evaluacion.curso.asignatura == asignatura and curso_destino.asignatura == asignatura:
+                    nueva_evaluacion = asignatura.copiar_evaluacion(evaluacion, curso_destino, request.user)
+                    messages.success(request, f'Evaluación "{evaluacion.nombre}" copiada exitosamente al curso "{curso_destino.nombre}".')
+                    return redirect('asignatura-detail', asignatura_id=asignatura.id)
+                else:
+                    messages.error(request, 'La evaluación y el curso destino deben pertenecer a la misma asignatura.')
+            except (Evaluacion.DoesNotExist, Curso.DoesNotExist):
+                messages.error(request, 'La evaluación o curso seleccionado no existe.')
+            except ValueError as e:
+                messages.error(request, str(e))
+        else:
+            messages.error(request, 'Debes seleccionar una evaluación y un curso destino.')
+    
+    # Obtener todas las evaluaciones de los cursos de esta asignatura
+    evaluaciones = Evaluacion.objects.filter(curso__asignatura=asignatura).select_related('curso')
+    cursos = asignatura.cursos.all()
+    
+    context = {
+        'asignatura': asignatura,
+        'evaluaciones': evaluaciones,
+        'cursos': cursos,
+        'page_title': f'Copiar Evaluación - {asignatura.nombre}',
+    }
+    
+    return render(request, 'pages/copiar_evaluacion_asignatura.html', context)
+
+@login_required
+def asignatura_delete(request, asignatura_id):
+    """
+    Vista para eliminar una asignatura (solo si no tiene cursos asociados)
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    asignatura = get_object_or_404(Asignatura, id=asignatura_id)
+    
+    if request.method == 'POST':
+        # Verificar que no tenga cursos asociados
+        if asignatura.cursos.exists():
+            messages.error(request, 'No se puede eliminar una asignatura que tiene cursos asociados.')
+        else:
+            nombre_asignatura = asignatura.nombre
+            asignatura.delete()
+            messages.success(request, f'Asignatura "{nombre_asignatura}" eliminada exitosamente.')
+            return redirect('asignaturas-list')
+    
+    context = {
+        'asignatura': asignatura,
+        'page_title': f'Eliminar Asignatura: {asignatura.nombre}',
+    }
+    
+    return render(request, 'pages/asignatura_delete.html', context)

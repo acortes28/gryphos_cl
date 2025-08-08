@@ -221,6 +221,12 @@
               <!-- Staff Links (for staff and superusers) -->
               {% if request.user.is_staff %}
                 <li class="nav-item mx-2">
+                  <a class="nav-link" href="{% url 'asignaturas-list' %}">
+                    <i class="fas fa-graduation-cap me-1"></i>
+                    Asignaturas
+                  </a>
+                </li>
+                <li class="nav-item mx-2">
                   <a class="nav-link" href="{% url 'admin:home_ticketsoporte_changelist' %}">
                     <i class="fas fa-ticket-alt me-1"></i>
                     Tickets de Soporte

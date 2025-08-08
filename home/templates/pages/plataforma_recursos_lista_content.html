@@ -1,0 +1,243 @@
+{% extends 'pages/plataforma_aprendizaje.html' %}
+{% load static %}
+
+{% block section_content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <button class="btn btn-outline-secondary btn-sm me-3" onclick="cargarRecursosContenido();">
+            <i class="fas fa-arrow-left me-1"></i>Volver
+          </button>
+          <h4 class="mb-0">
+            <i class="fas fa-book me-2"></i>Recursos de {{ evaluacion.nombre }}
+          </h4>
+        </div>
+        {% if user.is_staff %}
+        <button class="btn btn-primary" onclick="crearRecursoParaEvaluacion({{ evaluacion.id }});">
+          <i class="fas fa-plus me-2"></i>Agregar Recurso
+        </button>
+        {% endif %}
+      </div>
+      
+      {% if recursos %}
+        <div class="row">
+          {% for recurso in recursos %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+              <div class="card h-100 shadow-sm">
+                <div class="card-header bg-gradient-info text-white">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                      <i class="{{ recurso.get_icono_tipo }} me-2"></i>{{ recurso.nombre }}
+                    </h6>
+                    <span class="badge bg-light text-dark">{{ recurso.get_tipo_display_name }}</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <p class="text-muted small mb-3">{{ recurso.descripcion|truncatewords:30 }}</p>
+                  
+                  <div class="mb-3">
+                    <small class="text-muted">
+                      <i class="fas fa-calendar me-1"></i>Creado: {{ recurso.fecha_creacion|date:"d/m/Y H:i" }}
+                    </small>
+                  </div>
+                  
+                  {% if recurso.tiene_archivo %}
+                    <div class="mb-2">
+                      <small class="text-muted">
+                        <i class="fas fa-file me-1"></i>{{ recurso.get_nombre_archivo }}
+                        {% if recurso.get_tamano_archivo %}
+                          <span class="badge bg-secondary ms-1">{{ recurso.get_tamano_archivo }}</span>
+                        {% endif %}
+                      </small>
+                    </div>
+                  {% endif %}
+                  
+                  {% if recurso.tiene_enlace %}
+                    <div class="mb-2">
+                      <small class="text-muted">
+                        <i class="fas fa-link me-1"></i>Enlace externo disponible
+                      </small>
+                    </div>
+                  {% endif %}
+                  
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="btn-group" role="group">
+                      {% if recurso.tiene_archivo %}
+                        <a href="{{ recurso.archivo_adjunto.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                          <i class="fas fa-download me-1"></i>Descargar
+                        </a>
+                      {% endif %}
+                      
+                      {% if recurso.tiene_enlace %}
+                        <a href="{{ recurso.enlace_externo }}" class="btn btn-outline-info btn-sm" target="_blank">
+                          <i class="fas fa-external-link-alt me-1"></i>Ver Enlace
+                        </a>
+                      {% endif %}
+                    </div>
+                    
+                    {% if user.is_staff %}
+                    <div class="btn-group" role="group">
+                      <button class="btn btn-outline-warning btn-sm" onclick="editarRecurso({{ recurso.id }});">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-outline-danger btn-sm" onclick="eliminarRecurso({{ recurso.id }}, '{{ recurso.nombre }}');">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-5">
+          <i class="fas fa-book fa-3x text-muted mb-3"></i>
+          <h5 class="text-muted">No hay recursos disponibles para esta evaluación</h5>
+          <p class="text-muted">Los recursos aparecerán aquí cuando sean agregados por los administradores.</p>
+          {% if user.is_staff %}
+          <button class="btn btn-primary" onclick="crearRecursoParaEvaluacion({{ evaluacion.id }});">
+            <i class="fas fa-plus me-2"></i>Crear Primer Recurso
+          </button>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+// Función para editar un recurso
+function editarRecurso(recursoId) {
+  const seccionRecursos = document.getElementById('seccion-recursos');
+  
+  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso&recurso_id=${recursoId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        seccionRecursos.innerHTML = data.html;
+      } else {
+        seccionRecursos.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el formulario</h4>
+            <p>Hubo un problema al cargar el formulario de editar recurso.</p>
+          </div>
+        `;
+      }
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('action', 'editar_recurso');
+      url.searchParams.set('recurso_id', recursoId);
+      window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+      console.error('Error cargando formulario de editar recurso:', error);
+      seccionRecursos.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar el formulario</h4>
+          <p>Hubo un problema al cargar el formulario de editar recurso.</p>
+        </div>
+      `;
+    });
+}
+
+// Función para eliminar un recurso
+function eliminarRecurso(recursoId, nombreRecurso) {
+  if (confirm(`¿Estás seguro de que quieres eliminar el recurso "${nombreRecurso}"?`)) {
+    const seccionRecursos = document.getElementById('seccion-recursos');
+    
+    fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=eliminar_recurso&recurso_id=${recursoId}`, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Mostrar mensaje de éxito
+          seccionRecursos.innerHTML = `
+            <div class="alert alert-success">
+              <h4>Recurso eliminado</h4>
+              <p>${data.message}</p>
+              <button class="btn btn-primary" onclick="verRecursosEvaluacion({{ evaluacion.id }});">
+                <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+              </button>
+            </div>
+          `;
+        } else {
+          seccionRecursos.innerHTML = `
+            <div class="alert alert-danger">
+              <h4>Error al eliminar el recurso</h4>
+              <p>${data.error}</p>
+              <button class="btn btn-primary" onclick="verRecursosEvaluacion({{ evaluacion.id }});">
+                <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+              </button>
+            </div>
+          `;
+        }
+      })
+      .catch(error => {
+        console.error('Error eliminando recurso:', error);
+        seccionRecursos.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al eliminar el recurso</h4>
+            <p>Hubo un problema al eliminar el recurso.</p>
+            <button class="btn btn-primary" onclick="verRecursosEvaluacion({{ evaluacion.id }});">
+              <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+            </button>
+          </div>
+        `;
+      });
+  }
+}
+
+// Función para crear recurso para una evaluación específica
+function crearRecursoParaEvaluacion(evaluacionId) {
+  const seccionRecursos = document.getElementById('seccion-recursos');
+  
+  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        seccionRecursos.innerHTML = data.html;
+      } else {
+        seccionRecursos.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el formulario</h4>
+            <p>Hubo un problema al cargar el formulario de crear recurso.</p>
+          </div>
+        `;
+      }
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('action', 'crear_recurso');
+      url.searchParams.set('evaluacion_id', evaluacionId);
+      window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+      console.error('Error cargando formulario de crear recurso:', error);
+      seccionRecursos.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar el formulario</h4>
+          <p>Hubo un problema al cargar el formulario de crear recurso.</p>
+        </div>
+      `;
+    });
+}
+</script>
+{% endblock section_content %} 

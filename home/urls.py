@@ -41,7 +41,6 @@ urlpatterns = [
     # Curso URLs
     path('curso/<int:curso_id>/', views.curso_detail, name='curso_detail'),
     path('curso/<int:curso_id>/plataforma/', views.plataforma_aprendizaje, name='plataforma_aprendizaje'),
-    path('curso/<int:curso_id>/plataforma/foro/', views.plataforma_foro, name='plataforma_foro'),
     path('curso/<int:curso_id>/plataforma/foro/ajax/', views.plataforma_foro_ajax, name='plataforma_foro_ajax'),
     path('curso/<int:curso_id>/plataforma/foro/post/<int:post_id>/', views.plataforma_foro_post_detail, name='plataforma_foro_post_detail'),
     path('curso/<int:curso_id>/plataforma/foro/post/<int:post_id>/delete/', views.plataforma_foro_delete_post, name='plataforma_foro_delete_post'),
@@ -49,8 +48,8 @@ urlpatterns = [
     path('curso/<int:curso_id>/plataforma/foro/crear/', views.plataforma_foro_create_post, name='plataforma_foro_create_post'),
     
     # Calificaciones URLs
-    path('curso/<int:curso_id>/calificaciones/', views.plataforma_calificaciones, name='plataforma_calificaciones'),
     path('curso/<int:curso_id>/plataforma/calificaciones/ajax/', views.plataforma_calificaciones_ajax, name='plataforma_calificaciones_ajax'),
+    path('curso/<int:curso_id>/plataforma/calificaciones/', views.plataforma_calificaciones_spa, name='plataforma_calificaciones'),
     path('curso/<int:curso_id>/calificaciones/crear-evaluacion/', views.crear_evaluacion, name='crear_evaluacion'),
     path('curso/<int:curso_id>/calificaciones/calificar/<int:evaluacion_id>/', views.calificar_estudiante, name='calificar_estudiante'),
     path('curso/<int:curso_id>/calificaciones/calificar/<int:evaluacion_id>/ajax/', views.calificar_estudiante_ajax, name='calificar_estudiante_ajax'),
@@ -130,4 +129,15 @@ urlpatterns = [
     path('obtener-usuarios-staff/', views.obtener_usuarios_staff, name='obtener_usuarios_staff'),
     path('obtener-usuarios-staff-por-ticket/', views.obtener_usuarios_staff_por_ticket, name='obtener_usuarios_staff_por_ticket'),
     path('obtener-subclasificaciones/', views.obtener_subclasificaciones, name='obtener_subclasificaciones'),
+
+    # Recursos URLs
+    path('curso/<int:curso_id>/plataforma/recursos/ajax/', views.plataforma_recursos_ajax, name='plataforma_recursos_ajax'),
+    
+    # Asignaturas URLs (Mantenedor para admin/staff)
+    path('asignaturas/', views.asignaturas_list, name='asignaturas-list'),
+    path('asignatura/<int:asignatura_id>/', views.asignatura_detail, name='asignatura-detail'),
+    path('asignatura/crear/', views.asignatura_create, name='asignatura-create'),
+    path('asignatura/<int:asignatura_id>/editar/', views.asignatura_edit, name='asignatura-edit'),
+    path('asignatura/<int:asignatura_id>/eliminar/', views.asignatura_delete, name='asignatura-delete'),
+    path('asignatura/<int:asignatura_id>/copiar-evaluacion/', views.copiar_evaluacion_asignatura, name='copiar-evaluacion-asignatura'),
 ]
