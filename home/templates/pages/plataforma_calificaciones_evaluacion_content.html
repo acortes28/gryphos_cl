@@ -1,0 +1,267 @@
+{% load static %}
+{% load custom_filters %}
+
+<div class="row">
+  <div class="col-12">
+    <div class="evaluacion-content">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">
+          <i class="fas fa-clipboard-list me-2"></i>{{ evaluacion.nombre }}
+        </h4>
+        <button class="btn btn-outline-secondary" onclick="cargarCalificaciones()">
+          <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+        </button>
+      </div>
+      
+      <!-- Información de la Evaluación -->
+      <div class="card mb-4">
+        <div class="card-header bg-gradient-primary text-white">
+          <h6 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Información de la Evaluación
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <p><strong>Tipo:</strong> {{ evaluacion.get_tipo_display }}</p>
+              <p><strong>Fecha:</strong> {{ evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ evaluacion.fecha_fin|date:"d/m/Y" }}</p>
+              <p><strong>Nota Máxima:</strong> {{ evaluacion.nota_maxima }}</p>
+              <p><strong>Ponderación:</strong> {{ evaluacion.ponderacion }}%</p>
+            </div>
+            <div class="col-md-6">
+              {% if evaluacion.descripcion %}
+                <p><strong>Descripción:</strong></p>
+                <p class="text-muted">{{ evaluacion.descripcion }}</p>
+              {% endif %}
+              {% if evaluacion.rubrica %}
+                <p><strong>Rúbrica:</strong> {{ evaluacion.rubrica.nombre }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {% if user.is_staff %}
+        <!-- Vista para Staff/Admin -->
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-upload me-2"></i>Entregas ({{ entregas.count }})
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if entregas %}
+                  <div class="table-responsive">
+                    <table class="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Estudiante</th>
+                          <th>Fecha</th>
+                          <th>Archivo</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for entrega in entregas %}
+                          <tr>
+                            <td>{{ entrega.estudiante.get_full_name|default:entrega.estudiante.username }}</td>
+                            <td>{{ entrega.fecha_entrega|date:"d/m/Y H:i" }}</td>
+                                                         <td>
+                               <button onclick="window.open('{{ entrega.archivo.url }}', '_blank')" class="btn btn-sm btn-outline-primary">
+                                 <i class="fas fa-download me-1"></i>Descargar
+                               </button>
+                             </td>
+                                                         <td>
+                               <button onclick="window.location.href='{% url 'calificar_estudiante' curso.id evaluacion.id %}?estudiante={{ entrega.estudiante.id }}'" 
+                                      class="btn btn-sm btn-success">
+                                 <i class="fas fa-edit me-1"></i>Calificar
+                               </button>
+                             </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% else %}
+                  <div class="text-center py-3">
+                    <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">No hay entregas registradas</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-star me-2"></i>Calificaciones ({{ calificaciones.count }})
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if calificaciones %}
+                  <div class="table-responsive">
+                    <table class="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Estudiante</th>
+                          <th>Nota</th>
+                          <th>Fecha</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for calificacion in calificaciones %}
+                          <tr>
+                            <td>{{ calificacion.estudiante.get_full_name|default:calificacion.estudiante.username }}</td>
+                            <td>
+                              {% if calificacion.nota %}
+                                <span class="badge {% if calificacion.nota >= 7.0 %}bg-success{% elif calificacion.nota >= 5.5 %}bg-info{% elif calificacion.nota >= 4.0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                  {{ calificacion.nota|floatformat:1 }}
+                                </span>
+                              {% else %}
+                                <span class="badge bg-secondary">Pendiente</span>
+                              {% endif %}
+                            </td>
+                            <td>{{ calificacion.fecha_calificacion|date:"d/m/Y" }}</td>
+                                                         <td>
+                               <button onclick="window.location.href='{% url 'ver_calificacion_detalle' curso.id calificacion.id %}'" 
+                                      class="btn btn-sm btn-outline-info">
+                                 <i class="fas fa-eye me-1"></i>Ver
+                               </button>
+                             </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% else %}
+                  <div class="text-center py-3">
+                    <i class="fas fa-star fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">No hay calificaciones registradas</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <!-- Vista para Estudiantes -->
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-upload me-2"></i>Mi Entrega
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if entrega %}
+                  <div class="alert alert-success">
+                    <div class="d-flex align-items-center">
+                      <i class="fas fa-check-circle me-2"></i>
+                      <div>
+                        <strong>Entrega realizada</strong>
+                        <br>
+                        <small class="text-muted">
+                          Fecha: {{ entrega.fecha_entrega|date:"d/m/Y H:i" }}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                                     <div class="d-flex justify-content-between align-items-center">
+                     <span class="text-muted">Archivo: {{ entrega.archivo.name|split:"/"|last }}</span>
+                     <button onclick="window.open('{{ entrega.archivo.url }}', '_blank')" class="btn btn-sm btn-outline-primary">
+                       <i class="fas fa-download me-1"></i>Descargar
+                     </button>
+                   </div>
+                {% else %}
+                  <div class="text-center py-3">
+                    <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                    <p class="text-muted mb-0">No has entregado tu trabajo</p>
+                    <small class="text-muted">Asegúrate de subir tu entrega antes de la fecha límite</small>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">
+                  <i class="fas fa-star me-2"></i>Mi Calificación
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if calificacion %}
+                  <div class="text-center">
+                    <div class="nota-display mb-3">
+                      <span class="nota-value {% if calificacion.nota >= 7.0 %}text-success{% elif calificacion.nota >= 5.5 %}text-info{% elif calificacion.nota >= 4.0 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ calificacion.nota|floatformat:1 }}
+                      </span>
+                      <div class="nota-label">de {{ evaluacion.nota_maxima }}</div>
+                    </div>
+                    
+                    {% if calificacion.retroalimentacion %}
+                      <div class="alert alert-info">
+                        <strong>Retroalimentación:</strong>
+                        <p class="mb-0 mt-2">{{ calificacion.retroalimentacion }}</p>
+                      </div>
+                    {% endif %}
+                    
+                    <small class="text-muted">
+                      Calificada el {{ calificacion.fecha_calificacion|date:"d/m/Y" }}
+                    </small>
+                  </div>
+                {% else %}
+                  <div class="text-center py-3">
+                    <i class="fas fa-clock fa-2x text-muted mb-2"></i>
+                    <p class="text-muted mb-0">Calificación pendiente</p>
+                    <small class="text-muted">Tu trabajo será calificado pronto</small>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+.nota-display {
+  text-align: center;
+}
+
+.nota-value {
+  font-size: 3rem;
+  font-weight: bold;
+  display: block;
+}
+
+.nota-label {
+  font-size: 1rem;
+  color: #6c757d;
+  margin-top: 5px;
+}
+
+.card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.table th {
+  background: #f8f9fa;
+  border-top: none;
+}
+
+.badge {
+  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
+}
+</style> 

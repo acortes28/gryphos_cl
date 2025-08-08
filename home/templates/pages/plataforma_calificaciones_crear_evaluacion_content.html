@@ -1,0 +1,218 @@
+{% load static %}
+{% load custom_filters %}
+
+<div class="crear-evaluacion-content">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">
+      <i class="fas fa-clipboard-list me-2"></i>Crear Nueva Evaluación
+    </h4>
+    <button class="btn btn-secondary" onclick="cargarCalificaciones()">
+      <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+    </button>
+  </div>
+  
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="form-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h5 class="mb-0">
+            <i class="fas fa-clipboard-list me-2"></i>Información de la Evaluación
+          </h5>
+        </div>
+        
+        <form method="post" id="form-crear-evaluacion">
+          {% csrf_token %}
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.tipo.id_for_label }}" class="form-label">
+                  <i class="fas fa-tag me-1"></i>Tipo de Evaluación *
+                </label>
+                {{ form.tipo }}
+                {% if form.tipo.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.tipo.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                {% if form.tipo.help_text %}
+                  <small class="form-text text-muted">{{ form.tipo.help_text }}</small>
+                {% endif %}
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.fecha_inicio.id_for_label }}" class="form-label">
+                  <i class="fas fa-calendar me-1"></i>Fecha de Inicio *
+                </label>
+                {{ form.fecha_inicio }}
+                {% if form.fecha_inicio.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.fecha_inicio.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                {% if form.fecha_inicio.help_text %}
+                  <small class="form-text text-muted">{{ form.fecha_inicio.help_text }}</small>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.fecha_fin.id_for_label }}" class="form-label">
+                  <i class="fas fa-calendar-check me-1"></i>Fecha de Fin *
+                </label>
+                {{ form.fecha_fin }}
+                {% if form.fecha_fin.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.fecha_fin.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                {% if form.fecha_fin.help_text %}
+                  <small class="form-text text-muted">{{ form.fecha_fin.help_text }}</small>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="{{ form.nombre.id_for_label }}" class="form-label">
+              <i class="fas fa-file-alt me-1"></i>Nombre de la Evaluación *
+            </label>
+            {{ form.nombre }}
+            {% if form.nombre.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.nombre.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if form.nombre.help_text %}
+              <small class="form-text text-muted">{{ form.nombre.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.nota_maxima.id_for_label }}" class="form-label">
+                  <i class="fas fa-star me-1"></i>Nota Máxima *
+                </label>
+                {{ form.nota_maxima }}
+                {% if form.nota_maxima.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.nota_maxima.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                {% if form.nota_maxima.help_text %}
+                  <small class="form-text text-muted">{{ form.nota_maxima.help_text }}</small>
+                {% endif %}
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="{{ form.ponderacion.id_for_label }}" class="form-label">
+                  <i class="fas fa-percentage me-1"></i>Ponderación (%) *
+                </label>
+                {{ form.ponderacion }}
+                {% if form.ponderacion.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.ponderacion.errors %}
+                      {{ error }}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                {% if form.ponderacion.help_text %}
+                  <small class="form-text text-muted">{{ form.ponderacion.help_text }}</small>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="{{ form.descripcion.id_for_label }}" class="form-label">
+              <i class="fas fa-align-left me-1"></i>Descripción (Opcional)
+            </label>
+            {{ form.descripcion }}
+            {% if form.descripcion.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.descripcion.errors %}
+                  {{ error }}
+                {% endfor %}
+              </div>
+            {% endif %}
+            {% if form.descripcion.help_text %}
+              <small class="form-text text-muted">{{ form.descripcion.help_text }}</small>
+            {% endif %}
+          </div>
+          
+          <!-- Mensaje de estado -->
+          <div id="mensaje-crear-evaluacion"></div>
+          
+          <div class="d-flex justify-content-between align-items-center mt-4">
+            <button type="button" class="btn btn-secondary" onclick="cargarCalificaciones()">
+              <i class="fas fa-times me-2"></i>Cancelar
+            </button>
+            <button type="submit" class="btn btn-primary" id="btn-crear-evaluacion">
+              <i class="fas fa-save me-2"></i>Crear Evaluación
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .crear-evaluacion-content {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .form-card {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-label {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
+  }
+  
+  .form-control {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+  }
+  
+  .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+
+<!-- El JavaScript para manejar el formulario se encuentra en el template padre --> 

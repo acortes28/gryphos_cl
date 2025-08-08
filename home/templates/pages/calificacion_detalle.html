@@ -83,69 +83,6 @@
     margin-bottom: 20px;
   }
   
-
-  
-  .calificacion-detail-card {
-    background: white;
-    border-radius: 10px;
-    padding: 30px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  }
-  
-  .nota-display {
-    font-size: 3rem;
-    font-weight: bold;
-    text-align: center;
-    padding: 20px;
-    border-radius: 10px;
-    margin: 20px 0;
-  }
-  
-  .nota-excelente { background-color: #d4edda; color: #155724; }
-  .nota-buena { background-color: #d1ecf1; color: #0c5460; }
-  .nota-regular { background-color: #fff3cd; color: #856404; }
-  .nota-insuficiente { background-color: #f8d7da; color: #721c24; }
-  
-  /* Estilos para el botón de volver dentro del componente de calificación */
-  .calificacion-detail-card .position-absolute {
-    z-index: 10;
-  }
-  
-  .calificacion-detail-card .btn-outline-secondary {
-    border-color: #6c757d;
-    color: #6c757d;
-    font-size: 0.8rem;
-    padding: 0.375rem 0.75rem;
-    transition: all 0.3s ease;
-  }
-  
-  .calificacion-detail-card .btn-outline-secondary:hover {
-    background-color: #6c757d;
-    border-color: #6c757d;
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  
-  .info-item {
-    padding: 15px;
-    border-bottom: 1px solid #e9ecef;
-  }
-  
-  .info-item:last-child {
-    border-bottom: none;
-  }
-  
-  .info-label {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 5px;
-  }
-  
-  .info-value {
-    color: #666;
-  }
-  
   /* Estilo específico para el botón "Ir a mi Portal" - igual que navegación */
   .btn-portal-nav {
     position: relative;
@@ -271,49 +208,6 @@
       animation: subtlePulse 2s ease-in-out infinite;
   }
   
-  /* Estilos para la sección de rúbrica */
-  .criterios-container .card {
-    transition: all 0.3s ease;
-    border-left: 4px solid transparent;
-  }
-  
-  .criterios-container .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
-    border-left-color: #667eea;
-  }
-  
-  .esperables-container .card {
-    transition: all 0.3s ease;
-    border-left: 3px solid transparent;
-  }
-  
-  .esperables-container .card:hover {
-    border-left-color: #28a745;
-    background-color: #f8f9fa !important;
-  }
-  
-  .badge {
-    font-size: 0.75rem;
-    padding: 0.375rem 0.75rem;
-  }
-  
-  .bg-gradient-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-  
-  .card-header.bg-gradient-primary {
-    border-bottom: none;
-  }
-  
-  .esperables-container .badge.bg-secondary {
-    background-color: #6c757d !important;
-  }
-  
-  .esperables-container .badge.bg-success {
-    background-color: #28a745 !important;
-  }
-  
   .user-card {
     display: flex;
     align-items: center;
@@ -388,6 +282,32 @@
       display: block;
     }
   }
+  
+  /* Loading indicator */
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .loading.show {
+    display: block;
+  }
+  
+  .spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 </style>
 
 <!-- Sidebar -->
@@ -422,7 +342,7 @@
     </a>
     
     <a href="{% url 'plataforma_aprendizaje' curso.id %}?seccion=soporte" class="nav-link">
-      <i class="fas "></i>
+      <i class="fas fa-headset"></i>
       Soporte al Estudiante
     </a>
   </nav>
@@ -437,8 +357,6 @@
 <div class="main-content">
   <!-- Content Header -->
   <div class="content-header">
-
-    
     <div class="d-flex justify-content-between align-items-start mt-3">
       <div>
         <h2 class="mb-1">
@@ -479,272 +397,15 @@
   
   <!-- Content Body -->
   <div class="content-body">
-    <div class="row justify-content-center">
-      <div class="col-lg-8">
-        <div class="calificacion-detail-card">
-          <!-- Nota -->
-          {% if calificacion.nota %}
-            <div class="text-center position-relative">
-              <!-- Botón Volver a Calificaciones en la esquina superior derecha -->
-              <div class="position-absolute" style="top: 0; right: 0;">
-                <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-outline-secondary btn-sm">
-                  <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
-                </a>
-              </div>
-              
-              <h4 class="mb-3">Tu Calificación</h4>
-              <div class="nota-display 
-                {% if calificacion.nota >= 7.0 %}nota-excelente
-                {% elif calificacion.nota >= 5.5 %}nota-buena
-                {% elif calificacion.nota >= 4.0 %}nota-regular
-                {% else %}nota-insuficiente{% endif %}">
-                {{ calificacion.nota }}
-              </div>
-              <p class="text-muted">de {{ calificacion.evaluacion.nota_maxima }} puntos</p>
-            </div>
-          {% else %}
-            <div class="text-center position-relative">
-              <!-- Botón Volver a Calificaciones en la esquina superior derecha -->
-              <div class="position-absolute" style="top: 0; right: 0;">
-                <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-outline-secondary btn-sm">
-                  <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
-                </a>
-              </div>
-              
-              <h4 class="mb-3">Calificación Pendiente</h4>
-              <div class="nota-display nota-regular">
-                <i class="fas fa-clock fa-2x"></i>
-              </div>
-              <p class="text-muted">Aún no has sido calificado</p>
-            </div>
-          {% endif %}
-          
-          <!-- Información de la Evaluación -->
-          <div class="mt-4">
-            <h5 class="mb-3">
-              <i class="fas fa-clipboard-list me-2"></i>Información de la Evaluación
-            </h5>
-            <div class="info-item">
-              <div class="info-label">Evaluación</div>
-              <div class="info-value">{{ calificacion.evaluacion.nombre }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Tipo</div>
-              <div class="info-value">{{ calificacion.evaluacion.get_tipo_display }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Período de Evaluación</div>
-              <div class="info-value">{{ calificacion.evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ calificacion.evaluacion.fecha_fin|date:"d/m/Y" }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Nota Máxima</div>
-              <div class="info-value">{{ calificacion.evaluacion.nota_maxima }} puntos</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Ponderación</div>
-              <div class="info-value">{{ calificacion.evaluacion.ponderacion }}%</div>
-            </div>
-            {% if calificacion.evaluacion.descripcion %}
-              <div class="info-item">
-                <div class="info-label">Descripción</div>
-                <div class="info-value">{{ calificacion.evaluacion.descripcion }}</div>
-              </div>
-            {% endif %}
-          </div>
-          
-          <!-- Resultados de la Rúbrica -->
-          {% if rubrica and criterios_con_puntajes %}
-            <div class="mt-4">
-              <h5 class="mb-3">
-                <i class="fas fa-chart-bar me-2"></i>Resultados de la Rúbrica
-              </h5>
-              
-              <!-- Información general de la rúbrica -->
-              <div class="card mb-4">
-                <div class="card-header bg-gradient-primary text-white">
-                  <h6 class="mb-0">
-                    <i class="fas fa-clipboard-check me-2"></i>{{ rubrica.nombre }}
-                  </h6>
-                </div>
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col-md-6">
-                      <p><strong>Objetivo:</strong> {{ rubrica.objetivo }}</p>
-                    </div>
-                    <div class="col-md-6">
-                      <p><strong>Aprendizaje Esperado:</strong> {{ rubrica.aprendizaje_esperado }}</p>
-                    </div>
-                  </div>
-                  {% if resultado_rubrica %}
-                    <div class="row mt-3">
-                      <div class="col-md-4">
-                        <div class="text-center">
-                          <h6 class="text-muted">Puntaje Total</h6>
-                          <h4 class="text-primary">{{ resultado_rubrica.puntaje_total|default:"0" }}</h4>
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <div class="text-center">
-                          <h6 class="text-muted">Nota Final</h6>
-                          <h4 class="text-success">{{ resultado_rubrica.nota_final|default:"0" }}</h4>
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <div class="text-center">
-                          <h6 class="text-muted">Evaluado por</h6>
-                          <h6 class="text-info">{{ resultado_rubrica.evaluador.get_full_name|default:resultado_rubrica.evaluador.username }}</h6>
-                        </div>
-                      </div>
-                    </div>
-                  {% endif %}
-                </div>
-              </div>
-              
-              <!-- Criterios con puntajes -->
-              <div class="criterios-container">
-                {% for criterio_data in criterios_con_puntajes %}
-                  <div class="card mb-3">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                      <h6 class="mb-0">{{ criterio_data.criterio.nombre }}</h6>
-                      <div class="d-flex align-items-center">
-                        <span class="badge bg-primary me-2">{{ criterio_data.puntaje_obtenido|puntaje_entero }}/{{ criterio_data.criterio.puntaje|puntaje_entero }}</span>
-                        {% if criterio_data.esperable_seleccionado %}
-                          <span class="badge bg-success">{{ criterio_data.esperable_seleccionado.nivel }}</span>
-                        {% else %}
-                          <span class="badge bg-secondary">No evaluado</span>
-                        {% endif %}
-                      </div>
-                    </div>
-                    <div class="card-body">
-                      <p class="text-muted mb-3">{{ criterio_data.criterio.objetivo }}</p>
-                      
-                      <!-- Esperable seleccionado -->
-                      {% if criterio_data.esperable_seleccionado %}
-                        <div class="alert {% if criterio_data.puntaje_obtenido == criterio_data.esperable_seleccionado.puntaje %}alert-info{% else %}alert-warning{% endif %}">
-                          <strong>Nivel alcanzado:</strong> {{ criterio_data.esperable_seleccionado.nivel }}
-                          <br>
-                          <strong>Descripción:</strong> {{ criterio_data.esperable_seleccionado.descripcion }}
-                          {% if criterio_data.puntaje_obtenido != criterio_data.esperable_seleccionado.puntaje %}
-                            <br>
-                            <small class="text-muted">
-                              <i class="fas fa-info-circle"></i> 
-                              Puntaje obtenido ({{ criterio_data.puntaje_obtenido|puntaje_entero }}) no coincide exactamente con este nivel ({{ criterio_data.esperable_seleccionado.puntaje|puntaje_entero }})
-                            </small>
-                          {% endif %}
-                        </div>
-                      {% endif %}
-                      
-                      <!-- Comentarios del criterio -->
-                      {% if criterio_data.comentarios %}
-                        <div class="mt-3">
-                          <h6 class="text-muted">Comentarios:</h6>
-                          <div class="p-3 bg-light rounded">
-                            {{ criterio_data.comentarios|linebreaksbr }}
-                          </div>
-                        </div>
-                      {% endif %}
-                      
-                      <!-- Todos los esperables del criterio -->
-                      <div class="esperables-container mt-3">
-                        <h6 class="text-muted mb-2">Todos los niveles:</h6>
-                        {% for esperable in criterio_data.criterio.esperables.all %}
-                          <div class="card mb-2 {% if esperable == criterio_data.esperable_seleccionado %}border-success{% endif %}">
-                            <div class="card-body py-2">
-                              <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                  <strong>{{ esperable.nivel }}</strong>
-                                  <p class="mb-1 text-muted">{{ esperable.descripcion }}</p>
-                                </div>
-                                <div class="text-end">
-                                  <span class="badge {% if esperable == criterio_data.esperable_seleccionado %}bg-success{% else %}bg-secondary{% endif %}">
-                                    {{ esperable.puntaje|puntaje_entero }} pts
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        {% endfor %}
-                      </div>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-              
-              <!-- Comentarios generales de la rúbrica -->
-              {% if resultado_rubrica and resultado_rubrica.comentarios_generales %}
-                <div class="mt-4">
-                  <h6 class="text-muted">Comentarios Generales:</h6>
-                  <div class="p-3 bg-light rounded">
-                    {{ resultado_rubrica.comentarios_generales|linebreaksbr }}
-                  </div>
-                </div>
-              {% endif %}
-            </div>
-          {% endif %}
-          
-
-          
-          <!-- Información de la Calificación -->
-          <div class="mt-4">
-            <h5 class="mb-3">
-              <i class="fas fa-chart-line me-2"></i>Información de la Calificación
-            </h5>
-            <div class="info-item">
-              <div class="info-label">Calificado por</div>
-              <div class="info-value">{{ calificacion.calificado_por.get_full_name|default:calificacion.calificado_por.username }}</div>
-            </div>
-            <div class="info-item">
-              <div class="info-label">Fecha de Calificación</div>
-              <div class="info-value">{{ calificacion.fecha_calificacion|date:"d/m/Y H:i" }}</div>
-            </div>
-            {% if calificacion.fecha_modificacion != calificacion.fecha_calificacion %}
-              <div class="info-item">
-                <div class="info-label">Última Modificación</div>
-                <div class="info-value">{{ calificacion.fecha_modificacion|date:"d/m/Y H:i" }}</div>
-              </div>
-            {% endif %}
-          </div>
-          
-          <!-- Retroalimentación -->
-          {% if calificacion.retroalimentacion %}
-            <div class="mt-4">
-              <h5 class="mb-3">
-                <i class="fas fa-comment me-2"></i>Retroalimentación
-              </h5>
-              <div class="p-3 bg-light rounded">
-                {{ calificacion.retroalimentacion|safe|linebreaksbr }}
-              </div>
-            </div>
-          {% endif %}
-          
-          <!-- Estadísticas Adicionales -->
-          {% if calificacion.nota %}
-            <div class="mt-4">
-              <h5 class="mb-3">
-                <i class="fas fa-percentage me-2"></i>Estadísticas Adicionales
-              </h5>
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="info-item">
-                    <div class="info-label">Porcentaje Obtenido</div>
-                    <div class="info-value">{{ calificacion.get_porcentaje_obtenido|floatformat:1 }}%</div>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="info-item">
-                    <div class="info-label">Nota Ponderada</div>
-                    <div class="info-value">{{ calificacion.get_nota_ponderada|floatformat:2 }}%</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          {% endif %}
-          
-
-          
-          <!-- El botón "Volver a Calificaciones" ahora está en la parte superior derecha del componente -->
-        </div>
-      </div>
+    <!-- Loading indicator -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Cargando detalle de calificación...</p>
+    </div>
+    
+    <!-- Contenido dinámico -->
+    <div id="detalle-calificacion-content">
+      <!-- El contenido se cargará dinámicamente -->
     </div>
   </div>
 </div>
@@ -754,6 +415,59 @@ function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
   sidebar.classList.toggle('show');
 }
+
+// Función para cargar el detalle de calificación
+function cargarDetalleCalificacion(evaluacionId) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_detalle&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.html) {
+        document.getElementById('detalle-calificacion-content').innerHTML = data.html;
+        document.getElementById('loading').classList.remove('show');
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando detalle de calificación:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      document.getElementById('detalle-calificacion-content').innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar el detalle de calificación</h4>
+          <p>Hubo un problema al cargar el detalle de calificación. Por favor, intenta nuevamente.</p>
+          <button onclick="window.location.href='{% url 'plataforma_calificaciones' curso.id %}'" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+          </button>
+        </div>
+      `;
+    });
+}
+
+// Función para volver a calificaciones
+function cargarCalificaciones() {
+  window.location.href = '{% url 'plataforma_calificaciones' curso.id %}';
+}
+
+// Cargar el detalle automáticamente al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+  // Obtener el ID de la evaluación de la URL o de los datos de la calificación
+  const evaluacionId = {{ calificacion.evaluacion.id }};
+  cargarDetalleCalificacion(evaluacionId);
+});
 </script>
 
 {% endblock content %} 

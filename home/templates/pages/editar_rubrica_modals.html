@@ -1,0 +1,262 @@
+<!-- Modal para Agregar Criterio -->
+<div class="modal fade" id="modalAgregarCriterio" tabindex="-1" aria-labelledby="modalAgregarCriterioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalAgregarCriterioLabel">
+          <i class="fas fa-plus-circle me-2"></i>Agregar Criterio
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formAgregarCriterio">
+          <div class="form-group mb-3">
+            <label for="criterio_nombre" class="form-label required-field">Nombre del Criterio</label>
+            <input type="text" class="form-control" id="criterio_nombre" name="nombre" required>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label for="criterio_objetivo" class="form-label required-field">Objetivo del Criterio</label>
+            <textarea class="form-control" id="criterio_objetivo" name="objetivo" rows="3" required></textarea>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label for="criterio_puntaje" class="form-label required-field">Puntaje Máximo</label>
+            <input type="number" class="form-control" id="criterio_puntaje" name="puntaje" 
+                   min="0" step="0.01" required placeholder="Ej: 10.0">
+            <small class="form-text text-muted">Puntaje máximo que se puede obtener en este criterio</small>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label class="form-label required-field">Listado de Esperables</label>
+            <div id="esperables-container">
+              <!-- Los esperables se agregarán dinámicamente aquí -->
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="abrirModalAgregarEsperable()">
+              <i class="fas fa-plus me-1"></i>Agregar Esperable
+            </button>
+            <small class="form-text text-muted">
+              <i class="fas fa-info-circle me-1"></i>
+              Los esperables se guardarán cuando hagas clic en "Guardar Criterio" y se ordenarán automáticamente de mayor a menor puntaje
+            </small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarCriterio()">
+          <i class="fas fa-save me-1"></i>Guardar Criterio
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Editar Criterio -->
+<div class="modal fade" id="modalEditarCriterio" tabindex="-1" aria-labelledby="modalEditarCriterioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalEditarCriterioLabel">
+          <i class="fas fa-edit me-2"></i>Editar Criterio
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formEditarCriterio">
+          <input type="hidden" id="criterio_id_editar" name="criterio_id">
+          <div class="form-group mb-3">
+            <label for="criterio_nombre_editar" class="form-label required-field">Nombre del Criterio</label>
+            <input type="text" class="form-control" id="criterio_nombre_editar" name="nombre" required>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label for="criterio_objetivo_editar" class="form-label required-field">Objetivo del Criterio</label>
+            <textarea class="form-control" id="criterio_objetivo_editar" name="objetivo" rows="3" required></textarea>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label for="criterio_puntaje_editar" class="form-label required-field">Puntaje Máximo</label>
+            <input type="number" class="form-control" id="criterio_puntaje_editar" name="puntaje" 
+                   min="0" step="0.01" required placeholder="Ej: 10.0">
+            <small class="form-text text-muted">Puntaje máximo que se puede obtener en este criterio</small>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label class="form-label required-field">Listado de Esperables</label>
+            <div id="esperables-container-editar">
+              <!-- Los esperables se cargarán dinámicamente -->
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="abrirModalAgregarEsperableEditar()">
+              <i class="fas fa-plus me-1"></i>Agregar Esperable
+            </button>
+            <small class="form-text text-muted">
+              <i class="fas fa-info-circle me-1"></i>
+              Los esperables se guardarán cuando hagas clic en "Guardar Cambios" y se ordenarán automáticamente de mayor a menor puntaje
+            </small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarCriterioEditado()">
+          <i class="fas fa-save me-1"></i>Guardar Cambios
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Agregar Esperable -->
+<div class="modal fade" id="modalAgregarEsperable" tabindex="-1" aria-labelledby="modalAgregarEsperableLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalAgregarEsperableLabel">
+          <i class="fas fa-plus-circle me-2"></i>Agregar Esperable
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formAgregarEsperable">
+          <div class="form-group mb-3">
+            <label for="esperable_nivel" class="form-label required-field">Nivel de Desempeño</label>
+            <input type="text" class="form-control" id="esperable_nivel" name="nivel" 
+                   placeholder="Ej: Aceptable, Bueno, Excelente" required>
+            <small class="form-text text-muted">Nombre del nivel de desempeño</small>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label for="esperable_descripcion" class="form-label required-field">Descripción</label>
+            <textarea class="form-control" id="esperable_descripcion" name="descripcion" rows="4" required
+                      placeholder="Describe qué se espera para este nivel de desempeño"></textarea>
+            <small class="form-text text-muted">Descripción detallada de la expectativa para este nivel</small>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label for="esperable_puntaje" class="form-label required-field">Puntaje</label>
+            <input type="number" class="form-control" id="esperable_puntaje" name="puntaje" 
+                   min="0" step="0.01" required placeholder="Ej: 5.0">
+            <small class="form-text text-muted">Puntaje asociado a este nivel de desempeño</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarEsperable()">
+          <i class="fas fa-save me-1"></i>Agregar Esperable
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Agregar Esperable (Edición) -->
+<div class="modal fade" id="modalAgregarEsperableEditar" tabindex="-1" aria-labelledby="modalAgregarEsperableEditarLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalAgregarEsperableEditarLabel">
+          <i class="fas fa-plus-circle me-2"></i>Agregar Esperable
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formAgregarEsperableEditar">
+          <div class="form-group mb-3">
+            <label for="esperable_nivel_editar" class="form-label required-field">Nivel de Desempeño</label>
+            <input type="text" class="form-control" id="esperable_nivel_editar" name="nivel" 
+                   placeholder="Ej: Aceptable, Bueno, Excelente" required>
+            <small class="form-text text-muted">Nombre del nivel de desempeño</small>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label for="esperable_descripcion_editar" class="form-label required-field">Descripción</label>
+            <textarea class="form-control" id="esperable_descripcion_editar" name="descripcion" rows="4" required
+                      placeholder="Describe qué se espera para este nivel de desempeño"></textarea>
+            <small class="form-text text-muted">Descripción detallada de la expectativa para este nivel</small>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label for="esperable_puntaje_editar" class="form-label required-field">Puntaje</label>
+            <input type="number" class="form-control" id="esperable_puntaje_editar" name="puntaje" 
+                   min="0" step="0.01" required placeholder="Ej: 5.0">
+            <small class="form-text text-muted">Puntaje asociado a este nivel de desempeño</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarEsperableEditar()">
+          <i class="fas fa-save me-1"></i>Agregar Esperable
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmación para Eliminar Criterio -->
+<div class="modal fade" id="modalConfirmarEliminarCriterio" tabindex="-1" aria-labelledby="modalConfirmarEliminarCriterioLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalConfirmarEliminarCriterioLabel">
+          <i class="fas fa-exclamation-triangle text-warning me-2"></i>Confirmar Eliminación
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center">
+          <i class="fas fa-trash fa-3x text-danger mb-3"></i>
+          <h6 class="mb-3">¿Estás seguro de que quieres eliminar este criterio?</h6>
+          <p class="text-muted mb-0">
+            <strong id="criterio-nombre-eliminar"></strong>
+          </p>
+          <p class="text-muted small mt-2">
+            Esta acción no se puede deshacer. Se eliminarán todos los esperables asociados a este criterio.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fas fa-times me-1"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-danger" onclick="confirmarEliminarCriterio()">
+          <i class="fas fa-trash me-1"></i>Eliminar Criterio
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmación de Cambios Guardados -->
+<div class="modal fade" id="modalCambiosGuardados" tabindex="-1" aria-labelledby="modalCambiosGuardadosLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalCambiosGuardadosLabel">
+          <i class="fas fa-check-circle text-success me-2"></i>Cambios Guardados
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-center">
+          <i class="fas fa-save fa-3x text-success mb-3"></i>
+          <h6 class="mb-3">¡Los cambios han sido guardados exitosamente!</h6>
+          <p class="text-muted mb-0">
+            Los cambios realizados en la rúbrica han sido guardados correctamente.
+          </p>
+          <p class="text-muted small mt-2">
+            <i class="fas fa-info-circle me-1"></i>
+            Recuerda que tienes hasta antes del inicio de la evaluación para finalizar la rúbrica.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="cerrarModalYRedirigir()">
+          <i class="fas fa-check me-1"></i>Entendido
+        </button>
+      </div>
+    </div>
+  </div>
+</div> 

@@ -1,8 +1,44 @@
 {% if messages %}
   {% for message in messages %}
-    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert" data-message-id="{{ forloop.counter }}">
       {{ message }}
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
   {% endfor %}
+  
+  <script>
+    // Auto-eliminar mensajes después de 5 segundos
+    document.addEventListener('DOMContentLoaded', function() {
+      const alerts = document.querySelectorAll('.alert');
+      alerts.forEach(function(alert) {
+        setTimeout(function() {
+          if (alert && alert.parentNode) {
+            alert.style.transition = 'opacity 0.5s ease-out';
+            alert.style.opacity = '0';
+            setTimeout(function() {
+              if (alert && alert.parentNode) {
+                alert.remove();
+              }
+            }, 500);
+          }
+        }, 5000); // 5 segundos
+      });
+    });
+    
+    // Limpiar mensajes al hacer clic en el botón de cerrar
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('btn-close')) {
+        const alert = e.target.closest('.alert');
+        if (alert) {
+          alert.style.transition = 'opacity 0.3s ease-out';
+          alert.style.opacity = '0';
+          setTimeout(function() {
+            if (alert && alert.parentNode) {
+              alert.remove();
+            }
+          }, 300);
+        }
+      }
+    });
+  </script>
 {% endif %} 

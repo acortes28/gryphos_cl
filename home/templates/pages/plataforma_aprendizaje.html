@@ -1,6 +1,9 @@
 {% extends 'layouts/base_background.html' %}
 {% load static %}
 {% load custom_filters %}
+
+{% csrf_token %}
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 {% block title %} {{ curso.nombre }} - Plataforma de Aprendizaje {% endblock title %}
 {% block body %} class="about-us bg-gray-200" {% endblock body %}
 
@@ -719,32 +722,32 @@
   </div>
   
   <nav class="sidebar-nav">
-    <a href="#" data-seccion="inicio" class="nav-link active">
+    <a href="{% url 'plataforma_aprendizaje' curso.id %}" data-seccion="inicio" class="nav-link active">
       <i class="fas fa-home"></i>
       Inicio
     </a>
     
-    <a href="#" data-seccion="foro" class="nav-link">
+    <a href="" data-seccion="foro" class="nav-link">
       <i class="fas fa-comments"></i>
       Foro
     </a>
     
-    <a href="#" data-seccion="recursos" class="nav-link">
+    <a href="" data-seccion="recursos" class="nav-link">
       <i class="fas fa-book"></i>
       Recursos
     </a>
     
-    <a href="#" data-seccion="entregas" class="nav-link">
+    <a href="" data-seccion="entregas" class="nav-link">
       <i class="fas fa-upload"></i>
       Entregas
     </a>
     
-    <a href="#" data-seccion="calificaciones" class="nav-link">
+    <a href="" data-seccion="calificaciones" class="nav-link">
       <i class="fas fa-chart-line"></i>
       Calificaciones
     </a>
     
-    <a href="#" data-seccion="soporte" class="nav-link">
+    <a href="" data-seccion="soporte" class="nav-link">
       <i class="fas fa-headset"></i>
       Soporte al Estudiante
     </a>
@@ -833,9 +836,6 @@
         <i class="fas fa-comments fa-3x text-muted mb-3"></i>
         <h4>Foro de Discusión</h4>
         <p class="text-muted">Aquí podrás participar en discusiones con tus compañeros y profesores.</p>
-        <button class="btn btn-primary" onclick="cambiarSeccion('foro');">
-          <i class="fas fa-comments me-2"></i>Ir al Foro
-        </button>
       </div>
     </div>
     
@@ -843,29 +843,26 @@
     <div id="seccion-crear-post" class="section-content" style="display: none;">
       <!-- El contenido se cargará dinámicamente -->
     </div>
-    
+
+
+    <!-- Sección de Recursos -->
     <div id="seccion-recursos" class="section-content">
       <h4>Recursos de Aprendizaje</h4>
       <p>Accede a todos los materiales y recursos de tu curso.</p>
       <!-- Contenido de la sección Recursos -->
     </div>
     
-    <div id="seccion-calificaciones" class="section-content">
-      <h4>Calificaciones y Progreso</h4>
-      <p>Revisa tu progreso y calificaciones en el curso.</p>
-      <!-- Contenido de la sección Calificaciones -->
-    </div>
-    
+
+    <!-- Sección de Soporte -->
     <div id="seccion-soporte" class="section-content">
       <div class="text-center py-5">
         <i class="fas text-muted mb-3"></i>
         <h4>Soporte al Estudiante</h4>
         <p class="text-muted">Aquí puedes crear tickets de soporte y ver el estado de tus consultas.</p>
-        <button class="btn btn-primary" onclick="cargarSoporteContenido();">
-          <i class="fas fa-headset me-2"></i>Ir al Soporte
-        </button>
       </div>
     </div>
+
+    <!-- Sección de Entregas -->
     <div id="seccion-entregas" class="section-content">
       <h4>Entregas de Evaluaciones</h4>
       <p>Aquí puedes ver tus entregas y subir archivos para las evaluaciones activas.</p>
@@ -877,6 +874,11 @@
       <div id="boton-subir-entrega-placeholder" class="mt-3">
         <!-- Aquí irá el botón dinámico para subir entrega -->
       </div>
+    </div>
+
+    <!-- Sección de Calificaciones -->
+    <div id="seccion-calificaciones" class="section-content">
+      <!-- El contenido se cargará dinámicamente -->
     </div>
   </div>
 </div>
@@ -957,12 +959,67 @@ function cambiarSeccion(seccion) {
   const titleElement = document.getElementById('section-title');
   titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
   
+  console.log(`Cambiando a sección: ${seccion}`);
+
   // Si es la sección del foro, cargar contenido dinámicamente
   if (seccion === 'foro') {
     cargarForoContenido();
+  } else if (seccion === 'recursos') {
+    cargarRecursosContenido();
   } else if (seccion === 'calificaciones') {
-    // Redirigir a la página de calificaciones
-    window.location.href = `{% url 'plataforma_calificaciones' curso.id %}`;
+    // Verificar si hay parámetros específicos en la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get('action');
+    const evaluacionId = urlParams.get('evaluacion_id');
+    
+    let url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+    console.log("la accion es " + action)
+    // Si hay una acción específica, agregarla a la URL
+    if (action) {
+      url += `?action=${action}`;
+      if (evaluacionId) {
+        url += `&evaluacion_id=${evaluacionId}`;
+      }
+    }
+
+    console.log(url);
+    
+    // Cargar contenido de calificaciones vía AJAX
+    fetch(url, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+          .then(data => {
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      
+      // Ocultar todas las secciones primero
+      document.querySelectorAll('.section-content').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // Actualizar contenido y mostrar sección de calificaciones
+      seccionCalificaciones.innerHTML = data.html;
+      seccionCalificaciones.classList.add('active');
+      document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        // Mantener los parámetros específicos si existen
+        if (action) {
+          url.searchParams.set('action', action);
+          if (evaluacionId) {
+            url.searchParams.set('evaluacion_id', evaluacionId);
+          }
+        }
+        window.history.pushState({}, '', url);
+      })
+      .catch(error => {
+        console.error('Error cargando calificaciones:', error);
+        document.getElementById('loading').classList.remove('show');
+      });
   } else if (seccion === 'soporte') {
     // Verificar si hay parámetros específicos en la URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -1270,13 +1327,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
   
-  // Event delegation para botones de soporte
+  // Event delegation para botones de soporte y calificaciones
   document.addEventListener('click', function(e) {
     const action = e.target.closest('[data-action]')?.getAttribute('data-action');
-    
-    console.log('=== DEBUG CLICK EVENT ===');
-    console.log('Action detectada:', action);
-    console.log('Elemento clickeado:', e.target);
     
     if (action === 'crear-ticket') {
       e.preventDefault();
@@ -1299,12 +1352,60 @@ document.addEventListener('DOMContentLoaded', function() {
       const ticketId = e.target.closest('[data-action]').getAttribute('data-ticket-id');
       verTicket(ticketId);
     }
+    
+    // Manejo específico para botones de calificaciones
+    if (e.target.matches('button[onclick*="cargarEliminarEvaluacion"]')) {
+      // Verificar si el botón ya tiene un onclick que maneja la funcionalidad
+      const onclickAttr = e.target.getAttribute('onclick');
+      if (onclickAttr && onclickAttr.includes('cargarEliminarEvaluacion')) {
+        // El botón ya tiene un onclick, no ejecutar el event listener
+        return;
+      }
+      
+      e.preventDefault();
+      const evaluacionId = e.target.getAttribute('onclick').match(/cargarEliminarEvaluacion\((\d+)\)/)?.[1];
+      if (evaluacionId) {
+        console.log('Llamando a cargarEliminarEvaluacion con ID:', evaluacionId);
+        cargarEliminarEvaluacion(evaluacionId);
+      }
+    } else if (e.target.matches('button[onclick*="cargarCalificar"]')) {
+      // Verificar si el botón ya tiene un onclick que maneja la funcionalidad
+      const onclickAttr = e.target.getAttribute('onclick');
+      if (onclickAttr && onclickAttr.includes('cargarCalificar')) {
+        // El botón ya tiene un onclick, no ejecutar el event listener
+        return;
+      }
+      
+      e.preventDefault();
+      const evaluacionId = e.target.getAttribute('onclick').match(/cargarCalificar\((\d+)\)/)?.[1];
+      if (evaluacionId) {
+        console.log('Llamando a cargarCalificar con ID:', evaluacionId);
+        cargarCalificar(evaluacionId);
+      }
+    } else if (e.target.matches('button[onclick*="cargarEditarEvaluacion"]')) {
+      // Verificar si el botón ya tiene un onclick que maneja la funcionalidad
+      const onclickAttr = e.target.getAttribute('onclick');
+      if (onclickAttr && onclickAttr.includes('cargarEditarEvaluacion')) {
+        // El botón ya tiene un onclick, no ejecutar el event listener
+        return;
+      }
+      
+      e.preventDefault();
+      const evaluacionId = e.target.getAttribute('onclick').match(/cargarEditarEvaluacion\((\d+)\)/)?.[1];
+      if (evaluacionId) {
+        console.log('Llamando a cargarEditarEvaluacion con ID:', evaluacionId);
+        cargarEditarEvaluacion(evaluacionId);
+      }
+    }
   });
   
   // Inicializar con la sección activa desde la URL
   const urlParams = new URLSearchParams(window.location.search);
   const seccionActiva = urlParams.get('seccion') || 'inicio';
   cambiarSeccion(seccionActiva);
+  
+  // Iniciar observer para detectar contenido de eliminación
+  iniciarObserverEliminacion();
 });
 
 // Función para mostrar el modal de confirmación
@@ -1605,14 +1706,12 @@ function evaluarEntrega(button) {
   const entregaId = button.getAttribute('data-entrega-id');
   const evaluacionId = button.getAttribute('data-evaluacion-id');
   const estudianteId = button.getAttribute('data-estudiante-id');
-  // Obtener el curso_id de la URL actual
-  const urlParams = new URLSearchParams(window.location.search);
-  const cursoId = urlParams.get('curso_id') || window.location.pathname.split('/')[2];
   
-  console.log('Evaluando entrega:', { entregaId, evaluacionId, estudianteId, cursoId });
+  console.log('Evaluando entrega:', { entregaId, evaluacionId, estudianteId });
   
-  // Redirigir a la página de calificar estudiante con el estudiante precargado
-  window.location.href = `/curso/${cursoId}/calificaciones/calificar/${evaluacionId}/?estudiante=${estudianteId}`;
+  // Usar el mismo patrón que cargarCalificar para mantener consistencia SPA
+  // Pasar el estudianteId para precargar el estudiante específico
+  cargarCalificar(evaluacionId, estudianteId);
 }
 
 function abrirModalReemplazar(button) {
@@ -1681,6 +1780,1565 @@ function inicializarModalReemplazo() {
 // Función para cargar contenido de soporte
 function cargarSoporteContenido() {
   cambiarSeccion('soporte');
+}
+
+// ============================================================================
+// FUNCIONES PARA EL SISTEMA DE CALIFICACIONES
+// ============================================================================
+
+// Función para cargar estadísticas de calificaciones
+function cargarEstadisticasCalificaciones() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_estadisticas`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_estadisticas');
+        window.history.pushState({}, '', url);
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando estadísticas:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      if (seccionCalificaciones) {
+        seccionCalificaciones.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar las estadísticas</h4>
+            <p>Hubo un problema al cargar las estadísticas. Por favor, intenta nuevamente.</p>
+            <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </button>
+          </div>
+        `;
+        seccionCalificaciones.classList.add('active');
+      }
+    });
+}
+
+// Función para cargar rúbricas de calificaciones
+function cargarRubricasCalificaciones() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_rubricas`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_rubricas');
+        window.history.pushState({}, '', url);
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando rúbricas:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para cargar detalle de evaluación
+function cargarDetalleEvaluacion(evaluacionId) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_evaluacion&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_evaluacion');
+        url.searchParams.set('evaluacion_id', evaluacionId);
+        window.history.pushState({}, '', url);
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando detalle de evaluación:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para cargar detalle de calificación
+function cargarDetalleCalificacion(evaluacionId) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_detalle&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_detalle');
+        url.searchParams.set('evaluacion_id', evaluacionId);
+        window.history.pushState({}, '', url);
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando detalle de calificación:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      if (seccionCalificaciones) {
+        seccionCalificaciones.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el detalle de calificación</h4>
+            <p>Hubo un problema al cargar el detalle de calificación. Por favor, intenta nuevamente.</p>
+            <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </button>
+          </div>
+        `;
+        seccionCalificaciones.classList.add('active');
+      }
+    });
+}
+
+// Función para cargar rúbrica específica
+function cargarRubrica(evaluacionId) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_rubrica&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_rubrica');
+        url.searchParams.set('evaluacion_id', evaluacionId);
+        window.history.pushState({}, '', url);
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando rúbrica:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      if (seccionCalificaciones) {
+        seccionCalificaciones.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar la rúbrica</h4>
+            <p>Hubo un problema al cargar la rúbrica. Por favor, intenta nuevamente.</p>
+            <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </button>
+          </div>
+        `;
+        seccionCalificaciones.classList.add('active');
+      }
+    });
+}
+
+// Función para cargar vista de editar evaluación
+function cargarEditarEvaluacion(evaluacionId) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_editar_evaluacion&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_editar_evaluacion');
+        url.searchParams.set('evaluacion_id', evaluacionId);
+        window.history.pushState({}, '', url);
+        
+        // Inicializar el formulario después de cargar el contenido
+        setTimeout(() => {
+          inicializarFormularioEditarEvaluacion();
+        }, 100);
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando vista de editar evaluación:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      if (seccionCalificaciones) {
+        seccionCalificaciones.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar la vista de editar evaluación</h4>
+            <p>Hubo un problema al cargar la vista de editar evaluación. Por favor, intenta nuevamente.</p>
+            <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </button>
+          </div>
+        `;
+        seccionCalificaciones.classList.add('active');
+      }
+    });
+}
+
+// Función para inicializar el formulario de editar evaluación
+function inicializarFormularioEditarEvaluacion() {
+  const form = document.getElementById('form-editar-evaluacion');
+  if (form) {
+    // Inicializar campos de fecha con los valores de la evaluación
+    inicializarCamposFecha();
+    
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const mensajeDiv = document.getElementById('mensaje-editar-evaluacion');
+      const submitBtn = document.getElementById('btn-guardar-evaluacion');
+      
+      // Limpiar mensajes anteriores
+      mensajeDiv.innerHTML = '';
+      
+      // Mostrar indicador de carga
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...';
+      submitBtn.disabled = true;
+      
+      // Obtener el curso_id y evaluacion_id de la URL actual
+      const urlParams = new URLSearchParams(window.location.search);
+      const cursoId = window.location.pathname.split('/')[2];
+      const evaluacionId = urlParams.get('evaluacion_id');
+      
+      console.log('🔍 DEBUG - Editar evaluación:');
+      console.log('cursoId:', cursoId);
+      console.log('evaluacionId:', evaluacionId);
+      console.log('URL completa:', `/curso/${cursoId}/plataforma/calificaciones/editar/${evaluacionId}/ajax/`);
+      
+      // Verificar que el evaluacionId sea válido
+      if (!evaluacionId) {
+        console.error('Error: evaluacionId es null o undefined');
+        mensajeDiv.innerHTML = `
+          <div class="alert alert-danger alert-dismissible">
+            <i class="fas fa-exclamation-triangle me-2"></i>Error: No se pudo obtener el ID de la evaluación. Por favor, recarga la página e intenta nuevamente.
+            <button type="button" class="btn-close" aria-label="Cerrar">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+        `;
+        return;
+      }
+      
+      fetch(`/curso/${cursoId}/plataforma/calificaciones/editar/${evaluacionId}/ajax/`, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success) {
+          // Mostrar alert de éxito
+          alert(data.message);
+          
+          // Redirigir inmediatamente
+          cargarCalificaciones();
+        } else {
+          // Mostrar errores
+          let errorHtml = '<div class="alert alert-danger alert-dismissible"><ul class="mb-0">';
+          if (data.errors) {
+            for (const field in data.errors) {
+              data.errors[field].forEach(error => {
+                errorHtml += `<li>${error}</li>`;
+              });
+            }
+          } else if (data.error) {
+            errorHtml += `<li>${data.error}</li>`;
+          }
+          errorHtml += '</ul><button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
+          mensajeDiv.innerHTML = errorHtml;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        let errorMessage = 'Error al guardar la evaluación. Por favor, intenta nuevamente.';
+        
+        if (error.message.includes('Unexpected token')) {
+          errorMessage = 'Error: El servidor devolvió una respuesta HTML en lugar de JSON. Esto puede indicar un error 404 o 500 en el servidor.';
+        } else if (error.message.includes('HTTP error! status: 404')) {
+          errorMessage = 'Error 404: La URL de la evaluación no se encontró. Verifica que el ID de la evaluación sea correcto.';
+        } else if (error.message.includes('HTTP error! status: 500')) {
+          errorMessage = 'Error 500: Error interno del servidor. Por favor, contacta al administrador.';
+        }
+        
+        mensajeDiv.innerHTML = `
+          <div class="alert alert-danger alert-dismissible">
+            <i class="fas fa-exclamation-triangle me-2"></i>${errorMessage}
+            <button type="button" class="btn-close" aria-label="Cerrar">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+        `;
+      })
+      .finally(() => {
+        // Restaurar el botón
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      });
+    });
+  }
+}
+
+// Función para inicializar los campos de fecha
+function inicializarCamposFecha() {
+  console.log('🔍 Iniciando búsqueda de campos de fecha...');
+  
+  // Buscar campos de fecha
+  const fechaInicioField = document.querySelector('input[name="fecha_inicio"]') || 
+                          document.querySelector('input[id*="fecha_inicio"]') ||
+                          document.querySelector('input[type="date"]:first-of-type');
+  
+  const fechaFinField = document.querySelector('input[name="fecha_fin"]') || 
+                       document.querySelector('input[id*="fecha_fin"]') ||
+                       document.querySelector('input[type="date"]:last-of-type');
+  
+  console.log('Campos encontrados:');
+  console.log('Fecha inicio:', !!fechaInicioField);
+  console.log('Fecha fin:', !!fechaFinField);
+  
+  // Debug: mostrar todos los campos de fecha en la página
+  const todosLosCamposFecha = document.querySelectorAll('input[type="date"]');
+  console.log('Todos los campos de fecha encontrados:', todosLosCamposFecha.length);
+  todosLosCamposFecha.forEach((campo, index) => {
+    console.log(`Campo ${index + 1}:`, {
+      id: campo.id,
+      name: campo.name,
+      value: campo.value
+    });
+  });
+  
+  // Verificar que los campos tengan valores correctos
+  if (fechaInicioField) {
+    console.log('✅ Campo fecha inicio encontrado con valor:', fechaInicioField.value);
+  } else {
+    console.log('❌ No se encontró el campo de fecha de inicio');
+  }
+  
+  if (fechaFinField) {
+    console.log('✅ Campo fecha fin encontrado con valor:', fechaFinField.value);
+  } else {
+    console.log('❌ No se encontró el campo de fecha de fin');
+  }
+}
+
+// Función para cargar vista de calificar estudiantes
+function cargarCalificar(evaluacionId, estudianteId = null) {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Construir URL con parámetros
+  let url = `{% url 'plataforma_calificaciones_ajax' curso.id %}?action=ver_calificar&evaluacion_id=${evaluacionId}`;
+  if (estudianteId) {
+    url += `&estudiante_id=${estudianteId}`;
+  }
+  
+  fetch(url, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'ver_calificar');
+        url.searchParams.set('evaluacion_id', evaluacionId);
+        if (estudianteId) {
+          url.searchParams.set('estudiante_id', estudianteId);
+        }
+        window.history.pushState({}, '', url);
+        
+        // Ejecutar cálculo de nota después de cargar el contenido
+        // Esto es necesario cuando se precarga un estudiante
+        setTimeout(() => {
+          if (typeof calcularNota === 'function') {
+            console.log('Ejecutando cálculo de nota después de cargar contenido...');
+            console.log('Estudiante precargado:', estudianteId);
+            calcularNota();
+          } else {
+            console.warn('Función calcularNota no está disponible');
+          }
+        }, 500); // Aumentar el timeout para asegurar que el DOM esté completamente cargado
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando vista de calificación:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      if (seccionCalificaciones) {
+        seccionCalificaciones.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar la vista de calificación</h4>
+            <p>Hubo un problema al cargar la vista de calificación. Por favor, intenta nuevamente.</p>
+            <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </button>
+          </div>
+        `;
+        seccionCalificaciones.classList.add('active');
+      }
+    });
+}
+
+// Función para cargar el formulario de crear evaluación
+function cargarCrearEvaluacion() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=crear_evaluacion`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'crear_evaluacion');
+        window.history.pushState({}, '', url);
+        
+        // Inicializar el formulario después de cargar el contenido
+        setTimeout(() => {
+          inicializarFormularioCrearEvaluacion();
+        }, 100);
+      } else {
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando formulario de crear evaluación:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para cargar vista de eliminar evaluación
+function cargarEliminarEvaluacion(evaluacionId) {
+  console.log('=== DEBUG: cargarEliminarEvaluacion ===');
+  console.log('evaluacionId:', evaluacionId);
+  
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}?action=eliminar_evaluacion&evaluacion_id=${evaluacionId}`;
+  console.log('URL de fetch:', url);
+  
+  fetch(url, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('=== DEBUG: Respuesta recibida ===');
+      console.log('data:', data);
+      
+      if (data.html) {
+        console.log('HTML recibido, longitud:', data.html.length);
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        console.log('seccionCalificaciones:', seccionCalificaciones);
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        console.log('Secciones ocultadas, activando sección de calificaciones...');
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Asegurar visibilidad de la sección
+        seccionCalificaciones.style.display = 'block';
+        seccionCalificaciones.style.visibility = 'visible';
+        seccionCalificaciones.style.opacity = '1';
+        
+        // Asegurar visibilidad del contenido de eliminación si existe
+        setTimeout(() => {
+          const eliminarContent = seccionCalificaciones.querySelector('.eliminar-evaluacion-content');
+          if (eliminarContent) {
+            eliminarContent.style.display = 'block';
+            eliminarContent.style.visibility = 'visible';
+            eliminarContent.style.opacity = '1';
+          }
+        }, 50);
+        
+
+        
+        // Inicializar funciones de eliminación después de cargar el contenido
+        setTimeout(() => {
+          inicializarEliminacionSiExiste();
+        }, 100);
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        url.searchParams.set('action', 'eliminar_evaluacion');
+        url.searchParams.set('evaluacion_id', evaluacionId);
+        window.history.pushState({}, '', url);
+      } else {
+        console.log('No se recibió HTML en la respuesta');
+        document.getElementById('loading').classList.remove('show');
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando vista de eliminación:', error);
+      document.getElementById('loading').classList.remove('show');
+      
+      // Mostrar mensaje de error al usuario
+      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+      if (seccionCalificaciones) {
+        seccionCalificaciones.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar la vista de eliminación</h4>
+            <p>Hubo un problema al cargar la vista de eliminación. Por favor, intenta nuevamente.</p>
+            <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
+            </button>
+          </div>
+        `;
+        seccionCalificaciones.classList.add('active');
+      }
+    });
+}
+
+// Función para volver a calificaciones principales
+function cargarCalificaciones() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'calificaciones');
+        // Limpiar parámetros específicos
+        url.searchParams.delete('action');
+        url.searchParams.delete('evaluacion_id');
+        window.history.pushState({}, '', url);
+      }
+    })
+    .catch(error => {
+      console.error('Error cargando calificaciones:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+}
+
+// Función para manejar el formulario de crear evaluación
+function inicializarFormularioCrearEvaluacion() {
+  const form = document.getElementById('form-crear-evaluacion');
+  if (form) {
+    // Remover event listeners anteriores para evitar duplicados
+    form.removeEventListener('submit', form._submitHandler);
+    
+    // Crear nuevo handler
+    form._submitHandler = function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const mensajeDiv = document.getElementById('mensaje-crear-evaluacion');
+      const submitBtn = document.getElementById('btn-crear-evaluacion');
+      
+      // Limpiar mensajes anteriores
+      if (mensajeDiv) {
+        mensajeDiv.innerHTML = '';
+      }
+      
+      // Mostrar indicador de carga
+      if (submitBtn) {
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creando...';
+        submitBtn.disabled = true;
+        
+        // Hacer la petición AJAX
+        fetch(`{% url 'crear_evaluacion_ajax' curso.id %}?action=crear_evaluacion`, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Mostrar mensaje de éxito con alert
+            alert(data.message);
+            
+            // Redirigir a la URL especificada o cargar calificaciones
+            if (data.redirect_url) {
+              window.location.href = data.redirect_url;
+            } else {
+              cargarCalificaciones();
+            }
+          } else {
+            // Mostrar errores
+            if (mensajeDiv) {
+              let errorHtml = '<div class="alert alert-danger alert-dismissible"><ul class="mb-0">';
+              if (data.errors) {
+                // Limpiar errores anteriores de los campos
+                form.querySelectorAll('.text-danger').forEach(el => el.remove());
+                
+                for (const field in data.errors) {
+                  data.errors[field].forEach(error => {
+                    errorHtml += `<li>${error}</li>`;
+                    
+                    // Mostrar error específico en el campo
+                    const fieldElement = form.querySelector(`[name="${field}"]`);
+                    if (fieldElement) {
+                      const errorDiv = document.createElement('div');
+                      errorDiv.className = 'text-danger small mt-1';
+                      errorDiv.textContent = error;
+                      fieldElement.parentNode.appendChild(errorDiv);
+                    }
+                  });
+                }
+              } else if (data.error) {
+                errorHtml += `<li>${data.error}</li>`;
+              }
+              errorHtml += '</ul><button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
+              mensajeDiv.innerHTML = errorHtml;
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          if (mensajeDiv) {
+            mensajeDiv.innerHTML = `
+              <div class="alert alert-danger alert-dismissible">
+                <i class="fas fa-exclamation-triangle me-2"></i>Error al crear la evaluación. Por favor, intenta nuevamente.
+                <button type="button" class="btn-close" aria-label="Cerrar">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+            `;
+          }
+        })
+        .finally(() => {
+          // Restaurar el botón
+          if (submitBtn) {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+          }
+        });
+      }
+    };
+    
+    form.addEventListener('submit', form._submitHandler);
+  }
+}
+
+// ============================================================================
+// FUNCIONES PARA EL SISTEMA DE ELIMINACIÓN DE EVALUACIONES
+// ============================================================================
+
+// Función para habilitar/deshabilitar botón según confirmación
+function inicializarConfirmacionEliminacion() {
+  const input = document.getElementById('confirmacion');
+  const btnEliminar = document.getElementById('btnEliminar');
+  
+  if (input && btnEliminar) {
+    // Remover event listeners anteriores para evitar duplicados
+    input.removeEventListener('input', input._confirmacionHandler);
+    
+    // Crear nuevo handler
+    input._confirmacionHandler = function() {
+      const confirmacion = this.value.trim().toUpperCase();
+      btnEliminar.disabled = confirmacion !== 'ELIMINAR';
+    };
+    
+    input.addEventListener('input', input._confirmacionHandler);
+  }
+}
+
+// Función para manejar el envío del formulario de eliminación
+function inicializarFormularioEliminacion() {
+  const form = document.getElementById('formEliminarEvaluacion');
+  
+  if (form) {
+    // Remover event listeners anteriores para evitar duplicados
+    form.removeEventListener('submit', form._submitHandler);
+    
+    // Crear nuevo handler
+    form._submitHandler = function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const evaluacionId = this.getAttribute('data-evaluacion-id');
+      
+      // Mostrar loading
+      document.getElementById('loading').classList.add('show');
+      
+      fetch(`{% url 'eliminar_evaluacion_ajax' curso.id %}?evaluacion_id=${evaluacionId}`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('loading').classList.remove('show');
+        
+        if (data.success) {
+          // Mostrar mensaje de éxito con alert
+          alert(data.message);
+          
+          // Recargar la lista de evaluaciones inmediatamente
+          cargarCalificaciones();
+        } else {
+          // Mostrar mensaje de error con alert
+          alert(data.error || 'Error al eliminar la evaluación');
+        }
+      })
+      .catch(error => {
+        document.getElementById('loading').classList.remove('show');
+        console.error('Error:', error);
+        alert('Error al eliminar la evaluación');
+      });
+    };
+    
+    form.addEventListener('submit', form._submitHandler);
+  }
+}
+
+// Función para mostrar mensajes en la vista de eliminación (obsoleta - ahora usa alert)
+
+// Función para inicializar automáticamente cuando se detecta contenido de eliminación
+function inicializarEliminacionSiExiste() {
+  const eliminarContent = document.querySelector('.eliminar-evaluacion-content');
+  if (eliminarContent) {
+    inicializarConfirmacionEliminacion();
+    inicializarFormularioEliminacion();
+  }
+}
+
+// Observer para detectar cambios en el DOM y inicializar automáticamente
+let eliminarObserver = null;
+
+function iniciarObserverEliminacion() {
+  if (eliminarObserver) {
+    eliminarObserver.disconnect();
+  }
+  
+  eliminarObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach(function(node) {
+          if (node.nodeType === 1 && node.classList && node.classList.contains('eliminar-evaluacion-content')) {
+            setTimeout(() => {
+              inicializarEliminacionSiExiste();
+            }, 50);
+          }
+        });
+      }
+    });
+  });
+  
+  const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+  if (seccionCalificaciones) {
+    eliminarObserver.observe(seccionCalificaciones, {
+      childList: true,
+      subtree: true
+    });
+  }
+}
+
+// ============================================================================
+// FUNCIONES PARA EL SISTEMA DE RÚBRICAS
+// ============================================================================
+
+// Variables globales para manejar esperables
+let esperablesList = [];
+let esperablesListEditar = [];
+
+
+
+// Funciones para el modal de criterios
+function abrirModalAgregarCriterio() {
+  // Limpiar la lista de esperables
+  esperablesList = [];
+  actualizarListaEsperables();
+  
+  const modal = new bootstrap.Modal(document.getElementById('modalAgregarCriterio'));
+  modal.show();
+}
+
+function abrirModalAgregarEsperable() {
+  const form = document.getElementById('formAgregarEsperable');
+  const btnGuardar = document.querySelector('#modalAgregarEsperable .btn-primary');
+  
+  // Limpiar formulario y restaurar estado
+  form.reset();
+  form.removeAttribute('data-editando');
+  btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Agregar Esperable';
+  
+  const modal = new bootstrap.Modal(document.getElementById('modalAgregarEsperable'));
+  modal.show();
+}
+
+function abrirModalAgregarEsperableEditar() {
+  const form = document.getElementById('formAgregarEsperableEditar');
+  const btnGuardar = document.querySelector('#modalAgregarEsperableEditar .btn-primary');
+  
+  // Limpiar formulario y restaurar estado
+  form.reset();
+  form.removeAttribute('data-editando');
+  btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Agregar Esperable';
+  
+  const modal = new bootstrap.Modal(document.getElementById('modalAgregarEsperableEditar'));
+  modal.show();
+}
+
+function guardarEsperable() {
+  const form = document.getElementById('formAgregarEsperable');
+  const formData = new FormData(form);
+  
+  const nivel = formData.get('nivel');
+  const descripcion = formData.get('descripcion');
+  const puntaje = formData.get('puntaje');
+  
+  if (!nivel || !descripcion || !puntaje) {
+    alert('Por favor completa todos los campos obligatorios.');
+    return;
+  }
+  
+  if (isNaN(puntaje) || parseFloat(puntaje) < 0) {
+    alert('El puntaje debe ser un número válido mayor o igual a 0.');
+    return;
+  }
+  
+  // Crear objeto esperable
+  const esperable = {
+    nivel: nivel,
+    descripcion: descripcion,
+    puntaje: parseFloat(puntaje)
+  };
+  
+  // Verificar si estamos editando o agregando
+  const editandoIndex = form.getAttribute('data-editando');
+  
+  if (editandoIndex !== null) {
+    // Estamos editando
+    esperablesList[editandoIndex] = esperable;
+    form.removeAttribute('data-editando');
+    
+    // Restaurar texto del botón
+    const btnGuardar = document.querySelector('#modalAgregarEsperable .btn-primary');
+    btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Agregar Esperable';
+  } else {
+    // Estamos agregando nuevo
+    esperablesList.push(esperable);
+  }
+  
+  // Ordenar esperables de mayor a menor puntaje
+  esperablesList.sort((a, b) => b.puntaje - a.puntaje);
+  actualizarListaEsperables();
+  
+  // Limpiar formulario y cerrar modal
+  form.reset();
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarEsperable'));
+  modal.hide();
+}
+
+function guardarEsperableEditar() {
+  const form = document.getElementById('formAgregarEsperableEditar');
+  const formData = new FormData(form);
+  
+  const nivel = formData.get('nivel');
+  const descripcion = formData.get('descripcion');
+  const puntaje = formData.get('puntaje');
+  
+  if (!nivel || !descripcion || !puntaje) {
+    alert('Por favor completa todos los campos obligatorios.');
+    return;
+  }
+  
+  if (isNaN(puntaje) || parseFloat(puntaje) < 0) {
+    alert('El puntaje debe ser un número válido mayor o igual a 0.');
+    return;
+  }
+  
+  // Crear objeto esperable
+  const esperable = {
+    nivel: nivel,
+    descripcion: descripcion,
+    puntaje: parseFloat(puntaje)
+  };
+  
+  // Verificar si estamos editando o agregando
+  const editandoIndex = form.getAttribute('data-editando');
+  
+  if (editandoIndex !== null) {
+    // Estamos editando
+    esperablesListEditar[editandoIndex] = esperable;
+    form.removeAttribute('data-editando');
+    
+    // Restaurar texto del botón
+    const btnGuardar = document.querySelector('#modalAgregarEsperableEditar .btn-primary');
+    btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Agregar Esperable';
+  } else {
+    // Estamos agregando nuevo
+    esperablesListEditar.push(esperable);
+  }
+  
+  // Ordenar esperables de mayor a menor puntaje
+  esperablesListEditar.sort((a, b) => b.puntaje - a.puntaje);
+  actualizarListaEsperablesEditar();
+  
+  // Limpiar formulario y cerrar modal
+  form.reset();
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarEsperableEditar'));
+  modal.hide();
+}
+
+function actualizarListaEsperables() {
+  const container = document.getElementById('esperables-container');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (esperablesList.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-3 text-muted">
+        <i class="fas fa-list-ul me-2"></i>
+        No hay esperables agregados
+      </div>
+    `;
+    return;
+  }
+  
+  esperablesList.forEach((esperable, index) => {
+    const esperableItem = document.createElement('div');
+    esperableItem.className = 'esperable-item mb-2 p-2 border rounded bg-light';
+    esperableItem.innerHTML = `
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+          <div class="d-flex align-items-center mb-1">
+            <span class="badge bg-secondary me-2">#${index + 1}</span>
+            <strong class="text-primary">${esperable.nivel}</strong>
+            <span class="badge bg-success ms-2">${Math.round(esperable.puntaje)} puntos</span>
+          </div>
+          <small class="text-muted">${esperable.descripcion}</small>
+        </div>
+        <div class="btn-group btn-group-sm">
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="editarEsperable(${index})">
+            <i class="fas fa-edit me-1"></i>Editar
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarEsperable(${index})">
+            <i class="fas fa-trash me-1"></i>Eliminar
+          </button>
+        </div>
+      </div>
+      <input type="hidden" name="esperables[]" value='${JSON.stringify(esperable)}'>
+    `;
+    container.appendChild(esperableItem);
+  });
+}
+
+function actualizarListaEsperablesEditar() {
+  const container = document.getElementById('esperables-container-editar');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (esperablesListEditar.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-3 text-muted">
+        <i class="fas fa-list-ul me-2"></i>
+        No hay esperables agregados
+      </div>
+    `;
+    return;
+  }
+  
+  esperablesListEditar.forEach((esperable, index) => {
+    const esperableItem = document.createElement('div');
+    esperableItem.className = 'esperable-item mb-2 p-2 border rounded bg-light';
+    esperableItem.innerHTML = `
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+          <div class="d-flex align-items-center mb-1">
+            <span class="badge bg-secondary me-2">#${index + 1}</span>
+            <strong class="text-primary">${esperable.nivel}</strong>
+            <span class="badge bg-success ms-2">${Math.round(esperable.puntaje)} puntos</span>
+          </div>
+          <small class="text-muted">${esperable.descripcion}</small>
+        </div>
+        <div class="btn-group btn-group-sm">
+          <button type="button" class="btn btn-outline-primary btn-sm" onclick="editarEsperableEditar(${index})">
+            <i class="fas fa-edit me-1"></i>Editar
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarEsperableEditar(${index})">
+            <i class="fas fa-trash me-1"></i>Eliminar
+          </button>
+        </div>
+      </div>
+      <input type="hidden" name="esperables[]" value='${JSON.stringify(esperable)}'>
+    `;
+    container.appendChild(esperableItem);
+  });
+}
+
+function eliminarEsperable(index) {
+  if (index >= 0 && index < esperablesList.length) {
+    esperablesList.splice(index, 1);
+    esperablesList.sort((a, b) => b.puntaje - a.puntaje);
+    actualizarListaEsperables();
+  }
+}
+
+function editarEsperable(index) {
+  const esperable = esperablesList[index];
+  if (!esperable) return;
+  
+  // Llenar el formulario con los datos del esperable
+  document.getElementById('esperable_nivel').value = esperable.nivel;
+  document.getElementById('esperable_descripcion').value = esperable.descripcion;
+  document.getElementById('esperable_puntaje').value = esperable.puntaje;
+  
+  // Marcar que estamos editando
+  document.getElementById('formAgregarEsperable').setAttribute('data-editando', index);
+  
+  // Cambiar el texto del botón
+  const btnGuardar = document.querySelector('#modalAgregarEsperable .btn-primary');
+  btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Actualizar Esperable';
+  
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(document.getElementById('modalAgregarEsperable'));
+  modal.show();
+}
+
+function editarEsperableEditar(index) {
+  const esperable = esperablesListEditar[index];
+  if (!esperable) return;
+  
+  // Llenar el formulario con los datos del esperable
+  document.getElementById('esperable_nivel_editar').value = esperable.nivel;
+  document.getElementById('esperable_descripcion_editar').value = esperable.descripcion;
+  document.getElementById('esperable_puntaje_editar').value = esperable.puntaje;
+  
+  // Marcar que estamos editando
+  document.getElementById('formAgregarEsperableEditar').setAttribute('data-editando', index);
+  
+  // Cambiar el texto del botón
+  const btnGuardar = document.querySelector('#modalAgregarEsperableEditar .btn-primary');
+  btnGuardar.innerHTML = '<i class="fas fa-save me-1"></i>Actualizar Esperable';
+  
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(document.getElementById('modalAgregarEsperableEditar'));
+  modal.show();
+}
+
+function eliminarEsperableEditar(index) {
+  if (index >= 0 && index < esperablesListEditar.length) {
+    esperablesListEditar.splice(index, 1);
+    esperablesListEditar.sort((a, b) => b.puntaje - a.puntaje);
+    actualizarListaEsperablesEditar();
+  }
+}
+
+function guardarCriterio() {
+  const form = document.getElementById('formAgregarCriterio');
+  const formData = new FormData(form);
+  
+  // Validar campos requeridos
+  const nombre = formData.get('nombre');
+  const objetivo = formData.get('objetivo');
+  const puntaje = formData.get('puntaje');
+  
+  if (!nombre || !objetivo || !puntaje) {
+    alert('Por favor completa todos los campos obligatorios.');
+    return;
+  }
+  
+  // Validar que haya al menos un esperable
+  if (esperablesList.length === 0) {
+    alert('Debe agregar al menos un esperable.');
+    return;
+  }
+  
+  // Validar que el puntaje sea un número válido
+  if (isNaN(puntaje) || parseFloat(puntaje) < 0) {
+    alert('El puntaje debe ser un número válido mayor o igual a 0.');
+    return;
+  }
+  
+  // Limpiar esperables existentes del FormData y agregar solo los de la lista
+  formData.delete('esperables[]');
+  esperablesList.forEach((esperable, index) => {
+    const esperableJson = JSON.stringify(esperable);
+    console.log(`Esperable ${index} JSON:`, esperableJson);
+    formData.append('esperables[]', esperableJson);
+  });
+  
+  // Enviar datos vía AJAX
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  const url = `/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/agregar-criterio/${evaluacionId}/`;
+  console.log('URL a enviar:', url);
+  console.log('Datos a enviar:', {
+    nombre: formData.get('nombre'),
+    objetivo: formData.get('objetivo'),
+    puntaje: formData.get('puntaje'),
+    esperables: esperablesList
+  });
+  
+  // Log de todos los datos del FormData
+  console.log('FormData completo:');
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}:`, value);
+  }
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response.text().then(text => {
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error('Respuesta del servidor no es JSON válido: ' + text);
+      }
+    });
+  })
+  .then(data => {
+    if (data.success) {
+      // Cerrar modal y recargar página
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarCriterio'));
+      modal.hide();
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error completo:', error);
+    alert('Error al guardar el criterio. Por favor, intenta nuevamente.\n\nDetalles: ' + error.message);
+  });
+}
+
+function editarCriterio(criterioId) {
+  // Cargar los datos del criterio
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  fetch(`/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/obtener-criterio/${evaluacionId}/${criterioId}/`, {
+    method: 'GET',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Llenar el formulario con los datos del criterio
+      document.getElementById('criterio_id_editar').value = data.criterio.id;
+      document.getElementById('criterio_nombre_editar').value = data.criterio.nombre;
+      document.getElementById('criterio_objetivo_editar').value = data.criterio.objetivo;
+      document.getElementById('criterio_puntaje_editar').value = data.criterio.puntaje;
+      
+      // Cargar los esperables
+      esperablesListEditar = data.criterio.esperables;
+      actualizarListaEsperablesEditar();
+      
+      // Mostrar el modal
+      const modal = new bootstrap.Modal(document.getElementById('modalEditarCriterio'));
+      modal.show();
+    } else {
+      alert('Error al cargar los datos del criterio: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error al cargar los datos del criterio. Por favor, intenta nuevamente.');
+  });
+}
+
+function guardarCriterioEditado() {
+  const form = document.getElementById('formEditarCriterio');
+  const formData = new FormData(form);
+  
+  // Validar campos requeridos
+  const nombre = formData.get('nombre');
+  const objetivo = formData.get('objetivo');
+  const puntaje = formData.get('puntaje');
+  
+  if (!nombre || !objetivo || !puntaje) {
+    alert('Por favor completa todos los campos obligatorios.');
+    return;
+  }
+  
+  // Validar que haya al menos un esperable
+  if (esperablesListEditar.length === 0) {
+    alert('Debe agregar al menos un esperable.');
+    return;
+  }
+  
+  // Validar que el puntaje sea un número válido
+  if (isNaN(puntaje) || parseFloat(puntaje) < 0) {
+    alert('El puntaje debe ser un número válido mayor o igual a 0.');
+    return;
+  }
+  
+  const criterioId = document.getElementById('criterio_id_editar').value;
+  
+  // Limpiar esperables existentes del FormData y agregar solo los de la lista
+  formData.delete('esperables[]');
+  esperablesListEditar.forEach((esperable, index) => {
+    formData.append('esperables[]', JSON.stringify(esperable));
+  });
+  
+  // Enviar datos vía AJAX
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  fetch(`/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/editar-criterio/${evaluacionId}/${criterioId}/`, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response.text().then(text => {
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error('Respuesta del servidor no es JSON válido: ' + text);
+      }
+    });
+  })
+  .then(data => {
+    if (data.success) {
+      // Cerrar modal y recargar página
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarCriterio'));
+      modal.hide();
+      location.reload();
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error completo:', error);
+    alert('Error al guardar los cambios del criterio. Por favor, intenta nuevamente.\n\nDetalles: ' + error.message);
+  });
+}
+
+function eliminarCriterio(criterioId) {
+  // Obtener el nombre del criterio para mostrar en el modal
+  const criterioElement = document.querySelector(`[onclick="eliminarCriterio(${criterioId})"]`).closest('.criterio-item');
+  const criterioNombre = criterioElement.querySelector('h6').textContent;
+  
+  // Llenar el modal con la información del criterio
+  document.getElementById('criterio-nombre-eliminar').textContent = criterioNombre;
+  
+  // Guardar el ID del criterio para usarlo en la confirmación
+  document.getElementById('modalConfirmarEliminarCriterio').setAttribute('data-criterio-id', criterioId);
+  
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(document.getElementById('modalConfirmarEliminarCriterio'));
+  modal.show();
+}
+
+function confirmarEliminarCriterio() {
+  const criterioId = document.getElementById('modalConfirmarEliminarCriterio').getAttribute('data-criterio-id');
+  
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  fetch(`/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/eliminar-criterio/${evaluacionId}/${criterioId}/`, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Cerrar el modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarEliminarCriterio'));
+      modal.hide();
+      // Recargar la página
+      location.reload();
+    } else {
+      alert('Error al eliminar el criterio: ' + (data.error || 'Error desconocido'));
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error al eliminar el criterio. Por favor, intenta nuevamente.');
+  });
+}
+
+// Función para cerrar el modal y redirigir a la página de calificaciones
+function cerrarModalYRedirigir() {
+  // Cerrar el modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalCambiosGuardados'));
+  modal.hide();
+  
+  // Redirigir a la página de calificaciones
+  cargarCalificaciones();
 }
 
 // ============================================================================
@@ -1881,7 +3539,7 @@ function volverASoporte() {
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
   
-  fetch(`{% url 'plataforma_soporte_ajax' curso.id %}?estado=abierto`, {
+  fetch(`{% url 'plataforma_soporte_ajax' curso.id %}`, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     }
@@ -2642,6 +4300,67 @@ function verTicket(ticketId) {
     });
 }
 
+// Función para asignar ticket (asignación inicial)
+function asignarTicket(ticketId) {
+  console.log('Asignando ticket:', ticketId);
+  
+  // Verificar que los elementos existan antes de acceder a ellos
+  const ticketIdElement = document.getElementById('ticketIdReasignar');
+  const usuarioElement = document.getElementById('usuarioAsignar');
+  const comentarioElement = document.getElementById('comentarioReasignacion');
+  const modalElement = document.getElementById('modalReasignar');
+  const modalTitle = document.getElementById('modalReasignarLabel');
+  
+  if (!ticketIdElement) {
+    console.error('Elemento ticketIdReasignar no encontrado');
+    alert('Error: No se pudo encontrar el formulario de asignación');
+    return;
+  }
+  
+  if (!usuarioElement) {
+    console.error('Elemento usuarioAsignar no encontrado');
+    alert('Error: No se pudo encontrar el campo de usuario');
+    return;
+  }
+  
+  if (!comentarioElement) {
+    console.error('Elemento comentarioReasignacion no encontrado');
+    alert('Error: No se pudo encontrar el campo de comentario');
+    return;
+  }
+  
+  if (!modalElement) {
+    console.error('Modal modalReasignar no encontrado');
+    alert('Error: No se pudo encontrar el modal de asignación');
+    return;
+  }
+  
+  // Establecer el ID del ticket en el formulario
+  ticketIdElement.value = ticketId;
+  
+  // Actualizar el título del modal para asignación
+  if (modalTitle) {
+    modalTitle.innerHTML = '<i class="fas fa-user-plus me-2"></i>Asignar Ticket';
+  }
+  
+  // Para asignación inicial, restaurar la lista completa de usuarios staff
+  // Obtener todos los usuarios staff sin excluir a nadie
+  obtenerTodosUsuariosStaff(usuarioElement);
+  
+  // Limpiar formulario
+  usuarioElement.value = '';
+  comentarioElement.value = '';
+  
+  // Mostrar modal
+  if (typeof bootstrap !== 'undefined') {
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+  } else {
+    console.error('Bootstrap no está disponible');
+    alert('Error: Bootstrap no está disponible');
+  }
+}
+
 // Función para reasignar ticket
 function reasignarTicket(ticketId) {
   console.log('Reasignando ticket:', ticketId);
@@ -2680,35 +4399,14 @@ function reasignarTicket(ticketId) {
   // Establecer el ID del ticket en el formulario
   ticketIdElement.value = ticketId;
   
-  // Determinar si el ticket está asignado o no
-  let isAssigned = false;
-  
-  // Intentar encontrar la fila en la tabla (para el panel de administración)
-  const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
-  if (ticketRow) {
-    // Buscar la celda de asignación (columna 6)
-    const asignacionCell = ticketRow.querySelector('td:nth-child(6)');
-    if (asignacionCell) {
-      const sinAsignarText = asignacionCell.querySelector('.text-muted');
-      isAssigned = !sinAsignarText || !sinAsignarText.textContent.includes('Sin asignar');
-    }
-  } else {
-    // Si no se encuentra la fila, buscar en el contexto de detalle del ticket
-    const asignacionInfo = document.querySelector('.card-body .mb-3:last-child');
-    if (asignacionInfo) {
-      const sinAsignarText = asignacionInfo.querySelector('.text-muted');
-      isAssigned = !sinAsignarText || !sinAsignarText.textContent.includes('Sin asignar');
-    }
-  }
-  
-  // Actualizar el título del modal según si está asignado o no
+  // Actualizar el título del modal para reasignación
   if (modalTitle) {
-    if (isAssigned) {
-      modalTitle.innerHTML = '<i class="fas fa-user-edit me-2"></i>Reasignar Ticket';
-    } else {
-      modalTitle.innerHTML = '<i class="fas fa-user-plus me-2"></i>Asignar Ticket';
-    }
+    modalTitle.innerHTML = '<i class="fas fa-user-edit me-2"></i>Reasignar Ticket';
   }
+  
+  // Obtener usuarios staff específicos para este ticket (excluyendo al asignado actualmente)
+  // Solo para reasignación, no para asignación inicial
+  obtenerUsuariosStaffPorTicket(ticketId, usuarioElement);
   
   // Limpiar formulario
   usuarioElement.value = '';
@@ -2722,6 +4420,94 @@ function reasignarTicket(ticketId) {
     console.error('Bootstrap no está disponible');
     alert('Error: Bootstrap no está disponible');
   }
+}
+
+// Función para obtener usuarios staff específicos para un ticket
+function obtenerUsuariosStaffPorTicket(ticketId, selectElement) {
+  console.log('Obteniendo usuarios staff para ticket:', ticketId);
+  
+  // Obtener el token CSRF
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  
+  fetch(`{% url "obtener_usuarios_staff_por_ticket" %}?ticket_id=${ticketId}`, {
+    method: 'GET',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Error en la respuesta del servidor');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Limpiar opciones existentes (mantener la primera opción vacía)
+      selectElement.innerHTML = '<option value="">Seleccionar usuario...</option>';
+      
+      // Agregar las nuevas opciones
+      data.usuarios.forEach(usuario => {
+        const option = document.createElement('option');
+        option.value = usuario.id;
+        option.textContent = `${usuario.nombre} (${usuario.email})`;
+        selectElement.appendChild(option);
+      });
+      
+      console.log(`Usuarios staff cargados: ${data.usuarios.length}`);
+    } else {
+      console.error('Error obteniendo usuarios staff:', data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    console.error('Error obteniendo usuarios staff para ticket:', error.message);
+  });
+}
+
+// Función para obtener todos los usuarios staff (sin excluir a nadie)
+function obtenerTodosUsuariosStaff(selectElement) {
+  console.log('Obteniendo todos los usuarios staff');
+  
+  // Obtener el token CSRF
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  
+  fetch('{% url "obtener_usuarios_staff" %}', {
+    method: 'GET',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Error en la respuesta del servidor');
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      // Limpiar opciones existentes (mantener la primera opción vacía)
+      selectElement.innerHTML = '<option value="">Seleccionar usuario...</option>';
+      
+      // Agregar las nuevas opciones
+      data.usuarios.forEach(usuario => {
+        const option = document.createElement('option');
+        option.value = usuario.id;
+        option.textContent = `${usuario.nombre} (${usuario.email})`;
+        selectElement.appendChild(option);
+      });
+      
+      console.log(`Todos los usuarios staff cargados: ${data.usuarios.length}`);
+    } else {
+      console.error('Error obteniendo todos los usuarios staff:', data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    console.error('Error obteniendo todos los usuarios staff:', error.message);
+  });
 }
 
 // Función para confirmar reasignación
@@ -3265,6 +5051,897 @@ function crearMensajeWarning(mensaje, contenedor = null) {
   return crearMensajeCerrable('warning', mensaje, contenedor);
 }
 
+// ============================================================================
+// FUNCIONES PARA CALIFICAR A LOS ESTUDIANTES
+// ============================================================================
+
+console.log('Se está cargando el archivo el script');
+
+
+
+console.log("Se esta cargando el script específico para la página de calificar estudiante");
+
+function calificarEstudiante() {
+  console.log('Función calificarEstudiante() ejecutada');
+  
+  // Obtener el botón que disparó la función
+  const submitButton = event.target;
+  let originalContent = '';
+  if (submitButton) {
+    // Mostrar indicador de carga inmediatamente
+    originalContent = submitButton.innerHTML;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+    submitButton.disabled = true;
+  }
+  
+  // Calcular nota antes de enviar
+  if (typeof calcularNota === 'function') {
+    calcularNota();
+  } else {
+    console.warn('Función calcularNota no está disponible');
+  }
+  
+  // Verificar que la nota se haya calculado
+  const notaField = document.getElementById('id_nota_calculada');
+  const notaHidden = document.getElementById('nota_hidden');
+  
+  console.log('Campo nota visible:', notaField ? notaField.value : 'No encontrado');
+  console.log('Campo nota oculto:', notaHidden ? notaHidden.value : 'No encontrado');
+  
+  if (notaField && notaField.value === '') {
+    alert('Por favor, selecciona al menos un criterio antes de guardar la calificación.');
+    if (submitButton) {
+      submitButton.innerHTML = originalContent;
+      submitButton.disabled = false;
+    }
+    return false;
+  }
+  
+  // Sincronizar campo oculto
+  if (notaField && notaHidden) {
+    notaHidden.value = notaField.value;
+    console.log('Nota sincronizada:', notaHidden.value);
+  }
+  
+  // Verificar que haya al menos un criterio seleccionado
+  const criterioFields = document.querySelectorAll('select[name^="criterio_"]');
+  let criteriosSeleccionados = 0;
+  criterioFields.forEach(field => {
+    if (field.value && field.value !== '') {
+      criteriosSeleccionados++;
+      console.log('Criterio seleccionado:', field.name, field.value);
+    }
+  });
+  
+  if (criteriosSeleccionados === 0) {
+    alert('Por favor, selecciona al menos un criterio antes de guardar la calificación.');
+    if (submitButton) {
+      submitButton.innerHTML = originalContent;
+      submitButton.disabled = false;
+    }
+    return false;
+  }
+  
+  // Obtener el formulario y sus datos
+  const form = document.querySelector('form[method="post"]');
+  if (!form) {
+    alert('Error: No se encontró el formulario de calificación.');
+    if (submitButton) {
+      submitButton.innerHTML = originalContent;
+      submitButton.disabled = false;
+    }
+    return false;
+  }
+  
+  // Crear FormData con todos los datos del formulario
+  const formData = new FormData(form);
+  
+  // Obtener la URL del endpoint AJAX
+  const currentUrl = window.location.pathname;
+  console.log('URL actual:', currentUrl);
+  
+  // Extraer curso_id y evaluacion_id de la URL actual
+  const urlParts = currentUrl.split('/');
+  console.log('Partes de la URL:', urlParts);
+  
+  // Buscar el índice de 'calificar' en la URL
+  const calificarIndex = urlParts.findIndex(part => part === 'calificar');
+  
+  let cursoId, evaluacionId;
+  
+  if (calificarIndex !== -1) {
+    // URL directa de calificar estudiante
+    cursoId = urlParts[calificarIndex - 2]; // Antes de 'calificaciones'
+    evaluacionId = urlParts[calificarIndex + 1]; // Después de 'calificar'
+  } else {
+    // URL desde plataforma con parámetros
+    const urlParams = new URLSearchParams(window.location.search);
+    const evaluacionIdParam = urlParams.get('evaluacion_id');
+    
+    if (!evaluacionIdParam) {
+      console.error('No se encontró evaluacion_id en los parámetros de URL');
+      alert('Error: No se pudo identificar la evaluación.');
+      if (submitButton) {
+        submitButton.innerHTML = originalContent;
+        submitButton.disabled = false;
+      }
+      return false;
+    }
+    
+    // Extraer curso_id de la URL actual
+    const cursoMatch = currentUrl.match(/\/curso\/(\d+)/);
+    if (!cursoMatch) {
+      console.error('No se pudo extraer el curso_id de la URL');
+      alert('Error: URL inválida para calificación.');
+      if (submitButton) {
+        submitButton.innerHTML = originalContent;
+        submitButton.disabled = false;
+      }
+      return false;
+    }
+    
+    cursoId = cursoMatch[1];
+    evaluacionId = evaluacionIdParam;
+  }
+  
+  console.log('Curso ID:', cursoId);
+  console.log('Evaluación ID:', evaluacionId);
+  
+  const ajaxUrl = `/curso/${cursoId}/calificaciones/calificar/${evaluacionId}/ajax/`;
+  
+  console.log('Enviando datos a:', ajaxUrl);
+  console.log('Datos del formulario:', Object.fromEntries(formData));
+  
+  // Enviar datos via AJAX
+  console.log('Iniciando petición AJAX a:', ajaxUrl);
+  console.log('Datos del formulario:', Object.fromEntries(formData));
+  
+  fetch(ajaxUrl, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Respuesta del servidor:', data);
+    
+    if (data.success) {
+      // Mostrar mensaje de éxito
+      alert(data.message);
+      
+      // Redirigir a la subsección de calificar estudiante en la plataforma
+      if (data.redirect_url) {
+        window.location.href = data.redirect_url;
+      } else {
+        // Redirigir a la subsección de calificar estudiante en la plataforma
+        const baseUrl = window.location.pathname.split('/calificar/')[0];
+        const urlParams = new URLSearchParams(window.location.search);
+        const evaluacionId = urlParams.get('evaluacion_id');
+        
+        if (evaluacionId) {
+          // Redirigir a la plataforma con la sección de calificaciones y la evaluación específica
+          window.location.href = baseUrl + '/plataforma/?seccion=calificaciones&action=ver_calificar&evaluacion_id=' + evaluacionId;
+        } else {
+          // Fallback: redirigir a la plataforma con sección de calificaciones
+          window.location.href = baseUrl + '/plataforma/?seccion=calificaciones';
+        }
+      }
+    } else {
+      // Mostrar error
+      alert('Error: ' + (data.error || 'Error desconocido'));
+      
+      // Restaurar botón
+      if (submitButton) {
+        submitButton.innerHTML = originalContent;
+        submitButton.disabled = false;
+      }
+    }
+  })
+  .catch(error => {
+    console.error('Error en la petición AJAX:', error);
+    console.error('Detalles del error:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    
+    let errorMessage = 'Error al enviar la calificación. Por favor, intenta de nuevo.';
+    if (error.message.includes('404')) {
+      errorMessage = 'Error: Endpoint no encontrado. Verifica la URL del servidor.';
+    } else if (error.message.includes('500')) {
+      errorMessage = 'Error del servidor. Por favor, contacta al administrador.';
+    }
+    
+    alert(errorMessage);
+    
+    // Restaurar botón
+    if (submitButton) {
+      submitButton.innerHTML = originalContent;
+      submitButton.disabled = false;
+    }
+  });
+  
+  // Prevenir el envío normal del formulario
+  return false;
+}
+
+// Funciones para el modal de edición
+function openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion, criteriosData) {
+  console.log('Abriendo modal con datos:', {
+    estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, criteriosData
+  });
+  
+  document.getElementById('modalEstudianteNombre').textContent = estudianteNombre;
+  document.getElementById('modalEstudianteEmail').textContent = estudianteEmail;
+  document.getElementById('editCalificacionId').value = calificacionId;
+  document.getElementById('editEstudianteId').value = estudianteId;
+  document.getElementById('editNota').value = notaActual;
+  document.getElementById('modalNotaMaxima').textContent = notaMaxima;
+  document.getElementById('editNota').max = notaMaxima;
+  
+  // Limpiar caracteres de control de línea en la retroalimentación
+  const retroalimentacionLimpia = retroalimentacion
+    .replace(/\\u000D\\u000A/g, '\n')  // Reemplazar caracteres de control con saltos de línea
+    .replace(/\\u000D/g, '\n')          // Solo CR
+    .replace(/\\u000A/g, '\n')          // Solo LF
+    .replace(/\\n/g, '\n')              // Secuencias de escape
+    .replace(/\\r/g, '\n');             // Carriage return
+  document.getElementById('editRetroalimentacion').value = retroalimentacionLimpia;
+  
+  // Cargar esperables para todos los criterios sin valores predeterminados
+  const criterioFields = document.querySelectorAll('.edit-criterio-field');
+  let criteriosCargados = 0;
+  const totalCriterios = criterioFields.length;
+  
+  criterioFields.forEach(function(field) {
+    const criterioId = field.getAttribute('data-criterio-id');
+    console.log(`Cargando esperables para criterio ${criterioId} sin valor predeterminado`);
+    
+    // Cargar esperables sin establecer valor predeterminado
+    cargarEsperablesDisponibles(criterioId, null, estudianteId, function() {
+      criteriosCargados++;
+      console.log(`Criterio ${criterioId} cargado (${criteriosCargados}/${totalCriterios})`);
+      
+      // Si todos los criterios están cargados, calcular la nota inicial (será 0)
+      if (criteriosCargados === totalCriterios) {
+        console.log('Todos los criterios cargados, calculando nota inicial...');
+        setTimeout(() => {
+          calcularNotaModal();
+        }, 300);
+      }
+    });
+  });
+  
+  document.getElementById('editCalificacionModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+// Función para cargar esperables disponibles para un criterio
+function cargarEsperablesDisponibles(criterioId, esperableSeleccionadoId = null, estudianteId = null, callback = null) {
+  const fieldId = `editCriterio_${criterioId}`;
+  const field = document.getElementById(fieldId);
+  
+  // Si ya tiene más de una opción (además del placeholder), no cargar de nuevo
+  if (field.options.length > 1 && !esperableSeleccionadoId) {
+    return;
+  }
+  
+  // Mostrar indicador de carga
+  const originalText = field.options[0].text;
+  field.options[0].text = 'Cargando esperables...';
+  
+  // Construir la URL según si tenemos estudianteId o no
+  const url = estudianteId 
+    ? `/obtener-esperables-criterio-por-estudiante/${criterioId}/${estudianteId}/`
+    : `/obtener-esperables-criterio/${criterioId}/`;
+  
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Limpiar opciones existentes
+        field.innerHTML = '<option value="">Selecciona un nivel...</option>';
+        
+        // Agregar esperables disponibles
+        data.esperables.forEach(function(esperable) {
+          const option = document.createElement('option');
+          option.value = esperable.id;
+          option.setAttribute('data-puntaje', esperable.puntaje.toFixed(2));
+          option.textContent = `${Math.round(esperable.puntaje)} pts - ${esperable.nivel} - ${esperable.descripcion}`;
+          field.appendChild(option);
+          console.log(`Esperable agregado: ID=${esperable.id}, Nivel=${esperable.nivel}, Seleccionado: ${esperable.es_seleccionado}`);
+        });
+        
+        // NO establecer valores predeterminados - siempre mantener "Selecciona un nivel"
+        console.log(`Esperables cargados para criterio ${criterioId}:`, data.esperables.length);
+        
+        // Ejecutar callback si se proporcionó
+        if (callback) {
+          callback();
+        }
+      } else {
+        console.error('Error al cargar esperables:', data.error);
+        field.options[0].text = originalText;
+        if (callback) {
+          callback();
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error en la petición:', error);
+      field.options[0].text = originalText;
+      if (callback) {
+        callback();
+      }
+    });
+}
+
+// Función para calcular nota en el modal
+function calcularNotaModal() {
+  try {
+    const evaluacionNotaMaxima = parseFloat('{{ evaluacion.nota_maxima|default:7.0 }}');
+    let sumaPuntajesObtenidos = 0;
+    let sumaPuntajesMaximos = 0;
+    
+    // Obtener todos los campos de criterio del modal
+    const criterioFields = document.querySelectorAll('.edit-criterio-field');
+    
+    console.log('Calculando nota en modal...');
+    console.log('Campos de criterio encontrados:', criterioFields.length);
+    
+    criterioFields.forEach(function(field) {
+      const selectedOption = field.options[field.selectedIndex];
+      console.log('Campo:', field.id, 'Opción seleccionada:', selectedOption ? selectedOption.text : 'Ninguna', 'Valor:', field.value);
+      
+      if (selectedOption && selectedOption.value !== '') {
+        // Usar el ID del esperable para obtener el puntaje desde el atributo data-puntaje
+        const esperableId = selectedOption.value;
+        const dataPuntaje = selectedOption.getAttribute('data-puntaje');
+        const puntajeObtenido = parseFloat(dataPuntaje || '0');
+        
+        console.log('Campo:', field.id);
+        console.log('Esperable ID:', esperableId);
+        console.log('Data-puntaje raw:', dataPuntaje);
+        console.log('Puntaje obtenido:', puntajeObtenido);
+        
+        sumaPuntajesObtenidos += puntajeObtenido;
+      }
+      
+      // Obtener el puntaje máximo del criterio desde el atributo data
+      const puntajeMaximoStr = field.getAttribute('data-criterio-puntaje-maximo') || '0';
+      const puntajeMaximo = parseFloat(puntajeMaximoStr.replace(',', '.'));
+      sumaPuntajesMaximos += puntajeMaximo;
+      console.log('Puntaje máximo del criterio:', puntajeMaximo);
+    });
+    
+    // Calcular la nota según la fórmula
+    let notaCalculada = 0;
+    if (sumaPuntajesMaximos > 0) {
+      notaCalculada = (evaluacionNotaMaxima * sumaPuntajesObtenidos) / sumaPuntajesMaximos;
+    }
+    
+    // Actualizar el campo de nota en el modal
+    const notaField = document.getElementById('editNota');
+    if (notaField) {
+      notaField.value = notaCalculada.toFixed(1);
+      console.log('Nota actualizada en modal:', notaField.value);
+    }
+    
+    console.log('Modal - Puntajes obtenidos:', sumaPuntajesObtenidos);
+    console.log('Modal - Puntajes máximos:', sumaPuntajesMaximos);
+    console.log('Modal - Nota calculada:', notaCalculada.toFixed(1));
+  } catch (error) {
+    console.error('Error al calcular nota en modal:', error);
+  }
+}
+
+// Función para cargar datos de calificación
+function cargarDatosCalificacion(calificacionId, button) {
+  // Mostrar indicador de carga
+  button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cargando...';
+  button.disabled = true;
+  
+  // Realizar petición AJAX para obtener los datos
+  fetch(`/obtener-datos-calificacion/${calificacionId}/`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Obtener datos del botón
+        const estudianteId = button.getAttribute('data-estudiante-id');
+        const estudianteNombre = button.getAttribute('data-estudiante-nombre');
+        const estudianteEmail = button.getAttribute('data-estudiante-email');
+        const notaActual = button.getAttribute('data-nota-actual');
+        const notaMaxima = button.getAttribute('data-nota-maxima');
+        const retroalimentacion = button.getAttribute('data-retroalimentacion');
+        
+        // Abrir modal con los datos (sin criterios para no establecer valores predeterminados)
+        openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion, null);
+      } else {
+        alert('Error al cargar los datos de la calificación: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error al cargar los datos de la calificación. Verifica que la calificación tenga una rúbrica asociada.');
+    })
+    .finally(() => {
+      // Restaurar botón
+      button.innerHTML = '<i class="fas fa-edit me-1"></i>Editar';
+      button.disabled = false;
+    });
+}
+
+// Event listeners para los campos de criterio en el modal
+document.addEventListener('change', function(event) {
+  if (event.target.classList.contains('edit-criterio-field')) {
+    console.log('Cambio detectado en criterio:', event.target.id, 'Nuevo valor:', event.target.value);
+    calcularNotaModal();
+  }
+});
+
+function closeEditModal() {
+  document.getElementById('editCalificacionModal').style.display = 'none';
+  document.body.style.overflow = 'auto';
+}
+
+function saveEditCalificacion() {
+  const form = document.getElementById('editCalificacionForm');
+  const nota = document.getElementById('editNota').value;
+  
+  if (!nota || nota < 0 || nota > document.getElementById('editNota').max) {
+    alert('Por favor ingresa una nota válida.');
+    return;
+  }
+  
+  // Mostrar indicador de guardado
+  const saveButton = document.querySelector('.btn-edit-calificacion');
+  const originalContent = saveButton.innerHTML;
+  saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando...';
+  saveButton.disabled = true;
+  
+  // Enviar formulario con fetch para manejar la respuesta
+  const formData = new FormData(form);
+  
+  fetch(form.action, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => {
+    if (response.ok) {
+      // Cerrar modal
+      closeEditModal();
+      
+      // Redirigir a la URL correcta
+      const evaluacionId = document.getElementById('editEvaluacionId').value;
+      
+      // Obtener el curso ID de la URL actual o del contexto
+      let cursoId = '1'; // Default
+      const currentPath = window.location.pathname;
+      const pathParts = currentPath.split('/');
+      if (pathParts.length >= 3 && pathParts[1] === 'curso') {
+        cursoId = pathParts[2];
+      }
+      
+      const redirectUrl = `/curso/${cursoId}/plataforma/?seccion=calificaciones&action=ver_calificar&evaluacion_id=${evaluacionId}`;
+      console.log('Redirigiendo a:', redirectUrl);
+      window.location.href = redirectUrl;
+    } else {
+      throw new Error('Error al guardar la calificación');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error al guardar la calificación. Por favor, intenta nuevamente.');
+    
+    // Restaurar botón
+    saveButton.innerHTML = originalContent;
+    saveButton.disabled = false;
+  });
+}
+
+// Cerrar modal al hacer clic fuera de él
+window.onclick = function(event) {
+  const modal = document.getElementById('editCalificacionModal');
+  if (event.target === modal) {
+    closeEditModal();
+  }
+}
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeEditModal();
+  }
+});
+
+// Función para calcular la nota automáticamente
+function calcularNota() {
+  console.log('Función calcularNota() ejecutada');
+  console.log('DOM completamente cargado:', document.readyState);
+  
+  // Buscar el campo de nota de múltiples formas
+  let notaField = document.getElementById('id_nota_calculada');
+  if (!notaField) {
+    notaField = document.querySelector('input[name="nota"]');
+  }
+  if (!notaField) {
+    notaField = document.querySelector('input[type="number"][readonly]');
+  }
+  if (!notaField) {
+    notaField = document.querySelector('.nota-calculada-value input');
+  }
+  if (!notaField) {
+    // Buscar cualquier campo de nota en la página
+    const allNotaFields = document.querySelectorAll('input[type="number"], input[name="nota"]');
+    if (allNotaFields.length > 0) {
+      notaField = allNotaFields[0];
+    }
+  }
+  console.log('Campo de nota encontrado:', notaField);
+  
+  if (notaField) {
+    notaField.placeholder = 'Calculando...';
+  }
+  
+  // Obtener la nota máxima de la evaluación desde el contexto o usar un valor por defecto
+  let evaluacionNotaMaxima = 7.0; // Valor por defecto
+  
+  // Intentar obtener la nota máxima del contexto de la evaluación
+  try {
+    // Buscar información de la evaluación en el DOM
+    const evaluacionInfo = document.querySelector('form[data-evaluacion-nota-maxima]');
+    if (evaluacionInfo) {
+      evaluacionNotaMaxima = parseFloat(evaluacionInfo.getAttribute('data-evaluacion-nota-maxima'));
+    }
+  } catch (e) {
+    console.log('No se pudo obtener la nota máxima de la evaluación, usando valor por defecto:', evaluacionNotaMaxima);
+  }
+  
+  console.log('Nota máxima de la evaluación:', evaluacionNotaMaxima);
+  let sumaPuntajesObtenidos = 0;
+  let sumaPuntajesMaximos = 0;
+  
+  // Obtener todos los campos de criterio (buscar por ID y por nombre)
+  let criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
+  console.log('Campos de criterio por ID:', criterioFields.length);
+  if (criterioFields.length === 0) {
+    criterioFields = document.querySelectorAll('select[name^="criterio_"]');
+    console.log('Campos de criterio por nombre:', criterioFields.length);
+  }
+  if (criterioFields.length === 0) {
+    // Buscar cualquier select que tenga atributos de criterio
+    criterioFields = document.querySelectorAll('select[data-criterio-id]');
+    console.log('Campos de criterio por data-attribute:', criterioFields.length);
+  }
+  console.log('Total de campos de criterio encontrados en calcularNota:', criterioFields.length);
+  
+  criterioFields.forEach(function(field) {
+    console.log('Procesando campo:', field.id, 'Valor seleccionado:', field.value);
+    const selectedOption = field.options[field.selectedIndex];
+    if (selectedOption && selectedOption.value !== '') {
+      // Extraer el puntaje del texto de la opción (formato: "25.00 pts - Logrado - Descripción")
+      const optionText = selectedOption.text;
+      console.log('Texto de la opción:', optionText);
+      const puntajeMatch = optionText.match(/(\d+\.?\d*)\s+pts/);
+      if (puntajeMatch) {
+        const puntaje = parseFloat(puntajeMatch[1]);
+        sumaPuntajesObtenidos += puntaje;
+        console.log('Puntaje extraído:', puntaje);
+      }
+    }
+    
+    // Obtener el puntaje máximo del criterio desde el atributo data
+    const puntajeMaximo = parseFloat(field.getAttribute('data-criterio-puntaje-maximo') || 0);
+    sumaPuntajesMaximos += puntajeMaximo;
+    console.log('Puntaje máximo del criterio:', puntajeMaximo);
+  });
+  
+  // Calcular la nota según la fórmula
+  let notaCalculada = 0;
+  if (sumaPuntajesMaximos > 0) {
+    notaCalculada = (evaluacionNotaMaxima * sumaPuntajesObtenidos) / sumaPuntajesMaximos;
+  }
+  
+  // Actualizar el campo de nota con animación
+  if (notaField) {
+    // Agregar clase para animación
+    notaField.classList.add('nota-updating');
+    
+    // Actualizar valor
+    notaField.value = notaCalculada.toFixed(1);
+    
+    // Actualizar también el campo oculto para el formulario
+    const notaHidden = document.getElementById('nota_hidden');
+    if (notaHidden) {
+      notaHidden.value = notaField.value;
+      console.log('Campo oculto actualizado con nota:', notaHidden.value);
+    }
+    
+    // Remover clase después de la animación
+    setTimeout(() => {
+      notaField.classList.remove('nota-updating');
+    }, 300);
+  }
+  
+  // Mostrar información de debug (opcional)
+  console.log('Puntajes obtenidos:', sumaPuntajesObtenidos);
+  console.log('Puntajes máximos:', sumaPuntajesMaximos);
+  console.log('Nota calculada:', notaCalculada.toFixed(1));
+  console.log('Campo de nota actualizado:', notaField ? notaField.value : 'No encontrado');
+}
+
+// Inicialización específica para formularios de calificación
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Inicializando sistema de calificaciones...');
+  
+  // Verificar si estamos en una página de calificación (múltiples indicadores)
+  const isCalificacionPage = document.getElementById('btn-guardar-calificacion') !== null ||
+                            document.querySelector('form[data-evaluacion-nota-maxima]') !== null ||
+                            document.querySelector('select[id^="id_criterio_"]') !== null ||
+                            document.querySelector('select[name^="criterio_"]') !== null ||
+                            document.querySelector('.nota-calculada-container') !== null;
+  
+  if (isCalificacionPage) {
+    console.log('Página de calificación detectada en template padre');
+    
+    // Configurar event listeners para campos de criterio
+    const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
+    criterioFields.forEach(function(field) {
+      field.addEventListener('change', function() {
+        console.log('Campo de criterio cambiado:', field.id, field.value);
+        if (typeof calcularNota === 'function') {
+          calcularNota();
+        }
+      });
+    });
+    
+    // Event listener global para capturar todos los cambios en campos de criterio
+    document.addEventListener('change', function(event) {
+      if (event.target.tagName === 'SELECT' && 
+          (event.target.id.startsWith('id_criterio_') || 
+           event.target.name.startsWith('criterio_') || 
+           event.target.hasAttribute('data-criterio-id'))) {
+        console.log('Event listener global detectó cambio en:', event.target.id, event.target.name, 'Valor:', event.target.value);
+        if (typeof calcularNota === 'function') {
+          calcularNota();
+        }
+      }
+    });
+    
+    // Calcular nota inicial después de un breve delay para asegurar que todos los elementos estén cargados
+    if (typeof calcularNota === 'function') {
+      setTimeout(() => {
+        console.log('Calculando nota inicial en página de calificación...');
+        calcularNota();
+      }, 200);
+    }
+  }
+});
+
+// Función para calcular la nota automáticamente
+function calcularNota() {
+  console.log('Función calcularNota() ejecutada en calificar estudiante');
+  
+  // Buscar el campo de nota de múltiples formas
+  let notaField = document.getElementById('id_nota_calculada');
+  if (!notaField) {
+    notaField = document.querySelector('input[name="nota"]');
+  }
+  if (!notaField) {
+    notaField = document.querySelector('input[type="number"][readonly]');
+  }
+  if (!notaField) {
+    notaField = document.querySelector('.nota-calculada-value input');
+  }
+  if (!notaField) {
+    // Buscar cualquier campo de nota en la página
+    const allNotaFields = document.querySelectorAll('input[type="number"], input[name="nota"]');
+    if (allNotaFields.length > 0) {
+      notaField = allNotaFields[0];
+    }
+  }
+  console.log('Campo de nota encontrado:', notaField);
+  
+  if (notaField) {
+    notaField.placeholder = 'Calculando...';
+  }
+  
+  // Obtener la nota máxima de la evaluación desde el contexto o usar un valor por defecto
+  let evaluacionNotaMaxima = 7.0; // Valor por defecto
+  
+  // Intentar obtener la nota máxima del contexto de la evaluación
+  try {
+    // Buscar información de la evaluación en el DOM
+    const evaluacionInfo = document.querySelector('form[data-evaluacion-nota-maxima]');
+    if (evaluacionInfo) {
+      evaluacionNotaMaxima = parseFloat(evaluacionInfo.getAttribute('data-evaluacion-nota-maxima'));
+    }
+  } catch (e) {
+    console.log('No se pudo obtener la nota máxima de la evaluación, usando valor por defecto:', evaluacionNotaMaxima);
+  }
+  
+  console.log('Nota máxima de la evaluación:', evaluacionNotaMaxima);
+  let sumaPuntajesObtenidos = 0;
+  let sumaPuntajesMaximos = 0;
+  
+  // Obtener todos los campos de criterio (buscar por ID y por nombre)
+  let criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
+  console.log('Campos de criterio por ID:', criterioFields.length);
+  if (criterioFields.length === 0) {
+    criterioFields = document.querySelectorAll('select[name^="criterio_"]');
+    console.log('Campos de criterio por nombre:', criterioFields.length);
+  }
+  if (criterioFields.length === 0) {
+    // Buscar cualquier select que tenga atributos de criterio
+    criterioFields = document.querySelectorAll('select[data-criterio-id]');
+    console.log('Campos de criterio por data-attribute:', criterioFields.length);
+  }
+  console.log('Total de campos de criterio encontrados en calcularNota:', criterioFields.length);
+  
+  criterioFields.forEach(function(field) {
+    console.log('Procesando campo:', field.id, 'Valor seleccionado:', field.value);
+    const selectedOption = field.options[field.selectedIndex];
+    if (selectedOption && selectedOption.value !== '') {
+      // Extraer el puntaje del texto de la opción (formato: "25.00 pts - Logrado - Descripción")
+      const optionText = selectedOption.text;
+      console.log('Texto de la opción:', optionText);
+      const puntajeMatch = optionText.match(/(\d+\.?\d*)\s+pts/);
+      if (puntajeMatch) {
+        const puntaje = parseFloat(puntajeMatch[1]);
+        sumaPuntajesObtenidos += puntaje;
+        console.log('Puntaje extraído:', puntaje);
+      }
+    }
+    
+    // Obtener el puntaje máximo del criterio desde el atributo data
+    const puntajeMaximo = parseFloat(field.getAttribute('data-criterio-puntaje-maximo') || 0);
+    sumaPuntajesMaximos += puntajeMaximo;
+    console.log('Puntaje máximo del criterio:', puntajeMaximo);
+  });
+  
+  // Calcular la nota según la fórmula
+  let notaCalculada = 0;
+  if (sumaPuntajesMaximos > 0) {
+    notaCalculada = (evaluacionNotaMaxima * sumaPuntajesObtenidos) / sumaPuntajesMaximos;
+  }
+  
+  // Actualizar el campo de nota con animación
+  if (notaField) {
+    // Agregar clase para animación
+    notaField.classList.add('nota-updating');
+    
+    // Actualizar valor
+    notaField.value = notaCalculada.toFixed(1);
+    
+    // Actualizar también el campo oculto para el formulario
+    const notaHidden = document.getElementById('nota_hidden');
+    if (notaHidden) {
+      notaHidden.value = notaField.value;
+      console.log('Campo oculto actualizado con nota:', notaHidden.value);
+    }
+    
+    // Remover clase después de la animación
+    setTimeout(() => {
+      notaField.classList.remove('nota-updating');
+    }, 300);
+  }
+  
+  // Mostrar información de debug (opcional)
+  console.log('Puntajes obtenidos:', sumaPuntajesObtenidos);
+  console.log('Puntajes máximos:', sumaPuntajesMaximos);
+  console.log('Nota calculada:', notaCalculada.toFixed(1));
+  console.log('Campo de nota actualizado:', notaField ? notaField.value : 'No encontrado');
+}
+
+// Inicialización específica para la página de calificar estudiante
+console.log("Se esta cargando el script específico para la página de calificar estudiante");
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Inicializando página de calificar estudiante...');
+  
+  // Configurar event listeners para campos de criterio
+  const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
+  criterioFields.forEach(function(field) {
+    field.addEventListener('change', function() {
+      console.log('Campo de criterio cambiado:', field.id, field.value);
+      if (typeof calcularNota === 'function') {
+        calcularNota();
+      }
+    });
+  });
+  
+  // Event listener global para capturar todos los cambios en campos de criterio
+  document.addEventListener('change', function(event) {
+    if (event.target.tagName === 'SELECT' && 
+        (event.target.id.startsWith('id_criterio_') || 
+         event.target.name.startsWith('criterio_') || 
+         event.target.hasAttribute('data-criterio-id'))) {
+      console.log('Event listener global detectó cambio en:', event.target.id, event.target.name, 'Valor:', event.target.value);
+      if (typeof calcularNota === 'function') {
+        calcularNota();
+      }
+    }
+  });
+  
+  // Calcular nota inicial después de un breve delay
+  setTimeout(() => {
+    console.log('Calculando nota inicial en página de calificar estudiante...');
+    if (typeof calcularNota === 'function') {
+      calcularNota();
+    } else {
+      console.warn('Función calcularNota no está disponible');
+    }
+  }, 200);
+});
+
+// Sección del módulo Recursos
+
+function cargarRecursosContenido() {
+
+  console.log("Cargando recursos del curso...");
+  let url = `{% url 'plataforma_recursos_ajax' curso.id %}`;
+
+  fetch(url, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+        .then(data => {
+        const seccionRecursos = document.getElementById('seccion-recursos');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        }); 
+        
+        // Actualizar contenido y mostrar sección de recursos
+        seccionRecursos.innerHTML = data.html;
+        seccionRecursos.classList.add('active');
+        document.getElementById('loading').classList.remove('show');
+          
+          // Actualizar URL sin recargar
+          const url = new URL(window.location);
+          url.searchParams.set('seccion', 'recursos');
+          // Mantener los parámetros específicos si existen
+          const evaluacionId = new URLSearchParams(window.location.search).get('evaluacion_id');
+          if (evaluacionId) {
+            url.searchParams.set('evaluacion_id', evaluacionId);
+          } else {
+            url.searchParams.delete('evaluacion_id');
+          }
+          url.searchParams.delete('action'); // Limpiar acción para evitar conflictos
+
+          // Actualizar la URL en el navegador
+          console.log('Actualizando URL a:', url.toString());
+
+          // Actualizar el título de la página
+          document.title = 'Recursos del Curso - ' + curso.nombre;
+          window.history.pushState({}, '', url);
+          })
+    .catch(error => {
+      console.error('Error cargando recursos:', error);
+      document.getElementById('loading').classList.remove('show');
+    });
+
+}
+
+
+function cargarFormularioCrearRecurso(){
+  return null
+}
+
 // Event listeners para admin
 </script>
 
@@ -3274,4 +5951,4 @@ function crearMensajeWarning(mensaje, contenedor = null) {
 
 {% block extra_css %}
 <link href="{% static 'css/plataforma-specific-messages.css' %}" rel="stylesheet" />
-{% endblock extra_css %} 
+{% endblock extra_css %}

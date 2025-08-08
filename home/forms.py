@@ -332,11 +332,11 @@ class EvaluacionForm(forms.ModelForm):
             'fecha_inicio': forms.DateInput(attrs={
                 'class': 'form-control',
                 'type': 'date'
-            }),
+            }, format='%Y-%m-%d'),
             'fecha_fin': forms.DateInput(attrs={
                 'class': 'form-control',
                 'type': 'date'
-            }),
+            }, format='%Y-%m-%d'),
             'nota_maxima': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ej: 7.0',
@@ -711,34 +711,20 @@ class TicketSoporteForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        print("=== DEBUG TICKETSOPORTEFORM __INIT__ ===")
-        
         # Obtener clasificaciones activas
         from .models import ClasificacionTicket
         clasificaciones = ClasificacionTicket.objects.filter(activa=True)
-        print(f"Clasificaciones encontradas en __init__: {clasificaciones.count()}")
-        for c in clasificaciones:
-            print(f"  - {c.nombre} (ID: {c.id})")
         
         # Configurar opciones de clasificación
         self.fields['clasificacion'].choices = [('', 'Selecciona una clasificación')] + [
             (c.nombre, c.nombre) for c in clasificaciones
         ]
         
-        print(f"Opciones finales de clasificación: {len(self.fields['clasificacion'].choices)}")
-        for choice in self.fields['clasificacion'].choices:
-            print(f"  - {choice[1]} (valor: {choice[0]})")
-        
         # Configurar subclasificación como campo de texto con opciones iniciales
         self.fields['subclasificacion'].widget.choices = [('', 'Primero selecciona una clasificación')]
         # Deshabilitar la validación inicial de subclasificación
         self.fields['subclasificacion'].required = False
         
-        print(f"Opciones finales de subclasificación: {len(self.fields['subclasificacion'].widget.choices)}")
-        for choice in self.fields['subclasificacion'].widget.choices:
-            print(f"  - {choice[1]} (valor: {choice[0]})")
-        
-        print("=== FIN DEBUG TICKETSOPORTEFORM __INIT__ ===")
     
     def clean_titulo(self):
         titulo = self.cleaned_data.get('titulo')

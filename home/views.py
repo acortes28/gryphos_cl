@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from home.service.recursos_views import PlataformaRecursosView
 from django.utils import timezone
 from django.db import models
 import time
@@ -9,7 +10,7 @@ from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket, Asignatura
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -105,10 +106,10 @@ def registration(request):
             messages.success(request, '¡Registro exitoso! Revisa tu correo para activar tu cuenta.')
             return redirect('/accounts/login/')
         else:
-            print("Registration failed!")
-            print("Form errors:", form.errors)
+            logger.error("Registration failed!")
+            logger.error("Form errors:", form.errors)
             for field_name, errors in form.errors.items():
-                print(f"Field {field_name}: {errors}")
+                logger.error(f"Field {field_name}: {errors}")
     else:
         form = RegistrationForm()
     context = {'form': form}
@@ -407,7 +408,7 @@ def quienes_somos(request):
                 
                 Este mensaje fue enviado desde el formulario de contacto de la página "Quiénes somos".
                 """
-                print("Sending email to: contacto@gryphos.cl")
+                logger.info("Sending email to: contacto@gryphos.cl")
                 # Enviar a la dirección de contacto de Gryphos
                 send_mail(
                     subject=subject,
@@ -416,13 +417,13 @@ def quienes_somos(request):
                     recipient_list=['contacto@gryphos.cl'],
                     fail_silently=False,
                 )
-                print("Email sent successfully!")
+                logger.info("Email sent successfully!")
                 
                 messages.success(request, '¡Mensaje enviado exitosamente! Nos pondremos en contacto contigo pronto.')
                 
             except Exception as e:
                 messages.error(request, 'Error al enviar el mensaje. Por favor, intenta nuevamente.')
-                print(f"Error enviando email: {e}")
+                logger.error(f"Error enviando email: {e}")
         else:
             messages.error(request, 'Por favor, completa todos los campos del formulario.')
     
@@ -1192,7 +1193,7 @@ def curso_detail(request, curso_id):
     """
     try:
         curso = Curso.objects.get(id=curso_id, activo=True)
-        print(request)
+        logger.debug(request)
         
         # Verificar que el usuario esté inscrito en el curso
         if curso not in request.user.cursos.all():
@@ -1279,47 +1280,6 @@ def plataforma_aprendizaje(request, curso_id):
                 return redirect('plataforma_aprendizaje', curso_id=curso_id)
         
         return render(request, 'pages/plataforma_aprendizaje.html', context)
-        
-    except Curso.DoesNotExist:
-        messages.error(request, 'El curso no existe o no está disponible.')
-        return redirect('user_space')
-
-
-@login_required
-def plataforma_foro(request, curso_id):
-    """
-    Vista para el foro dentro de la plataforma de aprendizaje
-    """
-    try:
-        curso = Curso.objects.get(id=curso_id, activo=True)
-        
-        # Verificar que el usuario esté inscrito en el curso
-        if curso not in request.user.cursos.all():
-            messages.error(request, 'No tienes acceso a este curso. Debes estar inscrito para ver su contenido.')
-            return redirect('user_space')
-        
-        # Obtener posts del curso
-        posts = Post.objects.filter(curso=curso, is_active=True).order_by('-created_at')
-        
-        # Filtros
-        category_filter = request.GET.get('category')
-        if category_filter:
-            posts = posts.filter(category=category_filter)
-        
-        context = {
-            'curso': curso,
-            'posts': posts,
-            'categories': Post.CATEGORY_CHOICES,
-            'current_category': category_filter,
-        }
-        
-        # Si es una petición AJAX, devolver solo el contenido
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            html = render_to_string('pages/plataforma_foro_content.html', context, request=request)
-            return JsonResponse({'html': html})
-        
-        # Si no es AJAX, renderizar la página completa
-        return render(request, 'pages/plataforma_foro.html', context)
         
     except Curso.DoesNotExist:
         messages.error(request, 'El curso no existe o no está disponible.')
@@ -2139,23 +2099,23 @@ def generate_jitsi_token(request, room_name=None, user=None):
             now_local = now_utc
             exp_local = exp_utc
         
-        logger.info(f"=== TIEMPOS JWT ===")
-        logger.info(f"Tiempo actual (UTC): {now_utc}")
-        logger.info(f"Tiempo actual (Local): {now_local}")
-        logger.info(f"Tiempo expiración (UTC): {exp_utc}")
-        logger.info(f"Tiempo expiración (Local): {exp_local}")
-        logger.info(f"Duración del token: {exp_utc - now_utc}")
-        logger.info(f"==================")
+        logger.debug(f"=== TIEMPOS JWT ===")
+        logger.debug(f"Tiempo actual (UTC): {now_utc}")
+        logger.debug(f"Tiempo actual (Local): {now_local}")
+        logger.debug(f"Tiempo expiración (UTC): {exp_utc}")
+        logger.debug(f"Tiempo expiración (Local): {exp_local}")
+        logger.debug(f"Duración del token: {exp_utc - now_utc}")
+        logger.debug(f"==================")
         
         token = jwt.encode(payload, settings.JITSI_JWT_SECRET, algorithm="HS256")
-        logger.info(f"JWT generado exitosamente para usuario {current_user.username} en sala {payload['room']}")
+        logger.debug(f"JWT generado exitosamente para usuario {current_user.username} en sala {payload['room']}")
         
         # Log detallado del token
-        logger.info(f"=== TOKEN JWT COMPLETO ===")
-        logger.info(f"Token: {token}")
-        logger.info(f"Payload: {payload}")
-        logger.info(f"Secret key length: {len(settings.JITSI_JWT_SECRET)}")
-        logger.info(f"==========================")
+        logger.debug(f"=== TOKEN JWT COMPLETO ===")
+        logger.debug(f"Token: {token}")
+        logger.debug(f"Payload: {payload}")
+        logger.debug(f"Secret key length: {len(settings.JITSI_JWT_SECRET)}")
+        logger.debug(f"==========================")
         
         return JsonResponse({"token": token})
         
@@ -2246,10 +2206,10 @@ def join_meeting(request, videollamada_id):
             from datetime import datetime
             processing_time = datetime.utcnow()
             logger.info(f"=== PROCESAMIENTO JWT ===")
-            logger.info(f"Tiempo de procesamiento: {processing_time}")
-            logger.info(f"Token extraído y listo para uso")
-            logger.info(f"Token completo: {token}")
-            logger.info(f"========================")
+            logger.debug(f"Tiempo de procesamiento: {processing_time}")
+            logger.debug(f"Token extraído y listo para uso")
+            logger.debug(f"Token completo: {token}")
+            logger.debug(f"========================")
             
             # Construir la URL de la videollamada con el token
             base_url = videollamada.link_videollamada.rstrip('/')
@@ -2266,9 +2226,9 @@ def join_meeting(request, videollamada_id):
             # Log de la acción exitosa con tiempo
             redirect_time = datetime.utcnow()
             logger.info(f"Usuario {request.user.username} se unió exitosamente a videollamada {videollamada.id} del curso {videollamada.curso.nombre}")
-            logger.info(f"Tiempo de redirección: {redirect_time}")
-            logger.info(f"Tiempo total de procesamiento: {redirect_time - processing_time}")
-            logger.info(f"Redirigiendo a: {meeting_url}")
+            logger.debug(f"Tiempo de redirección: {redirect_time}")
+            logger.debug(f"Tiempo total de procesamiento: {redirect_time - processing_time}")
+            logger.debug(f"Redirigiendo a: {meeting_url}")
             
             # Redirigir a la videollamada
             return redirect(meeting_url)
@@ -2371,143 +2331,6 @@ def plataforma_foro_ajax(request, curso_id):
 # ============================================================================
 
 @login_required
-def plataforma_calificaciones(request, curso_id):
-    """
-    Vista principal de calificaciones para la plataforma de aprendizaje
-    """
-    curso = get_object_or_404(Curso, id=curso_id)
-    
-    # Verificar que el usuario esté inscrito en el curso
-    if not request.user.cursos.filter(id=curso_id).exists():
-        messages.error(request, 'No tienes acceso a este curso.')
-        return redirect('user_space')
-    
-    context = {
-        'curso': curso,
-        'user': request.user,
-    }
-    
-    if request.user.is_staff:
-        # Vista para Staff/Admin
-        evaluaciones = Evaluacion.objects.filter(curso=curso).order_by('-fecha_creacion')
-        context['evaluaciones'] = evaluaciones
-        
-        # Estadísticas generales del curso
-        calificaciones_curso = Calificacion.objects.filter(evaluacion__curso=curso, nota__isnull=False)
-        if calificaciones_curso.exists():
-            estadisticas = {
-                'promedio_general': calificaciones_curso.aggregate(Avg('nota'))['nota__avg'],
-                'nota_minima': calificaciones_curso.aggregate(Min('nota'))['nota__min'],
-                'nota_maxima': calificaciones_curso.aggregate(Max('nota'))['nota__max'],
-                'total_estudiantes': curso.usuarios.filter(is_staff=False, is_superuser=False).count(),
-            }
-            context['estadisticas'] = estadisticas
-        
-        # Estadísticas de entregas por evaluación
-        for evaluacion in evaluaciones:
-            total_estudiantes = curso.usuarios.filter(is_staff=False, is_superuser=False).count()
-            estudiantes_con_entregas = evaluacion.entregas.values('estudiante').distinct().count()
-            estudiantes_calificados = evaluacion.calificaciones.count()
-            
-            evaluacion.stats_entregas = {
-                'total_estudiantes': total_estudiantes,
-                'estudiantes_con_entregas': estudiantes_con_entregas,
-                'estudiantes_sin_entregas': total_estudiantes - estudiantes_con_entregas,
-                'estudiantes_calificados': estudiantes_calificados,
-                'estudiantes_pendientes_calificacion': estudiantes_con_entregas - estudiantes_calificados
-            }
-        
-        # Agregar información sobre la nueva funcionalidad
-        context['info_entregas'] = {
-            'mensaje': '💡 Solo se pueden calificar estudiantes que hayan entregado su trabajo. Desde la primera entrega se puede acceder a calificar una evaluación.',
-            'total_evaluaciones': evaluaciones.count(),
-            'evaluaciones_con_entregas': sum(1 for e in evaluaciones if e.stats_entregas['estudiantes_con_entregas'] > 0)
-            #'evaluaciones_sin_entregas': sum(1 for e in evaluaciones if e.stats_entregas['estudiantes_con_entregas'] == 0)
-        }
-        
-    else:
-        # Vista para Estudiantes
-        calificaciones_usuario = Calificacion.objects.filter(
-            evaluacion__curso=curso,
-            estudiante=request.user
-        ).order_by('-fecha_calificacion')
-        context['calificaciones_usuario'] = calificaciones_usuario
-        
-        # Verificar si se solicita ver rúbricas
-        mostrar_rubricas = request.GET.get('seccion') == 'rubricas'
-        context['mostrar_rubricas'] = mostrar_rubricas
-        
-        if mostrar_rubricas:
-            # Obtener todas las evaluaciones del curso que tengan rúbricas
-            evaluaciones_con_rubricas = []
-            evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
-            
-            for evaluacion in evaluaciones:
-                try:
-                    rubrica = evaluacion.rubrica
-                    if rubrica and rubrica.activa:
-                        evaluaciones_con_rubricas.append({
-                            'evaluacion': evaluacion,
-                            'rubrica': rubrica
-                        })
-                except:
-                    continue
-            
-            context['evaluaciones_con_rubricas'] = evaluaciones_con_rubricas
-        
-        # Estadísticas personales del estudiante
-        calificaciones_con_nota = calificaciones_usuario.filter(nota__isnull=False)
-        total_evaluaciones = Evaluacion.objects.filter(curso=curso).count()
-        
-        if calificaciones_con_nota.exists():
-            # Calcular promedio ponderado
-            suma_ponderada = 0
-            suma_ponderaciones = 0
-            evaluaciones_calificadas = 0
-            
-            for calificacion in calificaciones_con_nota:
-                # Calcular nota ponderada: nota * ponderacion
-                nota_ponderada = calificacion.nota * calificacion.evaluacion.ponderacion
-                suma_ponderada += nota_ponderada
-                suma_ponderaciones += calificacion.evaluacion.ponderacion
-                evaluaciones_calificadas += 1
-            
-            # Calcular promedio ponderado solo si todas las evaluaciones están calificadas y la suma de ponderaciones es 100%
-            promedio_ponderado = None
-            if evaluaciones_calificadas == total_evaluaciones and suma_ponderaciones == 100:
-                promedio_ponderado = suma_ponderada / 100
-            
-            estadisticas_estudiante = {
-                'promedio_ponderado': promedio_ponderado,
-                'evaluaciones_calificadas': evaluaciones_calificadas,
-                'total_evaluaciones': total_evaluaciones,
-                'suma_ponderaciones': suma_ponderaciones,
-            }
-            context['estadisticas_estudiante'] = estadisticas_estudiante
-        
-        # Promedios por tipo de evaluación
-        promedios_por_tipo = {}
-        for calificacion in calificaciones_con_nota:
-            tipo = calificacion.evaluacion.get_tipo_display()
-            if tipo not in promedios_por_tipo:
-                promedios_por_tipo[tipo] = {
-                    'notas': [],
-                    'ponderaciones': []
-                }
-            promedios_por_tipo[tipo]['notas'].append(calificacion.nota)
-            promedios_por_tipo[tipo]['ponderaciones'].append(calificacion.evaluacion.ponderacion)
-        
-        # Calcular promedios
-        for tipo, datos in promedios_por_tipo.items():
-            if datos['notas']:
-                datos['promedio'] = sum(datos['notas']) / len(datos['notas'])
-                datos['ponderacion_promedio'] = sum(datos['ponderaciones']) / len(datos['ponderaciones'])
-        
-        context['promedios_por_tipo'] = promedios_por_tipo
-    
-    return render(request, 'pages/plataforma_calificaciones.html', context)
-
-@login_required
 def crear_evaluacion(request, curso_id):
     """
     Vista para crear una nueva evaluación (solo staff/admin)
@@ -2537,6 +2360,177 @@ def crear_evaluacion(request, curso_id):
         'user': request.user,
     }
     return render(request, 'pages/crear_evaluacion.html', context)
+
+@login_required
+def calificar_estudiante_ajax(request, curso_id, evaluacion_id):
+    """
+    Endpoint AJAX para calificar estudiantes
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        curso = get_object_or_404(Curso, id=curso_id)
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+        
+        # Verificar permisos
+        if not request.user.is_staff:
+            return JsonResponse({'error': 'No tienes permisos para calificar estudiantes.'}, status=403)
+        
+        # Obtener datos del formulario
+        estudiante_id = request.POST.get('estudiante')
+        nota = request.POST.get('nota')
+        retroalimentacion = request.POST.get('retroalimentacion', '')
+        
+        if not estudiante_id:
+            return JsonResponse({'error': 'Debes seleccionar un estudiante.'}, status=400)
+        
+        if not nota:
+            return JsonResponse({'error': 'No se pudo calcular la nota.'}, status=400)
+        
+        # Obtener el estudiante
+        estudiante = get_object_or_404(User, id=estudiante_id)
+        
+        # Verificar que el estudiante tenga una entrega para esta evaluación
+        tiene_entrega = estudiante.entregas.filter(evaluacion=evaluacion).exists()
+        if not tiene_entrega:
+            return JsonResponse({
+                'error': f'El estudiante {estudiante.get_full_name()} no tiene entregas para la evaluación "{evaluacion.nombre}".'
+            }, status=400)
+        
+        # Verificar que la evaluación tenga una rúbrica
+        if not hasattr(evaluacion, 'rubrica') or not evaluacion.rubrica:
+            return JsonResponse({
+                'error': f'La evaluación "{evaluacion.nombre}" no tiene una rúbrica asociada.'
+            }, status=400)
+        
+        # Verificar que se hayan enviado criterios
+        criterios_enviados = []
+        for key, value in request.POST.items():
+            if key.startswith('criterio_') and value:
+                criterios_enviados.append((key, value))
+        
+        if not criterios_enviados:
+            return JsonResponse({'error': 'Debes seleccionar al menos un criterio.'}, status=400)
+        
+        # Limpiar caracteres de control de línea en la retroalimentación
+        if retroalimentacion:
+            retroalimentacion_limpia = re.sub(r'\\u000D\\u000A', '\n', retroalimentacion)
+            retroalimentacion_limpia = re.sub(r'\\u000D', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\u000A', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\n', '\n', retroalimentacion_limpia)
+            retroalimentacion_limpia = re.sub(r'\\r', '\n', retroalimentacion_limpia)
+        else:
+            retroalimentacion_limpia = retroalimentacion
+        
+        # Verificar si ya existe una calificación para este estudiante
+        calificacion_existente = Calificacion.objects.filter(
+            evaluacion=evaluacion,
+            estudiante=estudiante
+        ).first()
+        
+        try:
+            if calificacion_existente:
+                # Actualizar calificación existente
+                calificacion_existente.nota = round(float(nota), 1)
+                calificacion_existente.retroalimentacion = retroalimentacion_limpia
+                calificacion_existente.calificado_por = request.user
+                calificacion_existente.save()
+                
+                # Actualizar o crear ResultadoRubrica
+                resultado_rubrica, created = ResultadoRubrica.objects.get_or_create(
+                    rubrica=evaluacion.rubrica,
+                    estudiante=calificacion_existente.estudiante,
+                    defaults={
+                        'evaluador': request.user,
+                        'puntaje_total': 0
+                    }
+                )
+                
+                # Actualizar puntajes de criterios
+                puntaje_total = 0
+                for criterio in evaluacion.rubrica.criterios.all():
+                    field_name = f'criterio_{criterio.id}'
+                    esperable_id = request.POST.get(field_name)
+                    
+                    if esperable_id:
+                        esperable = Esperable.objects.get(id=esperable_id)
+                        puntaje_criterio, created = PuntajeCriterio.objects.get_or_create(
+                            resultado_rubrica=resultado_rubrica,
+                            criterio=criterio,
+                            defaults={
+                                'esperable_seleccionado': esperable,
+                                'puntaje_obtenido': esperable.puntaje
+                            }
+                        )
+                        
+                        if not created:
+                            puntaje_criterio.esperable_seleccionado = esperable
+                            puntaje_criterio.puntaje_obtenido = esperable.puntaje
+                            puntaje_criterio.save()
+                        
+                        puntaje_total += esperable.puntaje
+                
+                # Actualizar puntaje total
+                resultado_rubrica.puntaje_total = puntaje_total
+                resultado_rubrica.save()
+                
+                mensaje = f'Calificación actualizada para {estudiante.get_full_name()}.'
+            else:
+                # Crear nueva calificación
+                calificacion = Calificacion.objects.create(
+                    evaluacion=evaluacion,
+                    estudiante=estudiante,
+                    nota=round(float(nota), 1),
+                    retroalimentacion=retroalimentacion_limpia,
+                    calificado_por=request.user
+                )
+                
+                # Crear ResultadoRubrica
+                resultado_rubrica = ResultadoRubrica.objects.create(
+                    rubrica=evaluacion.rubrica,
+                    estudiante=calificacion.estudiante,
+                    evaluador=request.user,
+                    puntaje_total=0
+                )
+                
+                # Crear puntajes de criterios
+                puntaje_total = 0
+                for criterio in evaluacion.rubrica.criterios.all():
+                    field_name = f'criterio_{criterio.id}'
+                    esperable_id = request.POST.get(field_name)
+                    
+                    if esperable_id:
+                        esperable = Esperable.objects.get(id=esperable_id)
+                        PuntajeCriterio.objects.create(
+                            resultado_rubrica=resultado_rubrica,
+                            criterio=criterio,
+                            esperable_seleccionado=esperable,
+                            puntaje_obtenido=esperable.puntaje
+                        )
+                        puntaje_total += esperable.puntaje
+                
+                # Actualizar puntaje total
+                resultado_rubrica.puntaje_total = puntaje_total
+                resultado_rubrica.save()
+                
+                mensaje = f'Calificación registrada para {estudiante.get_full_name()}.'
+            
+            return JsonResponse({
+                'success': True,
+                'message': mensaje,
+                'redirect_url': reverse('plataforma_aprendizaje', kwargs={'curso_id': curso_id}) + f'?seccion=calificaciones&action=ver_calificar&evaluacion_id={evaluacion_id}'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'error': f'Error al guardar la calificación: {str(e)}'
+            }, status=500)
+            
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Error inesperado: {str(e)}'
+        }, status=500)
 
 @login_required
 def calificar_estudiante(request, curso_id, evaluacion_id):
@@ -2733,11 +2727,11 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                 estudiante = estudiantes_disponibles_para_calificar.get(id=estudiante_id)
                 if estudiante:
                     form.initial['estudiante'] = estudiante
-                    print(f"Estudiante precargado: {estudiante.get_full_name()} (ID: {estudiante.id})")
+                    logger.debug(f"Estudiante precargado: {estudiante.get_full_name()} (ID: {estudiante.id})")
                 else:
-                    print(f"Estudiante con ID {estudiante_id} no está disponible para calificar")
+                    logger.debug(f"Estudiante con ID {estudiante_id} no está disponible para calificar")
             except User.DoesNotExist:
-                print(f"Estudiante no encontrado con ID: {estudiante_id}")
+                logger.debug(f"Estudiante no encontrado con ID: {estudiante_id}")
                 pass
     
     # Obtener todos los estudiantes del curso para mostrar en la lista
@@ -2746,6 +2740,8 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
         is_staff=False,
         is_superuser=False
     ).order_by('first_name', 'last_name', 'username')
+    
+
     
     # Obtener estudiantes ya calificados para mostrar estadísticas
     estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
@@ -3499,6 +3495,25 @@ def limpiar_retroalimentaciones(request):
     return redirect('user_space')
 
 @login_required
+def plataforma_entregas(request, curso_id):
+    """
+    Vista principal de entregas para la plataforma de aprendizaje
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar que el usuario esté inscrito en el curso
+    if not request.user.cursos.filter(id=curso_id).exists():
+        messages.error(request, 'No tienes acceso a este curso.')
+        return redirect('user_space')
+    
+    context = {
+        'curso': curso,
+        'user': request.user,
+    }
+    
+    return render(request, 'pages/plataforma_entregas.html', context)
+
+@login_required
 def plataforma_entregas_ajax(request, curso_id):
     """Devuelve el HTML de la tabla de entregas y el formulario de subida para el usuario actual en el curso."""
     from django.template.loader import render_to_string
@@ -3508,32 +3523,32 @@ def plataforma_entregas_ajax(request, curso_id):
     
     # Manejar petición POST (subir entrega)
     if request.method == 'POST':
-        print("DEBUG: Procesando petición POST para subir entrega")
+        logger.debug("DEBUG: Procesando petición POST para subir entrega")
         evaluacion_id = request.POST.get('evaluacion')
-        print(f"DEBUG: Evaluación ID: {evaluacion_id}")
+        logger.debug(f"DEBUG: Evaluación ID: {evaluacion_id}")
         evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id)
-        print(f"DEBUG: Evaluación encontrada: {evaluacion.nombre}")
+        logger.debug(f"DEBUG: Evaluación encontrada: {evaluacion.nombre}")
         
         # Debug de archivos
         if request.FILES:
             for field_name, uploaded_file in request.FILES.items():
-                print(f"DEBUG: Archivo recibido - Campo: {field_name}, Nombre: {uploaded_file.name}, Tamaño: {uploaded_file.size} bytes ({uploaded_file.size / (1024*1024):.2f} MB)")
+                logger.debug(f"DEBUG: Archivo recibido - Campo: {field_name}, Nombre: {uploaded_file.name}, Tamaño: {uploaded_file.size} bytes ({uploaded_file.size / (1024*1024):.2f} MB)")
         else:
-            print("DEBUG: No se recibieron archivos")
+            logger.debug("DEBUG: No se recibieron archivos")
         
         form = EntregaForm(request.POST, request.FILES, evaluacion=evaluacion, estudiante=user)
         
         if form.is_valid():
-            print("DEBUG: Formulario válido, guardando entrega...")
+            logger.debug("DEBUG: Formulario válido, guardando entrega...")
             entrega = form.save(commit=False)
             entrega.evaluacion = evaluacion
             entrega.estudiante = user
             entrega.save()
-            print("DEBUG: Entrega guardada exitosamente")
+            logger.debug("DEBUG: Entrega guardada exitosamente")
             messages.success(request, 'Entrega subida correctamente.')
         else:
-            print("DEBUG: Formulario inválido")
-            print(f"DEBUG: Errores del formulario: {form.errors}")
+            logger.debug("DEBUG: Formulario inválido")
+            logger.debug(f"DEBUG: Errores del formulario: {form.errors}")
             # Para peticiones AJAX, incluir los errores en la respuesta
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 # Recrear el formulario con errores para que se muestren en el template
@@ -3634,40 +3649,40 @@ def plataforma_entregas_ajax(request, curso_id):
             fecha_inicio__lte=fecha_actual,
             fecha_fin__gte=fecha_actual
         )
-        print(f"DEBUG: Evaluaciones en rango de fechas: {evaluaciones_en_rango.count()}")
+        logger.debug(f"DEBUG: Evaluaciones en rango de fechas: {evaluaciones_en_rango.count()}")
         
         evaluaciones_sin_entregas = evaluaciones_en_rango.exclude(entregas__estudiante=user)
-        print(f"DEBUG: Evaluaciones en rango sin entregas del usuario: {evaluaciones_sin_entregas.count()}")
+        logger.debug(f"DEBUG: Evaluaciones en rango sin entregas del usuario: {evaluaciones_sin_entregas.count()}")
         
         # Debug: imprimir información detallada
-        print(f"DEBUG: Usuario: {user.username}")
-        print(f"DEBUG: Fecha actual: {fecha_actual}")
-        print(f"DEBUG: Total evaluaciones en el curso: {Evaluacion.objects.filter(curso=curso).count()}")
-        print(f"DEBUG: Evaluaciones activas: {Evaluacion.objects.filter(curso=curso, activa=True).count()}")
-        print(f"DEBUG: Evaluaciones con fechas válidas: {Evaluacion.objects.filter(curso=curso, activa=True).filter(Q(fecha_inicio__isnull=True, fecha_fin__isnull=True) | Q(fecha_inicio__lte=fecha_actual, fecha_fin__gte=fecha_actual)).count()}")
-        print(f"DEBUG: Entregas del usuario: {Entrega.objects.filter(evaluacion__curso=curso, estudiante=user).count()}")
-        print(f"DEBUG: Evaluaciones finales disponibles: {evaluaciones_activas.count()}")
+        logger.debug(f"DEBUG: Usuario: {user.username}")
+        logger.debug(f"DEBUG: Fecha actual: {fecha_actual}")
+        logger.debug(f"DEBUG: Total evaluaciones en el curso: {Evaluacion.objects.filter(curso=curso).count()}")
+        logger.debug(f"DEBUG: Evaluaciones activas: {Evaluacion.objects.filter(curso=curso, activa=True).count()}")
+        logger.debug(f"DEBUG: Evaluaciones con fechas válidas: {Evaluacion.objects.filter(curso=curso, activa=True).filter(Q(fecha_inicio__isnull=True, fecha_fin__isnull=True) | Q(fecha_inicio__lte=fecha_actual, fecha_fin__gte=fecha_actual)).count()}")
+        logger.debug(f"DEBUG: Entregas del usuario: {Entrega.objects.filter(evaluacion__curso=curso, estudiante=user).count()}")
+        logger.debug(f"DEBUG: Evaluaciones finales disponibles: {evaluaciones_activas.count()}")
         
         # Mostrar detalles de cada evaluación
         for eval in Evaluacion.objects.filter(curso=curso):
-            print(f"DEBUG: Evaluación '{eval.nombre}' - Activa: {eval.activa}, Inicio: {eval.fecha_inicio}, Fin: {eval.fecha_fin}")
+            logger.debug(f"DEBUG: Evaluación '{eval.nombre}' - Activa: {eval.activa}, Inicio: {eval.fecha_inicio}, Fin: {eval.fecha_fin}")
             tiene_entrega = eval.entregas.filter(estudiante=user).exists()
-            print(f"DEBUG: - Usuario tiene entrega: {tiene_entrega}")
+            logger.debug(f"DEBUG: - Usuario tiene entrega: {tiene_entrega}")
             if eval.fecha_inicio and eval.fecha_fin:
                 en_rango = eval.fecha_inicio <= fecha_actual <= eval.fecha_fin
-                print(f"DEBUG: - En rango de fechas: {en_rango}")
+                logger.debug(f"DEBUG: - En rango de fechas: {en_rango}")
         
         form = None
         evaluacion_para_entregar = None
         if evaluaciones_activas.exists():
             evaluacion_para_entregar = evaluaciones_activas.first()
-            print(f"DEBUG: Evaluación seleccionada para entregar: {evaluacion_para_entregar.nombre}")
+            logger.debug(f"DEBUG: Evaluación seleccionada para entregar: {evaluacion_para_entregar.nombre}")
             # Crear el formulario siempre que haya una evaluación disponible
             form = EntregaForm(evaluacion=evaluacion_para_entregar, estudiante=user)
-            print(f"DEBUG: Formulario creado: {form is not None}")
+            logger.debug(f"DEBUG: Formulario creado: {form is not None}")
         else:
-            print("DEBUG: No hay evaluaciones activas para entregar")
-        print(f"DEBUG: Variables para template - entregas: {entregas.count()}, form: {form is not None}, evaluacion_para_entregar: {evaluacion_para_entregar.nombre if evaluacion_para_entregar else None}")
+            logger.debug("DEBUG: No hay evaluaciones activas para entregar")
+        logger.debug(f"DEBUG: Variables para template - entregas: {entregas.count()}, form: {form is not None}, evaluacion_para_entregar: {evaluacion_para_entregar.nombre if evaluacion_para_entregar else None}")
         
         html = render_to_string('pages/plataforma_entregas_content.html', {
             'entregas': entregas,
@@ -3783,6 +3798,25 @@ def enviar_correo_bienvenida_usuario_existente(request, user, curso_nombre):
 # ============================================================================
 
 @login_required
+def plataforma_soporte(request, curso_id):
+    """
+    Vista principal de soporte para la plataforma de aprendizaje
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar que el usuario esté inscrito en el curso
+    if not request.user.cursos.filter(id=curso_id).exists():
+        messages.error(request, 'No tienes acceso a este curso.')
+        return redirect('user_space')
+    
+    context = {
+        'curso': curso,
+        'user': request.user,
+    }
+    
+    return render(request, 'pages/plataforma_soporte.html', context)
+
+@login_required
 def plataforma_soporte_ajax(request, curso_id):
     """
     Vista AJAX para cargar el contenido del sistema de soporte dinámicamente
@@ -3797,10 +3831,10 @@ def plataforma_soporte_ajax(request, curso_id):
         # Verificar si es una acción específica
         action = request.GET.get('action')
         
-        print(f"=== DEBUG PLATAFORMA SOPORTE AJAX ===")
-        print(f"Action recibida: '{action}'")
-        print(f"URL completa: {request.get_full_path()}")
-        print(f"Parámetros GET: {dict(request.GET)}")
+        logger.debug(f"=== DEBUG PLATAFORMA SOPORTE AJAX ===")
+        logger.debug(f"Action recibida: '{action}'")
+        logger.debug(f"URL completa: {request.get_full_path()}")
+        logger.debug(f"Parámetros GET: {dict(request.GET)}")
         
         if action == 'crear_ticket':
             # Verificar si el usuario es admin/staff
@@ -3822,32 +3856,32 @@ def plataforma_soporte_ajax(request, curso_id):
                 # Para usuarios normales, mostrar el formulario de crear ticket
                 from .forms import TicketSoporteForm
                 
-                print("=== DEBUG FORMULARIO TICKET ===")
-                print(f"Usuario: {request.user.username}")
-                print(f"Curso: {curso.nombre} (ID: {curso.id})")
+                logger.debug("=== DEBUG FORMULARIO TICKET ===")
+                logger.debug(f"Usuario: {request.user.username}")
+                logger.debug(f"Curso: {curso.nombre} (ID: {curso.id})")
                 
                 # Verificar clasificaciones en la base de datos
                 from .models import ClasificacionTicket, SubclasificacionTicket
                 clasificaciones_db = ClasificacionTicket.objects.filter(activa=True)
-                print(f"Clasificaciones activas en DB: {clasificaciones_db.count()}")
+                logger.debug(f"Clasificaciones activas en DB: {clasificaciones_db.count()}")
                 for clas in clasificaciones_db:
-                    print(f"  - {clas.nombre} (ID: {clas.id})")
+                    logger.debug(f"  - {clas.nombre} (ID: {clas.id})")
                     subclas = clas.subclasificaciones.filter(activa=True)
-                    print(f"    Subclasificaciones: {subclas.count()}")
+                    logger.debug(f"    Subclasificaciones: {subclas.count()}")
                     for sub in subclas:
-                        print(f"      - {sub.nombre}")
+                        logger.debug(f"      - {sub.nombre}")
                 
                 # Instanciar formulario
                 form = TicketSoporteForm()
                 
                 # Verificar opciones del formulario
-                print(f"Opciones de clasificación en form: {len(form.fields['clasificacion'].choices)}")
+                logger.debug(f"Opciones de clasificación en form: {len(form.fields['clasificacion'].choices)}")
                 for choice in form.fields['clasificacion'].choices:
-                    print(f"  - {choice[1]} (valor: {choice[0]})")
+                    logger.debug(f"  - {choice[1]} (valor: {choice[0]})")
                 
-                print(f"Opciones de subclasificación en form widget: {len(form.fields['subclasificacion'].widget.choices)}")
+                logger.debug(f"Opciones de subclasificación en form widget: {len(form.fields['subclasificacion'].widget.choices)}")
                 for choice in form.fields['subclasificacion'].widget.choices:
-                    print(f"  - {choice[1]} (valor: {choice[0]})")
+                    logger.debug(f"  - {choice[1]} (valor: {choice[0]})")
                 
                 context = {
                     'curso': curso,
@@ -3859,68 +3893,76 @@ def plataforma_soporte_ajax(request, curso_id):
                 
                 # Verificar si el HTML contiene las opciones
                 if 'clasificacion-select' in html:
-                    print("✓ Campo clasificacion-select encontrado en HTML")
+                    logger.debug("✓ Campo clasificacion-select encontrado en HTML")
                 else:
-                    print("✗ Campo clasificacion-select NO encontrado en HTML")
+                    logger.debug("✗ Campo clasificacion-select NO encontrado en HTML")
                 
                 if 'subclasificacion-select' in html:
-                    print("✓ Campo subclasificacion-select encontrado en HTML")
+                    logger.debug("✓ Campo subclasificacion-select encontrado en HTML")
                 else:
-                    print("✗ Campo subclasificacion-select NO encontrado en HTML")
+                    logger.debug("✗ Campo subclasificacion-select NO encontrado en HTML")
                 
                 # Buscar opciones en el HTML
                 import re
                 option_pattern = r'<option[^>]*value="([^"]*)"[^>]*>([^<]*)</option>'
                 options_in_html = re.findall(option_pattern, html)
-                print(f"Opciones encontradas en HTML: {len(options_in_html)}")
+                logger.debug(f"Opciones encontradas en HTML: {len(options_in_html)}")
                 for value, text in options_in_html[:10]:  # Mostrar las primeras 10
-                    print(f"  - {text} (valor: {value})")
+                    logger.debug(f"  - {text} (valor: {value})")
                 
                 # Verificar específicamente las opciones de clasificación
                 clasificacion_options = re.findall(r'<option[^>]*value="([^"]*)"[^>]*>([^<]*)</option>', html)
                 clasificacion_options = [opt for opt in clasificacion_options if opt[0] != '' and 'Selecciona' not in opt[1]]
-                print(f"Opciones de clasificación válidas en HTML: {len(clasificacion_options)}")
+                logger.debug(f"Opciones de clasificación válidas en HTML: {len(clasificacion_options)}")
                 for value, text in clasificacion_options:
-                    print(f"  - {text} (valor: {value})")
+                    logger.debug(f"  - {text} (valor: {value})")
                 
-                print("=== FIN DEBUG FORMULARIO TICKET ===")
+                logger.debug("=== FIN DEBUG FORMULARIO TICKET ===")
                 
                 return JsonResponse({'html': html})
         
         elif action == 'ver_ticket':
             # Cargar ticket específico
             ticket_id = request.GET.get('ticket_id')
-            print(f"=== DEBUG VER TICKET ===")
-            print(f"Ticket ID: {ticket_id}")
-            print(f"Usuario: {request.user.username}")
-            print(f"Es staff: {request.user.is_staff}")
-            print(f"Es superuser: {request.user.is_superuser}")
+            logger.debug(f"=== DEBUG VER TICKET ===")
+            logger.debug(f"Ticket ID: {ticket_id}")
+            logger.debug(f"Usuario: {request.user.username}")
+            logger.debug(f"Es staff: {request.user.is_staff}")
+            logger.debug(f"Es superuser: {request.user.is_superuser}")
             
             if ticket_id:
                 try:
                     ticket = TicketSoporte.objects.get(id=ticket_id, curso=curso)
-                    print(f"Ticket encontrado: {ticket.titulo}")
+                    logger.debug(f"Ticket encontrado: {ticket.titulo}")
                     
                     # Verificar permisos
                     if not (request.user == ticket.usuario or request.user.is_staff or request.user.is_superuser):
-                        print("Usuario no tiene permisos para ver este ticket")
+                        logger.debug("Usuario no tiene permisos para ver este ticket")
                         return JsonResponse({'error': 'No tienes permisos para ver este ticket'}, status=403)
                     
                     # Filtrar comentarios según permisos del usuario
                     if request.user.is_staff or request.user.is_superuser:
                         comentarios = ticket.comentarios.all()
-                        print(f"Comentarios para admin: {comentarios.count()}")
+                        logger.debug(f"Comentarios para admin: {comentarios.count()}")
                     else:
                         comentarios = ticket.comentarios.filter(es_interno=False)
-                        print(f"Comentarios para usuario: {comentarios.count()}")
+                        logger.debug(f"Comentarios para usuario: {comentarios.count()}")
                     
                     comentario_form = ComentarioTicketForm()
                     admin_form = TicketSoporteAdminForm(instance=ticket) if request.user.is_staff else None
+                    usuario_creador = ticket.usuario.id
                     
-                    # Obtener usuarios staff para reasignación
-                    usuarios_staff = CustomUser.objects.filter(
-                        models.Q(is_staff=True) | models.Q(is_superuser=True)
-                    ).exclude(id=request.user.id).order_by('first_name', 'last_name', 'username')
+                    # Obtener usuarios staff para reasignación, excluyendo al usuario actualmente asignado
+                    if ticket.asignado_a:
+                        # Si el ticket está asignado, excluir al usuario asignado actualmente
+                        usuarios_staff = CustomUser.objects.filter(
+                            models.Q(is_staff=True) | models.Q(is_superuser=True)
+                        ).exclude(id=ticket.asignado_a.id).order_by('first_name', 'last_name', 'username')
+                    else:
+                        # Si el ticket no está asignado, traer todos los usuarios staff
+                        usuarios_staff = CustomUser.objects.filter(
+                            models.Q(is_staff=True) | models.Q(is_superuser=True)
+                        ).order_by('first_name', 'last_name', 'username')
                     
                     context = {
                         'curso': curso,
@@ -3931,28 +3973,28 @@ def plataforma_soporte_ajax(request, curso_id):
                         'usuarios_staff': usuarios_staff,
                     }
                     
-                    print(f"Contexto preparado con {len(comentarios)} comentarios")
+                    logger.debug(f"Contexto preparado con {len(comentarios)} comentarios")
                     
                     # Usar template diferente según el tipo de usuario
                     if request.user.is_staff or request.user.is_superuser:
-                        print("Usando template de admin")
+                        logger.debug("Usando template de admin")
                         html = render_to_string('pages/plataforma_soporte_ticket_detail.html', context, request=request)
                     else:
-                        print("Usando template de usuario")
+                        logger.debug("Usando template de usuario")
                         html = render_to_string('pages/plataforma_soporte_ticket_detail_user.html', context, request=request)
                     
-                    print(f"HTML generado: {len(html)} caracteres")
+                    logger.debug(f"HTML generado: {len(html)} caracteres")
                     return JsonResponse({'html': html})
                 except TicketSoporte.DoesNotExist:
-                    print(f"Ticket {ticket_id} no existe")
+                    logger.debug(f"Ticket {ticket_id} no existe")
                     return JsonResponse({'error': 'El ticket no existe'}, status=404)
                 except Exception as e:
-                    print(f"Error al cargar ticket {ticket_id}: {str(e)}")
+                    logger.debug(f"Error al cargar ticket {ticket_id}: {str(e)}")
                     import traceback
-                    traceback.print_exc()
+                    traceback.logger.debug_exc()
                     return JsonResponse({'error': f'Error interno del servidor: {str(e)}'}, status=500)
             else:
-                print("No se proporcionó ticket_id")
+                logger.debug("No se proporcionó ticket_id")
                 return JsonResponse({'error': 'ID de ticket no proporcionado'}, status=400)
         
         # Verificar si el usuario es admin/staff
@@ -3972,11 +4014,11 @@ def plataforma_soporte_ajax(request, curso_id):
             tickets_resueltos = tickets.filter(estado='resuelto').count()
             tickets_cerrados = tickets.filter(estado='cerrado').count()
             
-            # Obtener usuarios staff para reasignación (incluyendo al usuario actual para asignaciones iniciales)
+            # Obtener usuarios staff para asignación (incluyendo al usuario actual para asignaciones iniciales)
             usuarios_staff = CustomUser.objects.filter(
                 models.Q(is_staff=True) | models.Q(is_superuser=True)
             ).order_by('first_name', 'last_name', 'username')
-            
+
             context = {
                 'curso': curso,
                 'tickets': tickets,
@@ -4001,19 +4043,19 @@ def plataforma_soporte_ajax(request, curso_id):
             
             # Filtros
             estado_filter = request.GET.get('estado')
-            print(f"=== DEBUG FILTRO SOPORTE ===")
-            print(f"Estado filtro recibido: '{estado_filter}'")
-            print(f"Tickets antes del filtro: {tickets.count()}")
+            logger.debug(f"=== DEBUG FILTRO SOPORTE ===")
+            logger.debug(f"Estado filtro recibido: '{estado_filter}'")
+            logger.debug(f"Tickets antes del filtro: {tickets.count()}")
             
             # Por defecto, mostrar tickets abiertos si no se especifica un estado
             if estado_filter:
                 tickets = tickets.filter(estado=estado_filter)
-                print(f"Tickets después del filtro '{estado_filter}': {tickets.count()}")
+                logger.debug(f"Tickets después del filtro '{estado_filter}': {tickets.count()}")
             else:
                 # Filtro por defecto: mostrar solo tickets abiertos
                 tickets = tickets.filter(estado='abierto')
                 estado_filter = 'abierto'  # Establecer el estado por defecto
-                print(f"Tickets después del filtro por defecto 'abierto': {tickets.count()}")
+                logger.debug(f"Tickets después del filtro por defecto 'abierto': {tickets.count()}")
             
             context = {
                 'curso': curso,
@@ -4022,8 +4064,8 @@ def plataforma_soporte_ajax(request, curso_id):
                 'current_estado': estado_filter,
             }
             
-            print(f"Estados disponibles: {TicketSoporte.ESTADO_CHOICES}")
-            print("=== FIN DEBUG FILTRO SOPORTE ===")
+            logger.debug(f"Estados disponibles: {TicketSoporte.ESTADO_CHOICES}")
+            logger.debug("=== FIN DEBUG FILTRO SOPORTE ===")
             
             # Renderizar solo el contenido del soporte
             html = render_to_string('pages/plataforma_soporte_content.html', context, request=request)
@@ -4039,11 +4081,11 @@ def crear_ticket_soporte(request, curso_id):
     Vista para crear un nuevo ticket de soporte
     """
     if request.method == 'POST':
-        print("=== DEBUG CREAR TICKET ===")
-        print(f"Datos POST recibidos: {request.POST}")
+        logger.debug("=== DEBUG CREAR TICKET ===")
+        logger.debug(f"Datos POST recibidos: {request.POST}")
         
         form = TicketSoporteForm(request.POST)
-        print(f"Formulario válido: {form.is_valid()}")
+        logger.debug(f"Formulario válido: {form.is_valid()}")
         
         if form.is_valid():
             ticket = form.save(commit=False)
@@ -4051,15 +4093,15 @@ def crear_ticket_soporte(request, curso_id):
             ticket.curso_id = curso_id
             ticket.save()
             
-            print("✓ Ticket creado exitosamente")
-            print("=== FIN DEBUG CREAR TICKET ===")
+            logger.debug("✓ Ticket creado exitosamente")
+            logger.debug("=== FIN DEBUG CREAR TICKET ===")
             
             messages.success(request, 'Ticket creado exitosamente. Recibirás una respuesta pronto.')
             return JsonResponse({'success': True, 'message': 'Ticket creado exitosamente'})
         else:
-            print("✗ Formulario inválido")
-            print(f"Errores del formulario: {form.errors}")
-            print("=== FIN DEBUG CREAR TICKET ===")
+            logger.debug("✗ Formulario inválido")
+            logger.debug(f"Errores del formulario: {form.errors}")
+            logger.debug("=== FIN DEBUG CREAR TICKET ===")
             return JsonResponse({'success': False, 'errors': form.errors})
     
     return JsonResponse({'error': 'Método no permitido'}, status=405)
@@ -4070,27 +4112,27 @@ def agregar_comentario_ticket(request, ticket_id):
     """
     Vista para agregar comentarios a un ticket
     """
-    print(f"=== DEBUG AGREGAR COMENTARIO ===")
-    print(f"Ticket ID: {ticket_id}")
-    print(f"Usuario: {request.user.username}")
-    print(f"Método: {request.method}")
-    print(f"Datos POST: {request.POST}")
+    logger.debug(f"=== DEBUG AGREGAR COMENTARIO ===")
+    logger.debug(f"Ticket ID: {ticket_id}")
+    logger.debug(f"Usuario: {request.user.username}")
+    logger.debug(f"Método: {request.method}")
+    logger.debug(f"Datos POST: {request.POST}")
     
     try:
         ticket = TicketSoporte.objects.get(id=ticket_id)
-        print(f"Ticket encontrado: {ticket.titulo}")
+        logger.debug(f"Ticket encontrado: {ticket.titulo}")
         
         # Verificar permisos
         puede_comentar = ticket.puede_comentar(request.user)
-        print(f"Puede comentar: {puede_comentar}")
+        logger.debug(f"Puede comentar: {puede_comentar}")
         
         if not puede_comentar:
-            print("Usuario no tiene permisos para comentar")
+            logger.debug("Usuario no tiene permisos para comentar")
             return JsonResponse({'error': 'No tienes permisos para comentar en este ticket'}, status=403)
         
         if request.method == 'POST':
             form = ComentarioTicketForm(request.POST)
-            print(f"Formulario válido: {form.is_valid()}")
+            logger.debug(f"Formulario válido: {form.is_valid()}")
             
             if form.is_valid():
                 comentario = form.save(commit=False)
@@ -4098,17 +4140,17 @@ def agregar_comentario_ticket(request, ticket_id):
                 comentario.autor = request.user
                 comentario.save()
                 
-                print(f"Comentario guardado: {comentario.id}")
+                logger.debug(f"Comentario guardado: {comentario.id}")
                 
                 # Actualizar fecha de actualización del ticket
                 ticket.fecha_actualizacion = timezone.now()
                 ticket.save()
                 
-                print("=== FIN DEBUG AGREGAR COMENTARIO ===")
+                logger.debug("=== FIN DEBUG AGREGAR COMENTARIO ===")
                 return JsonResponse({'success': True, 'message': 'Comentario agregado exitosamente'})
             else:
-                print(f"Errores del formulario: {form.errors}")
-                print("=== FIN DEBUG AGREGAR COMENTARIO ===")
+                logger.debug(f"Errores del formulario: {form.errors}")
+                logger.debug("=== FIN DEBUG AGREGAR COMENTARIO ===")
                 return JsonResponse({'success': False, 'errors': form.errors})
     
     except TicketSoporte.DoesNotExist:
@@ -4156,36 +4198,36 @@ def obtener_subclasificaciones(request):
     """
     clasificacion = request.GET.get('clasificacion')
     
-    print(f"=== DEBUG OBTENER SUBCLASIFICACIONES ===")
-    print(f"Clasificación solicitada: {clasificacion}")
+    logger.debug(f"=== DEBUG OBTENER SUBCLASIFICACIONES ===")
+    logger.debug(f"Clasificación solicitada: {clasificacion}")
     
     if clasificacion:
         try:
             clasificacion_obj = ClasificacionTicket.objects.get(nombre=clasificacion, activa=True)
-            print(f"Clasificación encontrada: {clasificacion_obj.nombre} (ID: {clasificacion_obj.id})")
+            logger.debug(f"Clasificación encontrada: {clasificacion_obj.nombre} (ID: {clasificacion_obj.id})")
             
             subclasificaciones = clasificacion_obj.subclasificaciones.filter(activa=True)
-            print(f"Subclasificaciones encontradas: {subclasificaciones.count()}")
+            logger.debug(f"Subclasificaciones encontradas: {subclasificaciones.count()}")
             for sub in subclasificaciones:
-                print(f"  - {sub.nombre} (ID: {sub.id})")
+                logger.debug(f"  - {sub.nombre} (ID: {sub.id})")
             
             choices = [('', 'Selecciona una subclasificación')] + [
                 (sub.nombre, sub.nombre) for sub in subclasificaciones
             ]
             
-            print(f"Choices finales: {len(choices)}")
+            logger.debug(f"Choices finales: {len(choices)}")
             for choice in choices:
-                print(f"  - {choice[1]} (valor: {choice[0]})")
+                logger.debug(f"  - {choice[1]} (valor: {choice[0]})")
             
-            print("=== FIN DEBUG OBTENER SUBCLASIFICACIONES ===")
+            logger.debug("=== FIN DEBUG OBTENER SUBCLASIFICACIONES ===")
             return JsonResponse({'choices': choices})
         except ClasificacionTicket.DoesNotExist:
-            print(f"✗ Clasificación '{clasificacion}' no encontrada")
-            print("=== FIN DEBUG OBTENER SUBCLASIFICACIONES ===")
+            logger.debug(f"✗ Clasificación '{clasificacion}' no encontrada")
+            logger.debug("=== FIN DEBUG OBTENER SUBCLASIFICACIONES ===")
             return JsonResponse({'choices': [('', 'No hay subclasificaciones disponibles')]})
     
-    print("✗ No se proporcionó clasificación")
-    print("=== FIN DEBUG OBTENER SUBCLASIFICACIONES ===")
+    logger.debug("✗ No se proporcionó clasificación")
+    logger.debug("=== FIN DEBUG OBTENER SUBCLASIFICACIONES ===")
     return JsonResponse({'choices': [('', 'Primero selecciona una clasificación')]})
 
 
@@ -4245,7 +4287,7 @@ def crear_clasificaciones_iniciales():
         )
         
         if created:
-            print(f"Clasificación creada: {clasificacion.nombre}")
+            logger.debug(f"Clasificación creada: {clasificacion.nombre}")
         
         for subclasificacion_nombre in clasificacion_data['subclasificaciones']:
             subclasificacion, created = SubclasificacionTicket.objects.get_or_create(
@@ -4258,7 +4300,7 @@ def crear_clasificaciones_iniciales():
             )
             
             if created:
-                print(f"  Subclasificación creada: {subclasificacion.nombre}")
+                logger.debug(f"  Subclasificación creada: {subclasificacion.nombre}")
 
 @login_required
 def crear_rubrica(request, curso_id, evaluacion_id):
@@ -4398,6 +4440,13 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
     """
     Vista AJAX para agregar un criterio a una rúbrica
     """
+    logger.info(f"=== AGREGAR CRITERIO RUBRICA LLAMADA ===")
+    logger.info(f"URL: {request.path}")
+    logger.info(f"URL completa: {request.build_absolute_uri()}")
+    logger.info(f"Método: {request.method}")
+    logger.info(f"Curso ID: {curso_id}")
+    logger.info(f"Evaluación ID: {evaluacion_id}")
+    logger.info(f"Usuario: {request.user}")
     logger.info(f"Agregando criterio - Curso: {curso_id}, Evaluación: {evaluacion_id}")
     
     if request.method != 'POST':
@@ -4425,8 +4474,14 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
         try:
             rubrica = evaluacion.rubrica
         except Rubrica.DoesNotExist:
-            logger.error(f"No se encontró rúbrica para evaluación {evaluacion_id}")
-            return JsonResponse({'error': 'No se encontró una rúbrica para esta evaluación'}, status=404)
+            logger.info(f"No se encontró rúbrica para evaluación {evaluacion_id}, creando una nueva")
+            # Crear una rúbrica automáticamente si no existe
+            rubrica = Rubrica.objects.create(
+                evaluacion=evaluacion,
+                nombre=f"Rúbrica de {evaluacion.nombre}",
+                descripcion=f"Rúbrica automáticamente generada para la evaluación '{evaluacion.nombre}'"
+            )
+            logger.info(f"Rúbrica creada con ID: {rubrica.id}")
         
         # Obtener datos del formulario
         nombre = request.POST.get('nombre')
@@ -4463,10 +4518,19 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
         # Crear los esperables
         esperables_creados = 0
         for i, esperable_data in enumerate(esperables_data):
+            logger.info(f"Procesando esperable {i}: {esperable_data}")
             if esperable_data.strip():  # Solo crear si no está vacío
                 # Parsear el esperable que viene en formato JSON
                 try:
-                    esperable_obj = json.loads(esperable_data)
+                    # Limpiar el string de posibles caracteres de escape
+                    esperable_data_clean = esperable_data.strip()
+                    if esperable_data_clean.startswith('"') and esperable_data_clean.endswith('"'):
+                        esperable_data_clean = esperable_data_clean[1:-1]
+                    
+                    logger.info(f"Esperable {i} limpio: {esperable_data_clean}")
+                    esperable_obj = json.loads(esperable_data_clean)
+                    logger.info(f"Esperable {i} parseado: {esperable_obj}")
+                    
                     Esperable.objects.create(
                         criterio=criterio,
                         nivel=esperable_obj.get('nivel', f"Nivel {i+1}"),
@@ -4475,8 +4539,10 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
                         orden=i+1
                     )
                     esperables_creados += 1
+                    logger.info(f"Esperable {i} creado exitosamente")
                 except (json.JSONDecodeError, TypeError) as e:
                     logger.warning(f"Error parsing esperable {i}: {e}")
+                    logger.warning(f"Esperable data original: {esperable_data}")
                     # Fallback para formato antiguo
                     Esperable.objects.create(
                         criterio=criterio,
@@ -4779,7 +4845,61 @@ def reasignar_ticket(request):
     except CustomUser.DoesNotExist:
         return JsonResponse({'error': 'El usuario no existe'}, status=404)
     except Exception as e:
-        print(f"Error reasignando ticket: {e}")
+        logger.debug(f"Error reasignando ticket: {e}")
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+
+
+@login_required
+def obtener_usuarios_staff_por_ticket(request):
+    """
+    Vista AJAX para obtener la lista de usuarios admin/staff para un ticket específico,
+    excluyendo al usuario actualmente asignado
+    """
+    try:
+        # Verificar que el usuario sea admin/staff
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para ver usuarios staff'}, status=403)
+        
+        ticket_id = request.GET.get('ticket_id')
+        if not ticket_id:
+            return JsonResponse({'error': 'ID de ticket no proporcionado'}, status=400)
+        
+        # Obtener el ticket
+        ticket = TicketSoporte.objects.get(id=ticket_id)
+        
+        # Obtener usuarios staff para asignación/reasignación
+        # Para asignación inicial: incluir todos los usuarios staff
+        # Para reasignación: excluir al usuario actualmente asignado
+        if ticket.asignado_a:
+            # Si el ticket está asignado, es una reasignación - excluir al usuario asignado actualmente
+            usuarios_staff = CustomUser.objects.filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True)
+            ).exclude(id=ticket.asignado_a.id).order_by('first_name', 'last_name', 'username')
+        else:
+            # Si el ticket no está asignado, es una asignación inicial - incluir todos los usuarios staff
+            usuarios_staff = CustomUser.objects.filter(
+                models.Q(is_staff=True) | models.Q(is_superuser=True)
+            ).order_by('first_name', 'last_name', 'username')
+        
+        # Preparar datos para respuesta JSON
+        usuarios_data = []
+        for usuario in usuarios_staff:
+            usuarios_data.append({
+                'id': usuario.id,
+                'nombre': usuario.get_full_name() or usuario.username,
+                'email': usuario.email,
+                'username': usuario.username
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'usuarios': usuarios_data
+        })
+        
+    except TicketSoporte.DoesNotExist:
+        return JsonResponse({'error': 'El ticket no existe'}, status=404)
+    except Exception as e:
+        logger.debug(f"Error obteniendo usuarios staff para ticket: {e}")
         return JsonResponse({'error': 'Error interno del servidor'}, status=500)
 
 
@@ -4793,10 +4913,10 @@ def obtener_usuarios_staff(request):
         if not (request.user.is_staff or request.user.is_superuser):
             return JsonResponse({'error': 'No tienes permisos para ver usuarios staff'}, status=403)
         
-        # Obtener usuarios admin/staff (excluyendo al usuario actual)
+        # Obtener todos los usuarios admin/staff (sin excluir a nadie para asignación inicial)
         usuarios_staff = CustomUser.objects.filter(
             models.Q(is_staff=True) | models.Q(is_superuser=True)
-        ).exclude(id=request.user.id).order_by('first_name', 'last_name', 'username')
+        ).order_by('first_name', 'last_name', 'username')
         
         usuarios_data = []
         for usuario in usuarios_staff:
@@ -4813,7 +4933,7 @@ def obtener_usuarios_staff(request):
         })
         
     except Exception as e:
-        print(f"Error obteniendo usuarios staff: {e}")
+        logger.debug(f"Error obteniendo usuarios staff: {e}")
         return JsonResponse({'error': 'Error interno del servidor'}, status=500)
 
 @login_required
@@ -4876,7 +4996,7 @@ def cambiar_prioridad_ticket(request):
     except TicketSoporte.DoesNotExist:
         return JsonResponse({'error': 'El ticket no existe'}, status=404)
     except Exception as e:
-        print(f"Error cambiando prioridad: {e}")
+        logger.debug(f"Error cambiando prioridad: {e}")
         return JsonResponse({'error': 'Error interno del servidor'}, status=500)
 
 
@@ -4941,7 +5061,7 @@ def resolver_ticket(request):
     except TicketSoporte.DoesNotExist:
         return JsonResponse({'error': 'El ticket no existe'}, status=404)
     except Exception as e:
-        print(f"Error resolviendo ticket: {e}")
+        logger.debug(f"Error resolviendo ticket: {e}")
         return JsonResponse({'error': 'Error interno del servidor'}, status=500)
 
 @login_required
@@ -4992,7 +5112,7 @@ def reabrir_ticket(request):
     except TicketSoporte.DoesNotExist:
         return JsonResponse({'error': 'El ticket no existe'}, status=404)
     except Exception as e:
-        print(f"Error reabriendo ticket: {e}")
+        logger.debug(f"Error reabriendo ticket: {e}")
         return JsonResponse({'error': 'Error interno del servidor'}, status=500)
 
 @login_required
@@ -5011,11 +5131,11 @@ def obtener_datos_calificacion(request, calificacion_id):
         calificacion = get_object_or_404(Calificacion, id=calificacion_id)
         evaluacion = calificacion.evaluacion
         
-        print(f"Obteniendo datos para calificación {calificacion_id}, evaluación: {evaluacion.nombre}")
+        logger.debug(f"Obteniendo datos para calificación {calificacion_id}, evaluación: {evaluacion.nombre}")
         
         # Verificar que la evaluación tenga rúbrica
         if not hasattr(evaluacion, 'rubrica') or not evaluacion.rubrica:
-            print(f"Evaluación {evaluacion.id} no tiene rúbrica asociada")
+            logger.debug(f"Evaluación {evaluacion.id} no tiene rúbrica asociada")
             return JsonResponse({'error': 'Esta evaluación no tiene rúbrica asociada'}, status=400)
         
         # Obtener el resultado de rúbrica para este estudiante
@@ -5025,18 +5145,18 @@ def obtener_datos_calificacion(request, calificacion_id):
                 estudiante=calificacion.estudiante
             )
 
-            print(f"ResultadoRubrica encontrado: {resultado_rubrica}")
+            logger.debug(f"ResultadoRubrica encontrado: {resultado_rubrica}")
             logger.info(f"Resultado de rúbrica: {resultado_rubrica}")
             
             # Obtener los puntajes de criterios
             puntajes_criterios = resultado_rubrica.puntajes_criterios.all()
 
-            print(f"Puntajes de criterios encontrados: {puntajes_criterios.count()}")
+            logger.debug(f"Puntajes de criterios encontrados: {puntajes_criterios.count()}")
             logger.debug(f"Puntajes de criterios: {puntajes_criterios}")
             logger.debug(f"Número de puntajes de criterios: {puntajes_criterios.count()}")
             
             for puntaje in puntajes_criterios:
-                print(f"Puntaje criterio {puntaje.criterio.id}: esperable_id={puntaje.esperable_seleccionado.id if puntaje.esperable_seleccionado else None}, puntaje_obtenido={puntaje.puntaje_obtenido}")
+                logger.debug(f"Puntaje criterio {puntaje.criterio.id}: esperable_id={puntaje.esperable_seleccionado.id if puntaje.esperable_seleccionado else None}, puntaje_obtenido={puntaje.puntaje_obtenido}")
                 logger.debug(f"Puntaje criterio {puntaje.criterio.id}: esperable_id={puntaje.esperable_seleccionado.id if puntaje.esperable_seleccionado else None}, puntaje_obtenido={puntaje.puntaje_obtenido}")
             
             criterios_data = []
@@ -5052,9 +5172,9 @@ def obtener_datos_calificacion(request, calificacion_id):
                     'comentarios': puntaje.comentarios or ''
                 }
                 criterios_data.append(criterio_data)
-                print(f"Criterio {puntaje.criterio.id}: esperable_id={criterio_data['esperable_id']}, puntaje={criterio_data['puntaje_obtenido']}")
+                logger.debug(f"Criterio {puntaje.criterio.id}: esperable_id={criterio_data['esperable_id']}, puntaje={criterio_data['puntaje_obtenido']}")
             
-            print(f"Criterios data final: {criterios_data}")
+            logger.debug(f"Criterios data final: {criterios_data}")
             logger.debug(f"Criterios data: {criterios_data}")
             
             return JsonResponse({
@@ -5065,7 +5185,7 @@ def obtener_datos_calificacion(request, calificacion_id):
             })
             
         except ResultadoRubrica.DoesNotExist:
-            print(f"No existe ResultadoRubrica para estudiante {calificacion.estudiante.id}")
+            logger.debug(f"No existe ResultadoRubrica para estudiante {calificacion.estudiante.id}")
             # Si no existe ResultadoRubrica, devolver criterios vacíos para permitir edición
             criterios_data = []
             for criterio in evaluacion.rubrica.criterios.all():
@@ -5077,7 +5197,7 @@ def obtener_datos_calificacion(request, calificacion_id):
                     'comentarios': ''
                 })
             
-            print(f"Criterios data vacíos: {criterios_data}")
+            logger.debug(f"Criterios data vacíos: {criterios_data}")
             
             return JsonResponse({
                 'success': True,
@@ -5087,7 +5207,7 @@ def obtener_datos_calificacion(request, calificacion_id):
             })
             
     except Exception as e:
-        print(f"Error en obtener_datos_calificacion: {str(e)}")
+        logger.debug(f"Error en obtener_datos_calificacion: {str(e)}")
         return JsonResponse({'error': f'Error al obtener datos: {str(e)}'}, status=500)
 
 @login_required
@@ -5106,7 +5226,7 @@ def obtener_esperables_criterio_por_estudiante(request, criterio_id, estudiante_
         criterio = get_object_or_404(CriterioRubrica, id=criterio_id)
         estudiante = get_object_or_404(CustomUser, id=estudiante_id)
         
-        print(f"Buscando esperables para criterio {criterio_id} y estudiante {estudiante_id}")
+        logger.debug(f"Buscando esperables para criterio {criterio_id} y estudiante {estudiante_id}")
         
         # Obtener el resultado de rúbrica para este estudiante
         try:
@@ -5115,7 +5235,7 @@ def obtener_esperables_criterio_por_estudiante(request, criterio_id, estudiante_
                 estudiante=estudiante
             )
 
-            print(f"ResultadoRubrica encontrado: {resultado_rubrica}")
+            logger.debug(f"ResultadoRubrica encontrado: {resultado_rubrica}")
             
             # Obtener el puntaje específico para este criterio
             puntaje_criterio = PuntajeCriterio.objects.filter(
@@ -5123,7 +5243,7 @@ def obtener_esperables_criterio_por_estudiante(request, criterio_id, estudiante_
                 criterio=criterio
             ).first()
             
-            print(f"PuntajeCriterio encontrado: {puntaje_criterio}")
+            logger.debug(f"PuntajeCriterio encontrado: {puntaje_criterio}")
             
             if puntaje_criterio and puntaje_criterio.esperable_seleccionado:
                 # Devolver todos los esperables disponibles, marcando el seleccionado
@@ -5131,8 +5251,8 @@ def obtener_esperables_criterio_por_estudiante(request, criterio_id, estudiante_
                 esperables = criterio.esperables.all()
                 esperables_data = []
                 
-                print(f"Esperable aplicado: {esperable_aplicado}")
-                print(f"Total esperables disponibles: {esperables.count()}")
+                logger.debug(f"Esperable aplicado: {esperable_aplicado}")
+                logger.debug(f"Total esperables disponibles: {esperables.count()}")
                 
                 for esperable in esperables:
                     esperables_data.append({
@@ -5143,7 +5263,7 @@ def obtener_esperables_criterio_por_estudiante(request, criterio_id, estudiante_
                         'es_seleccionado': esperable.id == esperable_aplicado.id
                     })
                 
-                print(f"Esperables data: {esperables_data}")
+                logger.debug(f"Esperables data: {esperables_data}")
                 
                 return JsonResponse({
                     'success': True,
@@ -5163,7 +5283,7 @@ def obtener_esperables_criterio_por_estudiante(request, criterio_id, estudiante_
                         'es_seleccionado': False
                     })
                 
-                print(f"No hay esperable seleccionado, devolviendo todos los esperables: {esperables_data}")
+                logger.debug(f"No hay esperable seleccionado, devolviendo todos los esperables: {esperables_data}")
                 
                 return JsonResponse({
                     'success': True,
@@ -5173,7 +5293,7 @@ def obtener_esperables_criterio_por_estudiante(request, criterio_id, estudiante_
                 
         except ResultadoRubrica.DoesNotExist:
             # Si no existe resultado de rúbrica, devolver todos los esperables disponibles
-            print(f"No existe ResultadoRubrica para estudiante {estudiante_id}")
+            logger.debug(f"No existe ResultadoRubrica para estudiante {estudiante_id}")
             esperables = criterio.esperables.all()
             esperables_data = []
             for esperable in esperables:
@@ -5192,7 +5312,7 @@ def obtener_esperables_criterio_por_estudiante(request, criterio_id, estudiante_
             })
         
     except Exception as e:
-        print(f"Error en obtener_esperables_criterio_por_estudiante: {str(e)}")
+        logger.debug(f"Error en obtener_esperables_criterio_por_estudiante: {str(e)}")
         return JsonResponse({'error': f'Error al obtener esperables: {str(e)}'}, status=500)
 
 @login_required
@@ -5298,3 +5418,1166 @@ def debug_calificaciones(request, curso_id):
         
     except Exception as e:
         return JsonResponse({'error': f'Error en debug: {str(e)}'}, status=500)
+
+@login_required
+def plataforma_calificaciones_ajax(request, curso_id):
+    """
+    Vista AJAX para cargar el contenido de calificaciones dinámicamente
+    """
+    try:
+        logger.debug(f"DEBUG: Iniciando plataforma_calificaciones_ajax")
+        logger.debug(f"DEBUG: curso_id: {curso_id}")
+        logger.debug(f"DEBUG: usuario: {request.user.username}")
+        logger.debug(f"DEBUG: es_staff: {request.user.is_staff}")
+        
+        curso = Curso.objects.get(id=curso_id, activo=True)
+
+        logger.debug(f"DEBUG: Curso encontrado: {curso.nombre}")
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            return JsonResponse({'error': 'No tienes acceso a este curso'}, status=403)
+        
+        # Verificar si es una acción específica
+        action = request.GET.get('action')
+        
+        if action == 'ver_rubricas':
+            # Cargar vista de rúbricas para todos los usuarios
+            evaluaciones_con_rubricas = []
+            evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
+            
+            for evaluacion in evaluaciones:
+                try:
+                    rubrica = evaluacion.rubrica
+                    if rubrica and rubrica.activa:
+                        evaluaciones_con_rubricas.append({
+                            'evaluacion': evaluacion,
+                            'rubrica': rubrica
+                        })
+                except:
+                    continue
+            
+            context = {
+                'curso': curso,
+                'evaluaciones_con_rubricas': evaluaciones_con_rubricas,
+                'mostrar_rubricas': True,
+            }
+            
+            html = render_to_string('pages/plataforma_calificaciones_rubricas_content.html', context, request=request)
+            return JsonResponse({'html': html})
+        
+        elif action == 'ver_calificar':
+            # Cargar vista de calificar estudiantes
+            from .forms import CalificacionForm
+            
+            evaluacion_id = request.GET.get('evaluacion_id')
+            estudiante_id = request.GET.get('estudiante_id')  # Nuevo parámetro para precargar estudiante
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar permisos
+                if not request.user.is_staff:
+                    return JsonResponse({'error': 'No tienes permisos para calificar estudiantes'}, status=403)
+                
+                # Obtener estudiantes del curso que tienen entregas para esta evaluación
+                estudiantes_con_entregas = User.objects.filter(
+                    cursos=curso,
+                    is_staff=False,
+                    is_superuser=False,
+                    entregas__evaluacion=evaluacion
+                ).distinct().order_by('first_name', 'last_name', 'username')
+                
+                # Para el formulario: solo estudiantes no calificados
+                estudiantes_calificados_ids = evaluacion.calificaciones.values_list('estudiante_id', flat=True)
+                estudiantes_disponibles_para_calificar = estudiantes_con_entregas.exclude(id__in=estudiantes_calificados_ids)
+                
+                # Si no hay estudiantes con entregas, mostrar mensaje
+                if not estudiantes_con_entregas.exists():
+                    # Obtener todos los estudiantes del curso para mostrar el mensaje
+                    todos_estudiantes = User.objects.filter(
+                        cursos=curso,
+                        is_staff=False,
+                        is_superuser=False
+                    ).order_by('first_name', 'last_name', 'username')
+                    
+                    # Crear formulario vacío
+                    form = CalificacionForm(curso=curso, evaluacion=evaluacion, estudiantes_con_entregas=[])
+                    
+                    # Obtener criterios de la rúbrica si existe
+                    criterios_rubrica = []
+                    if evaluacion.rubrica:
+                        criterios_rubrica = evaluacion.rubrica.criterios.all()
+                    
+                    context = {
+                        'curso': curso,
+                        'evaluacion': evaluacion,
+                        'form': form,
+                        'estudiantes': [],
+                        'todos_estudiantes': todos_estudiantes,
+                        'criterios_rubrica': criterios_rubrica,
+                        'mensaje_error': f'No hay estudiantes con entregas para la evaluación "{evaluacion.nombre}". Solo se pueden calificar estudiantes que hayan entregado su trabajo.',
+                        'mostrar_calificar': True,
+                    }
+                    html = render_to_string('pages/calificar_estudiante.html', context, request=request)
+                    return JsonResponse({'html': html})
+                
+                # Obtener calificaciones existentes
+                calificaciones_existentes = evaluacion.calificaciones.all().order_by('estudiante__first_name', 'estudiante__last_name')
+                
+                # Obtener todos los estudiantes del curso
+                todos_estudiantes = User.objects.filter(
+                    cursos=curso,
+                    is_staff=False,
+                    is_superuser=False
+                ).order_by('first_name', 'last_name', 'username')
+                
+                # Crear formulario de calificación
+                form = CalificacionForm(curso=curso, evaluacion=evaluacion, estudiantes_con_entregas=estudiantes_disponibles_para_calificar)
+                
+                # Si se proporciona un estudiante_id, precargar el formulario con ese estudiante
+                if estudiante_id:
+                    try:
+                        estudiante_precargado = User.objects.get(id=estudiante_id, cursos=curso)
+                        # Verificar que el estudiante tenga entrega para esta evaluación
+                        if estudiante_precargado.entregas.filter(evaluacion=evaluacion).exists():
+                            form.fields['estudiante'].initial = estudiante_precargado
+                    except User.DoesNotExist:
+                        pass  # Si el estudiante no existe, no precargar nada
+                
+                # Obtener criterios de la rúbrica si existe
+                criterios_rubrica = []
+                if evaluacion.rubrica:
+                    criterios_rubrica = evaluacion.rubrica.criterios.all()
+                
+                # Calcular estadísticas
+                stats = {
+                    'total_estudiantes_curso': todos_estudiantes.count(),
+                    'total_estudiantes_con_entregas': estudiantes_con_entregas.count(),
+                    'estudiantes_ya_calificados': evaluacion.calificaciones.count(),
+                    'estudiantes_disponibles_para_calificar': estudiantes_disponibles_para_calificar.count(),
+                }
+                
+                context = {
+                    'curso': curso,
+                    'evaluacion': evaluacion,
+                    'form': form,
+                    'estudiantes': estudiantes_disponibles_para_calificar,
+                    'todos_estudiantes': todos_estudiantes,
+                    'criterios_rubrica': criterios_rubrica,
+                    'stats': stats,
+                    'mostrar_calificar': True,
+                }
+                
+                html = render_to_string('pages/calificar_estudiante.html', context, request=request)
+                return JsonResponse({'html': html})
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.debug(f"Error al cargar calificar: {str(e)}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': f'Error al cargar la vista de calificación: {str(e)}'}, status=500)
+        
+        elif action == 'eliminar_evaluacion':
+            # Cargar vista de eliminación de evaluación
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar permisos
+                if not request.user.is_staff:
+                    return JsonResponse({'error': 'No tienes permisos para eliminar evaluaciones'}, status=403)
+                
+                # Verificar si la evaluación tiene calificaciones
+                tiene_calificaciones = evaluacion.calificaciones.exists()
+                
+                context = {
+                    'curso': curso,
+                    'evaluacion': evaluacion,
+                    'tiene_calificaciones': tiene_calificaciones,
+                    'mostrar_eliminar': True,
+                }
+                
+                html = render_to_string('pages/plataforma_calificaciones_eliminar_content.html', context, request=request)
+                return JsonResponse({'html': html})
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.debug(f"Error al cargar eliminación: {str(e)}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': f'Error al cargar la vista de eliminación: {str(e)}'}, status=500)
+        
+        elif action == 'ver_editar_evaluacion':
+            # Cargar vista de editar evaluación
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso)
+                
+                # Verificar permisos
+                if not request.user.is_staff:
+                    return JsonResponse({'error': 'No tienes permisos para editar evaluaciones'}, status=403)
+                
+                # Crear formulario
+                from .forms import EvaluacionForm
+                form = EvaluacionForm(instance=evaluacion, curso=curso)
+                
+                # Asegurar que las fechas estén en formato ISO para HTML5 date inputs
+                # Forzar el formato ISO independientemente de la configuración de Django
+                if evaluacion.fecha_inicio:
+                    form.fields['fecha_inicio'].widget.attrs['value'] = evaluacion.fecha_inicio.strftime('%Y-%m-%d')
+                    # También establecer el formato de visualización para evitar problemas de localización
+                    form.fields['fecha_inicio'].widget.format = '%Y-%m-%d'
+                if evaluacion.fecha_fin:
+                    form.fields['fecha_fin'].widget.attrs['value'] = evaluacion.fecha_fin.strftime('%Y-%m-%d')
+                    # También establecer el formato de visualización para evitar problemas de localización
+                    form.fields['fecha_fin'].widget.format = '%Y-%m-%d'
+                
+                context = {
+                    'curso': curso,
+                    'evaluacion': evaluacion,
+                    'form': form,
+                    'user': request.user,
+                }
+                
+                # Renderizar solo el contenido del formulario
+                html = render_to_string('pages/editar_evaluacion_content.html', context, request=request)
+                return JsonResponse({'html': html})
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.debug(f"Error al cargar editar evaluación: {str(e)}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': f'Error al cargar la vista de editar evaluación: {str(e)}'}, status=500)
+        
+        elif action == 'ver_rubrica':
+            # Cargar vista de rúbrica específica
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para ver esta rúbrica'}, status=403)
+                
+                # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
+                from datetime import date
+                hoy = date.today()
+                puede_editar = True
+                mensaje_restriccion = None
+                
+                if evaluacion.fecha_inicio and hoy >= evaluacion.fecha_inicio:
+                    puede_editar = False
+                    mensaje_restriccion = f'La evaluación comenzó el {evaluacion.fecha_inicio.strftime("%d/%m/%Y")}. La rúbrica no se puede editar después de esta fecha.'
+                
+                # Obtener la rúbrica (si existe)
+                rubrica = None
+                try:
+                    rubrica = evaluacion.rubrica
+                except Rubrica.DoesNotExist:
+                    # Si no existe rúbrica, mostrar mensaje informativo
+                    context = {
+                        'curso': curso,
+                        'evaluacion': evaluacion,
+                        'rubrica': None,
+                        'user': request.user,
+                        'puede_editar': puede_editar,
+                        'mensaje_restriccion': mensaje_restriccion,
+                        'mostrar_rubrica': True,
+                        'sin_rubrica': True,
+                    }
+                    
+                    html = render_to_string('pages/plataforma_calificaciones_rubrica_content.html', context, request=request)
+                    return JsonResponse({'html': html})
+                
+                # Si existe la rúbrica, mostrar normalmente
+                context = {
+                    'curso': curso,
+                    'evaluacion': evaluacion,
+                    'rubrica': rubrica,
+                    'user': request.user,
+                    'puede_editar': puede_editar,
+                    'mensaje_restriccion': mensaje_restriccion,
+                    'mostrar_rubrica': True,
+                    'sin_rubrica': False,
+                }
+                
+                html = render_to_string('pages/plataforma_calificaciones_rubrica_content.html', context, request=request)
+                return JsonResponse({'html': html})
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                logger.debug(f"Error al cargar rúbrica: {str(e)}")
+                return JsonResponse({'error': 'Error al cargar la rúbrica'}, status=500)
+        
+        elif action == 'crear_evaluacion':
+            # Cargar formulario de crear evaluación
+            from .forms import EvaluacionForm
+            
+            # Verificar permisos de staff
+            if not request.user.is_staff:
+                return JsonResponse({'error': 'No tienes permisos para crear evaluaciones'}, status=403)
+            
+            form = EvaluacionForm(curso=curso)
+            context = {
+                'curso': curso,
+                'form': form,
+                'user': request.user,
+            }
+            html = render_to_string('pages/plataforma_calificaciones_crear_evaluacion_content.html', context, request=request)
+            return JsonResponse({'html': html})
+        
+        elif action == 'ver_estadisticas':
+            # Cargar vista de estadísticas
+            try:
+                logger.debug(f"=== INICIANDO ESTADISTICAS ===")
+                logger.debug(f"Usuario: {request.user.username}")
+                logger.debug(f"Es staff: {request.user.is_staff}")
+                logger.debug(f"Curso ID: {curso.id}")
+                
+                if request.user.is_staff:
+                    # Estadísticas para staff
+                    evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('-fecha_creacion')
+                    calificaciones_curso = Calificacion.objects.filter(evaluacion__curso=curso, nota__isnull=False)
+                    
+                    # Estadísticas generales
+                    if calificaciones_curso.exists():
+                        estadisticas = {
+                            'promedio_general': calificaciones_curso.aggregate(Avg('nota'))['nota__avg'],
+                            'nota_minima': calificaciones_curso.aggregate(Min('nota'))['nota__min'],
+                            'nota_maxima': calificaciones_curso.aggregate(Max('nota'))['nota__max'],
+                            'total_estudiantes': curso.usuarios.filter(is_staff=False, is_superuser=False).count(),
+                        }
+                    else:
+                        estadisticas = None
+                    
+                    # Estadísticas por evaluación
+                    estadisticas_evaluaciones = []
+                    for evaluacion in evaluaciones:
+                        calificaciones_eval = calificaciones_curso.filter(evaluacion=evaluacion)
+                        stats = {
+                            'evaluacion': evaluacion,
+                            'total_calificaciones': calificaciones_eval.count(),
+                            'promedio': calificaciones_eval.aggregate(Avg('nota'))['nota__avg'] if calificaciones_eval.exists() else None,
+                            'nota_minima': calificaciones_eval.aggregate(Min('nota'))['nota__min'] if calificaciones_eval.exists() else None,
+                            'nota_maxima': calificaciones_eval.aggregate(Max('nota'))['nota__max'] if calificaciones_eval.exists() else None,
+                        }
+                        estadisticas_evaluaciones.append(stats)
+                    
+                    # Estadísticas por estudiante
+                    estudiantes = curso.usuarios.filter(is_staff=False, is_superuser=False).order_by('first_name', 'last_name')
+                    estadisticas_estudiantes = []
+                    
+                    for estudiante in estudiantes:
+                        calificaciones_est = calificaciones_curso.filter(estudiante=estudiante)
+                        stats = {
+                            'estudiante': estudiante,
+                            'total_calificaciones': calificaciones_est.count(),
+                            'promedio': calificaciones_est.aggregate(Avg('nota'))['nota__avg'] if calificaciones_est.exists() else None,
+                            'nota_minima': calificaciones_est.aggregate(Min('nota'))['nota__min'] if calificaciones_est.exists() else None,
+                            'nota_maxima': calificaciones_est.aggregate(Max('nota'))['nota__max'] if calificaciones_est.exists() else None,
+                        }
+                        estadisticas_estudiantes.append(stats)
+                    
+                    context = {
+                        'curso': curso,
+                        'estadisticas': estadisticas,
+                        'estadisticas_evaluaciones': estadisticas_evaluaciones,
+                        'estadisticas_estudiantes': estadisticas_estudiantes,
+                        'evaluaciones': evaluaciones,
+                        'mostrar_estadisticas': True,
+                    }
+                    
+                    html = render_to_string('pages/estadisticas_curso_content.html', context, request=request)
+                    
+                    logger.debug(f"=== DEBUG ESTADISTICAS ===")
+                    logger.debug(f"Estadísticas evaluaciones: {len(estadisticas_evaluaciones)}")
+                    logger.debug(f"Estadísticas estudiantes: {len(estadisticas_estudiantes)}")
+                    logger.debug(f"HTML length: {len(html)}")
+                    
+                    return JsonResponse({'html': html})
+                else:
+                    # Estadísticas para estudiantes
+                    calificaciones_usuario = Calificacion.objects.filter(
+                        evaluacion__curso=curso,
+                        estudiante=request.user
+                    ).order_by('-fecha_calificacion')
+                    
+                    calificaciones_con_nota = calificaciones_usuario.filter(nota__isnull=False)
+                    total_evaluaciones = Evaluacion.objects.filter(curso=curso).count()
+                    
+                    if calificaciones_con_nota.exists():
+                        # Calcular promedio ponderado
+                        suma_ponderada = 0
+                        suma_ponderaciones = 0
+                        evaluaciones_calificadas = 0
+                        
+                        for calificacion in calificaciones_con_nota:
+                            nota_ponderada = calificacion.nota * calificacion.evaluacion.ponderacion
+                            suma_ponderada += nota_ponderada
+                            suma_ponderaciones += calificacion.evaluacion.ponderacion
+                            evaluaciones_calificadas += 1
+                        
+                        if suma_ponderaciones > 0:
+                            promedio_ponderado = suma_ponderada / suma_ponderaciones
+                            estadisticas_estudiante = {
+                                'promedio_ponderado': promedio_ponderado,
+                                'evaluaciones_calificadas': evaluaciones_calificadas,
+                                'total_evaluaciones': total_evaluaciones,
+                                'suma_ponderaciones': suma_ponderaciones
+                            }
+                        else:
+                            estadisticas_estudiante = {
+                                'evaluaciones_calificadas': evaluaciones_calificadas,
+                                'total_evaluaciones': total_evaluaciones,
+                                'suma_ponderaciones': suma_ponderaciones
+                            }
+                    else:
+                        estadisticas_estudiante = {
+                            'evaluaciones_calificadas': 0,
+                            'total_evaluaciones': total_evaluaciones,
+                            'suma_ponderaciones': 0
+                        }
+                    
+                    context = {
+                        'curso': curso,
+                        'calificaciones_usuario': calificaciones_usuario,
+                        'estadisticas_estudiante': estadisticas_estudiante,
+                        'mostrar_estadisticas': True,
+                    }
+                    
+                    html = render_to_string('pages/estadisticas_curso_content.html', context, request=request)
+                    return JsonResponse({'html': html})
+            except Exception as e:
+                logger.debug(f"=== ERROR EN ESTADISTICAS ===")
+                logger.debug(f"Error: {str(e)}")
+                import traceback
+                traceback.logger.debug_exc()
+                return JsonResponse({'error': 'Error al cargar las estadísticas'}, status=500)
+        
+        elif action == 'ver_evaluacion':
+            # Cargar detalle de una evaluación específica
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if evaluacion_id:
+                try:
+                    evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                    
+                    if request.user.is_staff:
+                        # Vista para staff - mostrar entregas y calificaciones
+                        entregas = evaluacion.entregas.all().order_by('-fecha_entrega')
+                        calificaciones = evaluacion.calificaciones.all().order_by('-fecha_calificacion')
+                        
+                        context = {
+                            'curso': curso,
+                            'evaluacion': evaluacion,
+                            'entregas': entregas,
+                            'calificaciones': calificaciones,
+                            'mostrar_detalle_evaluacion': True,
+                        }
+                    else:
+                        # Vista para estudiantes - mostrar su entrega y calificación
+                        try:
+                            entrega = evaluacion.entregas.get(estudiante=request.user)
+                        except Entrega.DoesNotExist:
+                            entrega = None
+                        
+                        try:
+                            calificacion = evaluacion.calificaciones.get(estudiante=request.user)
+                        except Calificacion.DoesNotExist:
+                            calificacion = None
+                        
+                        context = {
+                            'curso': curso,
+                            'evaluacion': evaluacion,
+                            'entrega': entrega,
+                            'calificacion': calificacion,
+                            'mostrar_detalle_evaluacion': True,
+                        }
+                    
+                    html = render_to_string('pages/plataforma_calificaciones_evaluacion_content.html', context, request=request)
+                    return JsonResponse({'html': html})
+                except Evaluacion.DoesNotExist:
+                    return JsonResponse({'error': 'La evaluación no existe'}, status=404)
+            else:
+                return JsonResponse({'error': 'ID de evaluación no proporcionado'}, status=400)
+        
+        elif action == 'ver_detalle':
+            # Cargar detalle de una calificación específica
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Obtener la calificación del usuario para esta evaluación
+                try:
+                    calificacion = evaluacion.calificaciones.get(estudiante=request.user)
+                except Calificacion.DoesNotExist:
+                    return JsonResponse({'error': 'No tienes una calificación para esta evaluación'}, status=404)
+                
+                # Obtener la rúbrica asociada a la evaluación si existe
+                rubrica = None
+                resultado_rubrica = None
+                criterios_con_puntajes = []
+                
+                try:
+                    rubrica = evaluacion.rubrica
+                    if rubrica:
+                        # Obtener el resultado de la rúbrica para este estudiante
+                        try:
+                            resultado_rubrica = ResultadoRubrica.objects.get(
+                                rubrica=rubrica,
+                                estudiante=request.user
+                            )
+                            
+                            # Obtener los criterios con sus puntajes
+                            for criterio in rubrica.criterios.all():
+                                try:
+                                    puntaje_criterio = PuntajeCriterio.objects.get(
+                                        resultado_rubrica=resultado_rubrica,
+                                        criterio=criterio
+                                    )
+                                    
+                                    # Determinar el esperable correcto basado en el puntaje obtenido
+                                    esperable_correcto = None
+                                    puntaje_obtenido = puntaje_criterio.puntaje_obtenido
+                                    
+                                    # Buscar coincidencia exacta primero
+                                    for esperable in criterio.esperables.all():
+                                        if esperable.puntaje == puntaje_obtenido:
+                                            esperable_correcto = esperable
+                                            break
+                                    
+                                    # Si no hay coincidencia exacta, buscar el esperable más cercano
+                                    if esperable_correcto is None:
+                                        esperables_ordenados = list(criterio.esperables.all().order_by('puntaje'))
+                                        for i, esperable in enumerate(esperables_ordenados):
+                                            if esperable.puntaje >= puntaje_obtenido:
+                                                esperable_correcto = esperable
+                                                break
+                                        # Si no se encontró ninguno mayor o igual, usar el último
+                                        if esperable_correcto is None and esperables_ordenados:
+                                            esperable_correcto = esperables_ordenados[-1]
+                                    
+                                    criterios_con_puntajes.append({
+                                        'criterio': criterio,
+                                        'puntaje_obtenido': puntaje_criterio.puntaje_obtenido,
+                                        'esperable_seleccionado': esperable_correcto,
+                                        'comentarios': puntaje_criterio.comentarios,
+                                    })
+                                except PuntajeCriterio.DoesNotExist:
+                                    criterios_con_puntajes.append({
+                                        'criterio': criterio,
+                                        'puntaje_obtenido': 0,
+                                        'esperable_seleccionado': None,
+                                        'comentarios': '',
+                                    })
+                        except ResultadoRubrica.DoesNotExist:
+                            # Si no hay resultado de rúbrica, mostrar solo los criterios sin puntajes
+                            for criterio in rubrica.criterios.all():
+                                criterios_con_puntajes.append({
+                                    'criterio': criterio,
+                                    'puntaje_obtenido': 0,
+                                    'esperable_seleccionado': None,
+                                    'comentarios': '',
+                                })
+                except:
+                    pass
+                
+                context = {
+                    'curso': curso,
+                    'calificacion': calificacion,
+                    'rubrica': rubrica,
+                    'resultado_rubrica': resultado_rubrica,
+                    'criterios_con_puntajes': criterios_con_puntajes,
+                    'user': request.user,
+                }
+                
+                html = render_to_string('pages/plataforma_calificaciones_detalle_content.html', context, request=request)
+                return JsonResponse({'html': html})
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.debug(f"Error al cargar detalle de calificación: {str(e)}")
+                logger.debug(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': f'Error al cargar el detalle de calificación: {str(e)}'}, status=500)
+        
+        # Vista principal de calificaciones (sin acción específica)
+        context = {
+            'curso': curso,
+            'user': request.user,
+        }
+        
+        if request.user.is_staff:
+            # Vista para Staff/Admin
+            evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('-fecha_creacion')
+            context['evaluaciones'] = evaluaciones
+            
+            # Debug: Imprimir información sobre las evaluaciones
+            logger.debug(f"DEBUG: Usuario es staff: {request.user.is_staff}")
+            logger.debug(f"DEBUG: Curso ID: {curso.id}")
+            logger.debug(f"DEBUG: Evaluaciones encontradas: {evaluaciones.count()}")
+            for eval in evaluaciones:
+                logger.debug(f"DEBUG: Evaluación: {eval.nombre} (ID: {eval.id})")
+            
+            # Estadísticas generales del curso
+            calificaciones_curso = Calificacion.objects.filter(evaluacion__curso=curso, nota__isnull=False)
+            if calificaciones_curso.exists():
+                estadisticas = {
+                    'promedio_general': calificaciones_curso.aggregate(Avg('nota'))['nota__avg'],
+                    'nota_minima': calificaciones_curso.aggregate(Min('nota'))['nota__min'],
+                    'nota_maxima': calificaciones_curso.aggregate(Max('nota'))['nota__max'],
+                    'total_estudiantes': curso.usuarios.filter(is_staff=False, is_superuser=False).count(),
+                }
+                context['estadisticas'] = estadisticas
+            
+            # Estadísticas de entregas por evaluación
+            for evaluacion in evaluaciones:
+                total_estudiantes = curso.usuarios.filter(is_staff=False, is_superuser=False).count()
+                estudiantes_con_entregas = evaluacion.entregas.values('estudiante').distinct().count()
+                estudiantes_calificados = evaluacion.calificaciones.count()
+                
+                evaluacion.stats_entregas = {
+                    'total_estudiantes': total_estudiantes,
+                    'estudiantes_con_entregas': estudiantes_con_entregas,
+                    'estudiantes_sin_entregas': total_estudiantes - estudiantes_con_entregas,
+                    'estudiantes_calificados': estudiantes_calificados,
+                    'estudiantes_pendientes_calificacion': estudiantes_con_entregas - estudiantes_calificados
+                }
+            
+            # Agregar información sobre la nueva funcionalidad
+            context['info_entregas'] = {
+                'mensaje': '💡 Solo se pueden calificar estudiantes que hayan entregado su trabajo. Desde la primera entrega se puede acceder a calificar una evaluación.',
+                'total_evaluaciones': evaluaciones.count(),
+                'evaluaciones_con_entregas': sum(1 for e in evaluaciones if e.stats_entregas['estudiantes_con_entregas'] > 0)
+            }
+            
+        else:
+            # Vista para Estudiantes
+            calificaciones_usuario = Calificacion.objects.filter(
+                evaluacion__curso=curso,
+                estudiante=request.user
+            ).order_by('-fecha_calificacion')
+            context['calificaciones_usuario'] = calificaciones_usuario
+            
+            # Estadísticas personales del estudiante
+            calificaciones_con_nota = calificaciones_usuario.filter(nota__isnull=False)
+            total_evaluaciones = Evaluacion.objects.filter(curso=curso).count()
+            
+            if calificaciones_con_nota.exists():
+                # Calcular promedio ponderado
+                suma_ponderada = 0
+                suma_ponderaciones = 0
+                evaluaciones_calificadas = 0
+                
+                for calificacion in calificaciones_con_nota:
+                    # Calcular nota ponderada: nota * ponderacion
+                    nota_ponderada = calificacion.nota * calificacion.evaluacion.ponderacion
+                    suma_ponderada += nota_ponderada
+                    suma_ponderaciones += calificacion.evaluacion.ponderacion
+                    evaluaciones_calificadas += 1
+                
+                # Calcular promedio ponderado
+                if suma_ponderaciones > 0:
+                    promedio_ponderado = suma_ponderada / suma_ponderaciones
+                    context['estadisticas_estudiante'] = {
+                        'promedio_ponderado': promedio_ponderado,
+                        'evaluaciones_calificadas': evaluaciones_calificadas,
+                        'total_evaluaciones': total_evaluaciones,
+                        'suma_ponderaciones': suma_ponderaciones
+                    }
+                else:
+                    context['estadisticas_estudiante'] = {
+                        'evaluaciones_calificadas': evaluaciones_calificadas,
+                        'total_evaluaciones': total_evaluaciones,
+                        'suma_ponderaciones': suma_ponderaciones
+                    }
+            else:
+                context['estadisticas_estudiante'] = {
+                    'evaluaciones_calificadas': 0,
+                    'total_evaluaciones': total_evaluaciones,
+                    'suma_ponderaciones': 0
+                }
+            
+            # Calcular promedios por tipo de evaluación
+            promedios_por_tipo = {}
+            for calificacion in calificaciones_con_nota:
+                tipo = calificacion.evaluacion.get_tipo_display()
+                if tipo not in promedios_por_tipo:
+                    promedios_por_tipo[tipo] = {
+                        'notas': [],
+                        'ponderaciones': []
+                    }
+                promedios_por_tipo[tipo]['notas'].append(calificacion.nota)
+                promedios_por_tipo[tipo]['ponderaciones'].append(calificacion.evaluacion.ponderacion)
+            
+            # Calcular promedios
+            for tipo, datos in promedios_por_tipo.items():
+                if datos['notas']:
+                    promedio = sum(datos['notas']) / len(datos['notas'])
+                    ponderacion_promedio = sum(datos['ponderaciones']) / len(datos['ponderaciones'])
+                    promedios_por_tipo[tipo] = {
+                        'promedio': promedio,
+                        'ponderacion_promedio': ponderacion_promedio
+                    }
+            
+            context['promedios_por_tipo'] = promedios_por_tipo
+        
+        # Renderizar solo el contenido de calificaciones
+        html = render_to_string('pages/plataforma_calificaciones_content.html', context, request=request)
+        
+        # Debug: Verificar el contenido del HTML
+        logger.debug(f"DEBUG: Longitud del HTML renderizado: {len(html)}")
+        
+        
+        return JsonResponse({'html': html})
+        
+    except Curso.DoesNotExist:
+        return JsonResponse({'error': 'El curso no existe'}, status=404)
+
+@login_required
+def plataforma_calificaciones_spa(request, curso_id):
+    """
+    Vista SPA para calificaciones que extiende de plataforma_aprendizaje.html
+    """
+    curso = get_object_or_404(Curso, id=curso_id)
+    
+    # Verificar que el usuario esté inscrito en el curso
+    if not request.user.cursos.filter(id=curso_id).exists():
+        messages.error(request, 'No tienes acceso a este curso.')
+        return redirect('user_space')
+    
+    context = {
+        'curso': curso,
+        'user': request.user,
+    }
+    
+    return render(request, 'pages/plataforma_calificaciones_spa.html', context)
+
+def clear_messages(request):
+    """
+    Vista para limpiar manualmente todos los mensajes de la sesión
+    """
+    from django.contrib import messages
+    from django.http import JsonResponse
+    
+    if request.method == 'POST':
+        storage = messages.get_messages(request)
+        storage.used = True  # Marcar todos los mensajes como usados
+        return JsonResponse({'status': 'success', 'message': 'Mensajes limpiados'})
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+
+@login_required
+def editar_evaluacion_ajax(request, curso_id, evaluacion_id):
+    """
+    Vista AJAX para editar evaluaciones
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso)
+        
+        # Verificar permisos
+        if not request.user.is_staff:
+            return JsonResponse({'error': 'No tienes permisos para editar evaluaciones'}, status=403)
+        
+        form = EvaluacionForm(request.POST, instance=evaluacion, curso=curso)
+        if form.is_valid():
+            evaluacion = form.save(commit=False)
+            evaluacion.curso = curso
+            evaluacion.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Evaluación actualizada exitosamente'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Error en el formulario',
+                'form_errors': form.errors
+            })
+            
+    except Curso.DoesNotExist:
+        return JsonResponse({'error': 'Curso no encontrado'}, status=404)
+    except Evaluacion.DoesNotExist:
+        return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Error al actualizar la evaluación: {str(e)}'}, status=500)
+
+@login_required
+def eliminar_evaluacion_ajax(request, curso_id):
+    """
+    Vista AJAX para eliminar evaluaciones
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        evaluacion_id = request.GET.get('evaluacion_id')
+        
+        if not evaluacion_id:
+            return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+        
+        evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso)
+        
+        # Verificar permisos
+        if not request.user.is_staff:
+            return JsonResponse({'error': 'No tienes permisos para eliminar evaluaciones'}, status=403)
+        
+        # Verificar si la evaluación tiene calificaciones
+        tiene_calificaciones = evaluacion.calificaciones.exists()
+        
+        # Si no tiene calificaciones, eliminar directamente
+        if not tiene_calificaciones:
+            nombre_evaluacion = evaluacion.nombre
+            evaluacion.delete()
+            return JsonResponse({
+                'success': True,
+                'message': f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.'
+            })
+        
+        # Si tiene calificaciones, verificar confirmación
+        confirmacion = request.POST.get('confirmacion', '').strip()
+        if confirmacion != 'ELIMINAR':
+            return JsonResponse({
+                'success': False,
+                'error': 'Debes escribir "ELIMINAR" para confirmar la eliminación.'
+            })
+        
+        # Eliminar la evaluación y todas sus calificaciones asociadas
+        nombre_evaluacion = evaluacion.nombre
+        evaluacion.delete()
+        return JsonResponse({
+            'success': True,
+            'message': f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.'
+        })
+        
+    except Curso.DoesNotExist:
+        return JsonResponse({'error': 'Curso no encontrado'}, status=404)
+    except Evaluacion.DoesNotExist:
+        return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': f'Error al eliminar la evaluación: {str(e)}'}, status=500)
+
+@login_required
+def crear_evaluacion_ajax(request, curso_id):
+    """
+    Vista AJAX para cargar el formulario de crear evaluación dinámicamente
+    """
+    try:
+        logger.debug(f"DEBUG: Iniciando crear_evaluacion_ajax")
+        logger.debug(f"DEBUG: curso_id: {curso_id}")
+        logger.debug(f"DEBUG: usuario: {request.user.username}")
+        logger.debug(f"DEBUG: es_staff: {request.user.is_staff}")
+        
+        curso = Curso.objects.get(id=curso_id, activo=True)
+        logger.debug(f"DEBUG: Curso encontrado: {curso.nombre}")
+        
+        # Verificar que el usuario esté inscrito en el curso
+        if curso not in request.user.cursos.all():
+            return JsonResponse({'error': 'No tienes acceso a este curso'}, status=403)
+        
+        # Verificar permisos de staff
+        if not request.user.is_staff:
+            return JsonResponse({'error': 'No tienes permisos para crear evaluaciones'}, status=403)
+        
+        # Verificar si es una acción específica
+        action = request.GET.get('action')
+        
+        if action == 'crear_evaluacion':
+            # Cargar formulario de crear evaluación
+            from .forms import EvaluacionForm
+            
+            if request.method == 'POST':
+                form = EvaluacionForm(request.POST, curso=curso)
+                if form.is_valid():
+                    evaluacion = form.save(commit=False)
+                    evaluacion.curso = curso
+                    evaluacion.creado_por = request.user
+                    evaluacion.save()
+                    
+                    # Retornar respuesta de éxito
+                    return JsonResponse({
+                        'success': True,
+                        'message': f'Evaluación "{evaluacion.nombre}" creada exitosamente.',
+                        'redirect_url': reverse('plataforma_calificaciones', kwargs={'curso_id': curso_id})
+                    })
+                else:
+                    # Formulario con errores - retornar errores en formato JSON
+                    errors = {}
+                    for field, field_errors in form.errors.items():
+                        errors[field] = [str(error) for error in field_errors]
+                    
+                    return JsonResponse({
+                        'success': False,
+                        'errors': errors
+                    })
+            else:
+                # Formulario inicial
+                form = EvaluacionForm(curso=curso)
+                context = {
+                    'curso': curso,
+                    'form': form,
+                    'user': request.user,
+                }
+                html = render_to_string('pages/plataforma_calificaciones_crear_evaluacion_content.html', context, request=request)
+                return JsonResponse({'html': html})
+        
+        else:
+            # Acción por defecto: mostrar formulario
+            from .forms import EvaluacionForm
+            form = EvaluacionForm(curso=curso)
+            context = {
+                'curso': curso,
+                'form': form,
+                'user': request.user,
+            }
+            html = render_to_string('pages/plataforma_calificaciones_crear_evaluacion_content.html', context, request=request)
+            return JsonResponse({'html': html})
+            
+    except Curso.DoesNotExist:
+        return JsonResponse({'error': 'Curso no encontrado'}, status=404)
+    except Exception as e:
+        logger.error(f"Error en crear_evaluacion_ajax: {str(e)}")
+        return JsonResponse({'error': f'Error interno del servidor: {str(e)}'}, status=500)
+
+# ============================================================================
+# VISTAS DEL SISTEMA DE RECURSOS
+# ============================================================================
+
+@login_required
+def plataforma_recursos_ajax(request, curso_id):
+    try:
+        plataforma_recursos = PlataformaRecursosView()
+        return plataforma_recursos.plataforma_recursos_ajax(request, curso_id)
+    except:
+        logger.error("Ocurrio un error al tratar de ejecutar plataforma_recursos_ajax")
+        return JsonResponse({'error': 'Ocurrió un error al procesar la solicitud'}, status=500)
+
+# ============================================================================
+# VISTAS PARA EL MANTENEDOR DE ASIGNATURAS
+# ============================================================================
+
+@login_required
+def asignaturas_list(request):
+    """
+    Vista para listar todas las asignaturas (solo para admin/staff)
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    asignaturas = Asignatura.objects.all().prefetch_related('cursos')
+    
+    context = {
+        'asignaturas': asignaturas,
+        'page_title': 'Mantenedor de Asignaturas',
+    }
+    
+    return render(request, 'pages/asignaturas_list.html', context)
+
+@login_required
+def asignatura_detail(request, asignatura_id):
+    """
+    Vista para mostrar el detalle de una asignatura y sus cursos
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    asignatura = get_object_or_404(Asignatura, id=asignatura_id)
+    cursos = asignatura.cursos.all().prefetch_related('evaluaciones')
+    
+    context = {
+        'asignatura': asignatura,
+        'cursos': cursos,
+        'page_title': f'Detalle de Asignatura: {asignatura.nombre}',
+    }
+    
+    return render(request, 'pages/asignatura_detail.html', context)
+
+@login_required
+def asignatura_create(request):
+    """
+    Vista para crear una nueva asignatura
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    if request.method == 'POST':
+        # Procesar formulario de creación
+        nombre = request.POST.get('nombre')
+        codigo = request.POST.get('codigo')
+        descripcion = request.POST.get('descripcion')
+        area_conocimiento = request.POST.get('area_conocimiento')
+        creditos = request.POST.get('creditos')
+        
+        if nombre and codigo:
+            # Verificar que el código no exista
+            if Asignatura.objects.filter(codigo=codigo).exists():
+                messages.error(request, 'Ya existe una asignatura con ese código.')
+            else:
+                asignatura = Asignatura.objects.create(
+                    nombre=nombre,
+                    codigo=codigo,
+                    descripcion=descripcion,
+                    area_conocimiento=area_conocimiento,
+                    creditos=creditos if creditos else None,
+                    creado_por=request.user
+                )
+                messages.success(request, f'Asignatura "{asignatura.nombre}" creada exitosamente.')
+                return redirect('asignatura-detail', asignatura_id=asignatura.id)
+        else:
+            messages.error(request, 'El nombre y código son campos obligatorios.')
+    
+    context = {
+        'page_title': 'Crear Nueva Asignatura',
+    }
+    
+    return render(request, 'pages/asignatura_create.html', context)
+
+@login_required
+def asignatura_edit(request, asignatura_id):
+    """
+    Vista para editar una asignatura existente
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    asignatura = get_object_or_404(Asignatura, id=asignatura_id)
+    
+    if request.method == 'POST':
+        # Procesar formulario de edición
+        nombre = request.POST.get('nombre')
+        codigo = request.POST.get('codigo')
+        descripcion = request.POST.get('descripcion')
+        area_conocimiento = request.POST.get('area_conocimiento')
+        creditos = request.POST.get('creditos')
+        activa = request.POST.get('activa') == 'on'
+        
+        if nombre and codigo:
+            # Verificar que el código no exista en otra asignatura
+            if Asignatura.objects.filter(codigo=codigo).exclude(id=asignatura_id).exists():
+                messages.error(request, 'Ya existe otra asignatura con ese código.')
+            else:
+                asignatura.nombre = nombre
+                asignatura.codigo = codigo
+                asignatura.descripcion = descripcion
+                asignatura.area_conocimiento = area_conocimiento
+                asignatura.creditos = creditos if creditos else None
+                asignatura.activa = activa
+                asignatura.save()
+                
+                messages.success(request, f'Asignatura "{asignatura.nombre}" actualizada exitosamente.')
+                return redirect('asignatura-detail', asignatura_id=asignatura.id)
+        else:
+            messages.error(request, 'El nombre y código son campos obligatorios.')
+    
+    context = {
+        'asignatura': asignatura,
+        'page_title': f'Editar Asignatura: {asignatura.nombre}',
+    }
+    
+    return render(request, 'pages/asignatura_edit.html', context)
+
+@login_required
+def copiar_evaluacion_asignatura(request, asignatura_id):
+    """
+    Vista para copiar una evaluación entre cursos de la misma asignatura
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    asignatura = get_object_or_404(Asignatura, id=asignatura_id)
+    
+    if request.method == 'POST':
+        evaluacion_id = request.POST.get('evaluacion_id')
+        curso_destino_id = request.POST.get('curso_destino_id')
+        
+        if evaluacion_id and curso_destino_id:
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id)
+                curso_destino = Curso.objects.get(id=curso_destino_id)
+                
+                # Verificar que ambos pertenezcan a la misma asignatura
+                if evaluacion.curso.asignatura == asignatura and curso_destino.asignatura == asignatura:
+                    nueva_evaluacion = asignatura.copiar_evaluacion(evaluacion, curso_destino, request.user)
+                    messages.success(request, f'Evaluación "{evaluacion.nombre}" copiada exitosamente al curso "{curso_destino.nombre}".')
+                    return redirect('asignatura-detail', asignatura_id=asignatura.id)
+                else:
+                    messages.error(request, 'La evaluación y el curso destino deben pertenecer a la misma asignatura.')
+            except (Evaluacion.DoesNotExist, Curso.DoesNotExist):
+                messages.error(request, 'La evaluación o curso seleccionado no existe.')
+            except ValueError as e:
+                messages.error(request, str(e))
+        else:
+            messages.error(request, 'Debes seleccionar una evaluación y un curso destino.')
+    
+    # Obtener todas las evaluaciones de los cursos de esta asignatura
+    evaluaciones = Evaluacion.objects.filter(curso__asignatura=asignatura).select_related('curso')
+    cursos = asignatura.cursos.all()
+    
+    context = {
+        'asignatura': asignatura,
+        'evaluaciones': evaluaciones,
+        'cursos': cursos,
+        'page_title': f'Copiar Evaluación - {asignatura.nombre}',
+    }
+    
+    return render(request, 'pages/copiar_evaluacion_asignatura.html', context)
+
+@login_required
+def asignatura_delete(request, asignatura_id):
+    """
+    Vista para eliminar una asignatura (solo si no tiene cursos asociados)
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    asignatura = get_object_or_404(Asignatura, id=asignatura_id)
+    
+    if request.method == 'POST':
+        # Verificar que no tenga cursos asociados
+        if asignatura.cursos.exists():
+            messages.error(request, 'No se puede eliminar una asignatura que tiene cursos asociados.')
+        else:
+            nombre_asignatura = asignatura.nombre
+            asignatura.delete()
+            messages.success(request, f'Asignatura "{nombre_asignatura}" eliminada exitosamente.')
+            return redirect('asignaturas-list')
+    
+    context = {
+        'asignatura': asignatura,
+        'page_title': f'Eliminar Asignatura: {asignatura.nombre}',
+    }
+    
+    return render(request, 'pages/asignatura_delete.html', context)

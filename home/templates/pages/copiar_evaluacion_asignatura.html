@@ -1,0 +1,298 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %} {{ page_title }} {% endblock title %}
+
+{% block extrastyle %}
+<style>
+    /* Estilos específicos para formularios del mantenedor de asignaturas */
+    .card-body .form-control, .card-body .form-select {
+        border: 1px solid #d2d6da !important;
+        border-radius: 0.375rem !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 0.875rem !important;
+        line-height: 1.5 !important;
+        color: #495057 !important;
+        background-color: #fff !important;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+        display: block !important;
+        width: 100% !important;
+        appearance: none !important;
+    }
+    
+    .card-body .form-control:focus, .card-body .form-select:focus {
+        border-color: #5e72e4 !important;
+        outline: 0 !important;
+        box-shadow: 0 0 0 0.2rem rgba(94, 114, 228, 0.25) !important;
+        color: #495057 !important;
+        background-color: #fff !important;
+    }
+    
+    .card-body .form-control:disabled,
+    .card-body .form-control[readonly],
+    .card-body .form-select:disabled {
+        background-color: #e9ecef !important;
+        opacity: 1 !important;
+    }
+    
+    /* Estilos para labels */
+    .card-body .form-label {
+        font-weight: 600 !important;
+        color: #344767 !important;
+        margin-bottom: 0.5rem !important;
+        display: block !important;
+    }
+    
+    /* Estilos para mensajes de ayuda */
+    .card-body .form-text {
+        font-size: 0.75rem !important;
+        color: #6c757d !important;
+        margin-top: 0.25rem !important;
+    }
+    
+    /* Estilos para campos requeridos */
+    .card-body .form-control:required, .card-body .form-select:required {
+        border-left: 3px solid #5e72e4 !important;
+    }
+    
+    /* Estilos para campos con error */
+    .card-body .form-control.is-invalid, .card-body .form-select.is-invalid {
+        border-color: #dc3545 !important;
+    }
+    
+    .card-body .form-control.is-invalid:focus, .card-body .form-select.is-invalid:focus {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    }
+    
+    /* Override Material Kit styles */
+    .card-body .form-control:not(.input-group-dynamic .form-control):not(.input-group-static .form-control),
+    .card-body .form-select:not(.input-group-dynamic .form-select):not(.input-group-static .form-select) {
+        border: 1px solid #d2d6da !important;
+        background-color: #fff !important;
+        color: #495057 !important;
+    }
+    
+    .card-body .form-control:not(.input-group-dynamic .form-control):not(.input-group-static .form-control):focus,
+    .card-body .form-select:not(.input-group-dynamic .form-select):not(.input-group-static .form-select):focus {
+        border-color: #5e72e4 !important;
+        box-shadow: 0 0 0 0.2rem rgba(94, 114, 228, 0.25) !important;
+    }
+</style>
+{% endblock extrastyle %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'asignaturas-list' %}">
+                            <i class="fas fa-graduation-cap me-1"></i>Asignaturas
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'asignatura-detail' asignatura.id %}">
+                            {{ asignatura.nombre }}
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">Copiar Evaluaciones</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-copy me-2"></i>
+                        Copiar Evaluaciones - {{ asignatura.nombre }}
+                    </h4>
+                    <small class="text-muted">
+                        Copia evaluaciones entre cursos de la misma asignatura
+                    </small>
+                </div>
+                <div class="card-body">
+                    {% if evaluaciones and cursos %}
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="evaluacion_id" class="form-label">
+                                            <strong>Evaluación a Copiar *</strong>
+                                        </label>
+                                        <select class="form-select" id="evaluacion_id" name="evaluacion_id" required>
+                                            <option value="">Selecciona una evaluación...</option>
+                                            {% for evaluacion in evaluaciones %}
+                                                <option value="{{ evaluacion.id }}">
+                                                    {{ evaluacion.nombre }} - {{ evaluacion.curso.nombre }}
+                                                    ({{ evaluacion.get_tipo_display }})
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            Selecciona la evaluación que quieres copiar
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="curso_destino_id" class="form-label">
+                                            <strong>Curso Destino *</strong>
+                                        </label>
+                                        <select class="form-select" id="curso_destino_id" name="curso_destino_id" required>
+                                            <option value="">Selecciona un curso destino...</option>
+                                            {% for curso in cursos %}
+                                                <option value="{{ curso.id }}">
+                                                    {{ curso.nombre }}
+                                                    {% if curso.docente_nombre %}
+                                                        - {{ curso.docente_nombre }}
+                                                    {% endif %}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            Selecciona el curso donde quieres copiar la evaluación
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Información:</strong> Al copiar una evaluación se incluirán:
+                                <ul class="mb-0 mt-2">
+                                    <li>Datos básicos de la evaluación (nombre, tipo, fechas, ponderación)</li>
+                                    <li>Rúbrica completa con criterios y esperables (si existe)</li>
+                                    <li>Recursos asociados a la evaluación</li>
+                                    <li>El nombre se modificará agregando "(Copia)" al final</li>
+                                </ul>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'asignatura-detail' asignatura.id %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-copy me-2"></i>Copiar Evaluación
+                                </button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="text-center py-5">
+                            {% if not evaluaciones and not cursos %}
+                                <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                                <h5 class="text-warning">No hay evaluaciones ni cursos disponibles</h5>
+                                <p class="text-muted">
+                                    Para copiar evaluaciones, necesitas tener al menos una evaluación 
+                                    y más de un curso en esta asignatura.
+                                </p>
+                            {% elif not evaluaciones %}
+                                <i class="fas fa-clipboard-list fa-3x text-warning mb-3"></i>
+                                <h5 class="text-warning">No hay evaluaciones disponibles</h5>
+                                <p class="text-muted">
+                                    No hay evaluaciones en los cursos de esta asignatura para copiar.
+                                </p>
+                            {% else %}
+                                <i class="fas fa-book fa-3x text-warning mb-3"></i>
+                                <h5 class="text-warning">No hay suficientes cursos</h5>
+                                <p class="text-muted">
+                                    Necesitas al menos dos cursos en esta asignatura para poder copiar evaluaciones.
+                                </p>
+                            {% endif %}
+                            <a href="{% url 'asignatura-detail' asignatura.id %}" class="btn btn-primary">
+                                <i class="fas fa-arrow-left me-2"></i>Volver al Detalle
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Lista de Evaluaciones Disponibles -->
+            {% if evaluaciones %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Evaluaciones Disponibles para Copiar
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Evaluación</th>
+                                    <th>Curso Origen</th>
+                                    <th>Tipo</th>
+                                    <th>Nota Máxima</th>
+                                    <th>Ponderación</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for evaluacion in evaluaciones %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ evaluacion.nombre }}</strong>
+                                    </td>
+                                    <td>{{ evaluacion.curso.nombre }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ evaluacion.get_tipo_display }}</span>
+                                    </td>
+                                    <td>{{ evaluacion.nota_maxima }}</td>
+                                    <td>{{ evaluacion.ponderacion }}%</td>
+                                    <td>
+                                        {% if evaluacion.activa %}
+                                            <span class="badge bg-success">Activa</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactiva</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block javascripts %}
+<script>
+    // Auto-hide messages after 5 seconds
+    setTimeout(function() {
+        $('.alert').fadeOut('slow');
+    }, 5000);
+
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const evaluacionId = document.getElementById('evaluacion_id').value;
+        const cursoDestinoId = document.getElementById('curso_destino_id').value;
+        
+        if (!evaluacionId || !cursoDestinoId) {
+            e.preventDefault();
+            alert('Por favor, selecciona tanto la evaluación como el curso destino.');
+            return false;
+        }
+        
+        // Verificar que no sea el mismo curso
+        const evaluacionSelect = document.getElementById('evaluacion_id');
+        const cursoDestinoSelect = document.getElementById('curso_destino_id');
+        const evaluacionText = evaluacionSelect.options[evaluacionSelect.selectedIndex].text;
+        const cursoDestinoText = cursoDestinoSelect.options[cursoDestinoSelect.selectedIndex].text;
+        
+        if (evaluacionText.includes(cursoDestinoText.split(' - ')[0])) {
+            e.preventDefault();
+            alert('No puedes copiar una evaluación al mismo curso.');
+            return false;
+        }
+    });
+</script>
+{% endblock javascripts %} 

@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django import forms
 from .models import CustomUser
-from .models import Curso, BlogPost, Videollamada, InscripcionCurso, Rubrica, CriterioRubrica, Esperable
+from .models import Curso, BlogPost, Videollamada, InscripcionCurso, Rubrica, CriterioRubrica, Esperable, Asignatura
 
 class CustomUserAdmin(BaseUserAdmin):
     form = UserChangeForm
@@ -50,13 +50,13 @@ class VideollamadaInline(admin.TabularInline):
         return formset
 
 class CursoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'docente_nombre', 'precio', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
-    list_filter = ('activo', 'modalidad', 'nivel', 'fecha_inicio')
-    search_fields = ('nombre', 'docente_nombre', 'descripcion')
+    list_display = ('nombre', 'asignatura', 'docente_nombre', 'precio', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
+    list_filter = ('activo', 'modalidad', 'nivel', 'fecha_inicio', 'asignatura')
+    search_fields = ('nombre', 'docente_nombre', 'descripcion', 'asignatura__nombre')
     inlines = [VideollamadaInline]
     fieldsets = (
         ('Información Básica', {
-            'fields': ('nombre', 'descripcion', 'activo')
+            'fields': ('nombre', 'descripcion', 'activo', 'asignatura')
         }),
         ('Fechas', {
             'fields': ('fecha_inicio', 'fecha_fin', 'dias_plazo_pago')
@@ -91,6 +91,48 @@ class VideollamadaAdmin(admin.ModelAdmin):
     list_filter = ('activa', 'dia_semana', 'curso')
     search_fields = ('curso__nombre', 'descripcion')
     ordering = ('curso', 'dia_semana', 'hora_inicio')
+
+class CursoInline(admin.TabularInline):
+    model = Curso
+    extra = 0
+    fields = ('nombre', 'docente_nombre', 'activo', 'fecha_inicio', 'fecha_fin')
+    readonly_fields = ('nombre', 'docente_nombre', 'activo', 'fecha_inicio', 'fecha_fin')
+    can_delete = False
+    max_num = 0
+
+class AsignaturaAdmin(admin.ModelAdmin):
+    list_display = ('codigo', 'nombre', 'area_conocimiento', 'creditos', 'activa', 'get_cursos_count', 'get_evaluaciones_count', 'creado_por')
+    list_filter = ('activa', 'area_conocimiento', 'fecha_creacion', 'creado_por')
+    search_fields = ('nombre', 'codigo', 'descripcion', 'area_conocimiento')
+    readonly_fields = ('fecha_creacion', 'fecha_modificacion')
+    ordering = ('codigo', 'nombre')
+    inlines = [CursoInline]
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('codigo', 'nombre', 'descripcion', 'activa')
+        }),
+        ('Detalles Académicos', {
+            'fields': ('area_conocimiento', 'creditos')
+        }),
+        ('Información del Sistema', {
+            'fields': ('creado_por', 'fecha_creacion', 'fecha_modificacion'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_cursos_count(self, obj):
+        return obj.get_cursos_count()
+    get_cursos_count.short_description = 'Cursos'
+    
+    def get_evaluaciones_count(self, obj):
+        return obj.get_evaluaciones_count()
+    get_evaluaciones_count.short_description = 'Evaluaciones'
+    
+    def save_model(self, request, obj, form, change):
+        if not change:  # Si es una nueva asignatura
+            obj.creado_por = request.user
+        super().save_model(request, obj, form, change)
 
 class InscripcionCursoAdmin(admin.ModelAdmin):
     list_display = ('nombre_interesado', 'nombre_empresa', 'curso', 'estado', 'fecha_solicitud', 'fecha_pago', 'usuario_creado')
@@ -165,6 +207,7 @@ class InscripcionCursoAdmin(admin.ModelAdmin):
 
 # Registra tu modelo personalizado y la clase UserAdmin personalizada
 admin.site.register(CustomUser, CustomUserAdmin)
+admin.site.register(Asignatura, AsignaturaAdmin)
 admin.site.register(Curso, CursoAdmin)
 admin.site.register(BlogPost, BlogPostAdmin)
 admin.site.register(Videollamada, VideollamadaAdmin)
