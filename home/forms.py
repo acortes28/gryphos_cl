@@ -9,7 +9,7 @@ from .models import Post, Comment
 from .models import BlogPost, Curso
 from .models import Evaluacion, Calificacion, Entrega
 from django.contrib.auth import get_user_model
-from .models import TicketSoporte, ClasificacionTicket, ComentarioTicket
+from .models import TicketSoporte, ClasificacionTicket, ComentarioTicket, Recurso
 
 User = get_user_model()
 
@@ -863,3 +863,103 @@ class TicketSoporteAdminForm(forms.ModelForm):
         self.fields['asignado_a'].choices = [('', 'Sin asignar')] + [
             (user.id, user.get_full_name() or user.username) for user in staff_users
         ]
+
+
+class RecursoForm(forms.ModelForm):
+    """
+    Formulario para crear y editar recursos de aprendizaje
+    """
+    class Meta:
+        model = Recurso
+        fields = ['nombre', 'descripcion', 'tipo', 'archivo_adjunto', 'enlace_externo']
+        widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre del recurso'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Descripción detallada del recurso...'
+            }),
+            'tipo': forms.Select(attrs={
+                'class': 'form-control',
+                'placeholder': 'Selecciona el tipo de recurso'
+            }),
+            'archivo_adjunto': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': '.pdf,.doc,.docx,.txt,.zip,.rar,.jpg,.jpeg,.png,.mp4,.mp3,.ppt,.pptx,.xlsx,.xls'
+            }),
+            'enlace_externo': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://ejemplo.com/recurso'
+            })
+        }
+        labels = {
+            'nombre': 'Nombre del Recurso',
+            'descripcion': 'Descripción',
+            'tipo': 'Tipo de Recurso',
+            'archivo_adjunto': 'Archivo Adjunto',
+            'enlace_externo': 'Enlace Externo'
+        }
+        help_texts = {
+            'nombre': 'Nombre descriptivo del recurso',
+            'descripcion': 'Descripción detallada del contenido del recurso',
+            'tipo': 'Categoría del recurso',
+            'archivo_adjunto': 'Archivo del recurso (opcional si tienes enlace externo)',
+            'enlace_externo': 'URL del recurso (opcional si tienes archivo adjunto)'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.evaluacion = kwargs.pop('evaluacion', None)
+        super().__init__(*args, **kwargs)
+    
+    def clean(self):
+        """
+        Validación personalizada del formulario
+        """
+        cleaned_data = super().clean()
+        archivo_adjunto = cleaned_data.get('archivo_adjunto')
+        enlace_externo = cleaned_data.get('enlace_externo')
+        
+        # Verificar que se proporcione al menos un archivo o enlace
+        if not archivo_adjunto and not enlace_externo:
+            raise forms.ValidationError(
+                'Debes proporcionar al menos un archivo adjunto o un enlace externo.'
+            )
+        
+        # Validar tamaño del archivo si se proporciona
+        if archivo_adjunto:
+            if archivo_adjunto.size > 50 * 1024 * 1024:  # 50MB
+                raise forms.ValidationError(
+                    'El archivo no puede ser mayor a 50MB.'
+                )
+            
+            # Validar extensión del archivo
+            extensiones_permitidas = [
+                '.pdf', '.doc', '.docx', '.txt', '.zip', '.rar', 
+                '.jpg', '.jpeg', '.png', '.mp4', '.mp3', '.ppt', '.pptx', '.xlsx', '.xls'
+            ]
+            nombre_archivo = archivo_adjunto.name.lower()
+            
+            if not any(nombre_archivo.endswith(ext) for ext in extensiones_permitidas):
+                raise forms.ValidationError(
+                    'Solo se permiten archivos PDF, Word, Excel, PowerPoint, texto, '
+                    'comprimidos, imágenes, videos y audio.'
+                )
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """
+        Guardar el recurso con la evaluación asociada
+        """
+        recurso = super().save(commit=False)
+        
+        if self.evaluacion:
+            recurso.evaluacion = self.evaluacion
+        
+        if commit:
+            recurso.save()
+        
+        return recurso

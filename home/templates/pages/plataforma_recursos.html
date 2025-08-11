@@ -2,86 +2,18 @@
 {% load static %}
 
 {% block section_content %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0">
-          <i class="fas fa-book me-2"></i>Recursos de Aprendizaje
-        </h4>
-        {% if user.is_staff %}
-        <button class="btn btn-primary" onclick="cargarFormularioCrearRecurso();">
-          <i class="fas fa-plus me-2"></i>Subir Recurso
-        </button>
-        {% endif %}
-      </div>
-      
-      <div id="recursos-content-placeholder">
-        <div class="text-center py-5">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Cargando recursos...</span>
-          </div>
-          <p class="mt-3">Cargando recursos...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
+<!-- Esta página hereda de plataforma_aprendizaje.html y usa la estructura SPA -->
 <script>
 // Cargar contenido de recursos al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
-  cargarRecursosContenido();
+  // Simular clic en el enlace de recursos para activar la sección
+  const recursosLink = document.querySelector('a[data-seccion="recursos"]');
+  if (recursosLink) {
+    recursosLink.click();
+  } else {
+    // Si no encuentra el enlace, cargar directamente
+    cargarRecursosContenido();
+  }
 });
-
-// Función para cargar contenido de recursos
-function cargarRecursosContenido() {
-  const placeholder = document.getElementById('recursos-content-placeholder');
-  
-  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}`, {
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.html) {
-        placeholder.innerHTML = data.html;
-      } else if (data.error) {
-        placeholder.innerHTML = 
-          `<div class="alert alert-danger">${data.error}</div>`;
-      }
-    })
-    .catch(error => {
-      console.error('Error cargando recursos:', error);
-      placeholder.innerHTML = 
-        '<div class="alert alert-danger">Error al cargar los recursos</div>';
-    });
-}
-
-// Función para cargar formulario de crear recurso
-function cargarFormularioCrearRecurso() {
-  const placeholder = document.getElementById('recursos-content-placeholder');
-  
-  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`, {
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.html) {
-        placeholder.innerHTML = data.html;
-      } else if (data.error) {
-        placeholder.innerHTML = 
-          `<div class="alert alert-danger">${data.error}</div>`;
-      }
-    })
-    .catch(error => {
-      console.error('Error cargando formulario de crear recurso:', error);
-      placeholder.innerHTML = 
-        '<div class="alert alert-danger">Error al cargar el formulario de crear recurso</div>';
-    });
-}
 </script>
 {% endblock section_content %} 

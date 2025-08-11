@@ -847,9 +847,14 @@
 
     <!-- Sección de Recursos -->
     <div id="seccion-recursos" class="section-content">
-      <h4>Recursos de Aprendizaje</h4>
-      <p>Accede a todos los materiales y recursos de tu curso.</p>
-      <!-- Contenido de la sección Recursos -->
+      <div id="recursos-content-placeholder">
+        <div class="text-center py-5">
+          <i class="fas fa-book fa-3x text-muted mb-3"></i>
+          <h4>Recursos de Aprendizaje</h4>
+          <p class="text-muted">Accede a todos los materiales y recursos de tu curso.</p>
+          <div class="alert alert-info">Cargando recursos...</div>
+        </div>
+      </div>
     </div>
     
 
@@ -962,10 +967,60 @@ function cambiarSeccion(seccion) {
   console.log(`Cambiando a sección: ${seccion}`);
 
   // Si es la sección del foro, cargar contenido dinámicamente
-  if (seccion === 'foro') {
+  if (seccion === 'inicio') {
+    // Mostrar sección de inicio (contenido estático)
+    document.getElementById('seccion-inicio').classList.add('active');
+    document.getElementById('loading').classList.remove('show');
+    
+    // Actualizar URL sin recargar
+    const url = new URL(window.location);
+    url.searchParams.set('seccion', 'inicio');
+    window.history.pushState({}, '', url);
+    return; // Salir temprano para evitar procesamiento adicional
+  } else if (seccion === 'foro') {
     cargarForoContenido();
   } else if (seccion === 'recursos') {
-    cargarRecursosContenido();
+    // Cargar contenido inicial de recursos
+    const seccionRecursos = document.getElementById('seccion-recursos');
+    const placeholder = document.getElementById('recursos-content-placeholder');
+    
+    // Ocultar todas las secciones primero
+    document.querySelectorAll('.section-content').forEach(el => {
+      el.classList.remove('active');
+    });
+    
+    // Mostrar sección de recursos
+    seccionRecursos.classList.add('active');
+    document.getElementById('loading').classList.remove('show');
+    
+    // Cargar contenido vía AJAX
+    fetch(`{% url 'plataforma_recursos_ajax' curso.id %}`, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.html) {
+          placeholder.innerHTML = data.html;
+        } else if (data.error) {
+          placeholder.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+        }
+        
+        // Actualizar URL sin recargar
+        const url = new URL(window.location);
+        url.searchParams.set('seccion', 'recursos');
+        window.history.pushState({}, '', url);
+      })
+      .catch(error => {
+        console.error('Error cargando recursos:', error);
+        placeholder.innerHTML = `<div class="alert alert-danger">Error al cargar los recursos: ${error.message}</div>`;
+      });
   } else if (seccion === 'calificaciones') {
     // Verificar si hay parámetros específicos en la URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -1399,10 +1454,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  // Inicializar con la sección activa desde la URL
+  // Inicializar con la sección activa desde la URL (solo si hay parámetros)
   const urlParams = new URLSearchParams(window.location.search);
-  const seccionActiva = urlParams.get('seccion') || 'inicio';
-  cambiarSeccion(seccionActiva);
+  const seccionActiva = urlParams.get('seccion');
+  if (seccionActiva && seccionActiva !== 'inicio') {
+    cambiarSeccion(seccionActiva);
+  }
   
   // Iniciar observer para detectar contenido de eliminación
   iniciarObserverEliminacion();
@@ -5885,61 +5942,684 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 200);
 });
 
-// Sección del módulo Recursos
+// Función para cargar la página completa de recursos
+function cargarRecursos() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Redirigir a la plataforma con sección de recursos
+  window.location.href = `{% url 'plataforma_aprendizaje' curso.id %}?seccion=recursos`;
+}
 
-function cargarRecursosContenido() {
+// ===== FUNCIONES JAVASCRIPT PARA RECURSOS =====
 
-  console.log("Cargando recursos del curso...");
-  let url = `{% url 'plataforma_recursos_ajax' curso.id %}`;
-
-  fetch(url, {
+// Función para ver recursos de una evaluación específica
+function verRecursosEvaluacion(evaluacionId) {
+  const placeholder = document.getElementById('recursos-content-placeholder');
+  
+  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=ver_recursos&evaluacion_id=${evaluacionId}`, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     }
   })
     .then(response => response.json())
-        .then(data => {
-        const seccionRecursos = document.getElementById('seccion-recursos');
-        
-        // Ocultar todas las secciones primero
-        document.querySelectorAll('.section-content').forEach(el => {
-          el.classList.remove('active');
-        }); 
-        
-        // Actualizar contenido y mostrar sección de recursos
-        seccionRecursos.innerHTML = data.html;
-        seccionRecursos.classList.add('active');
-        document.getElementById('loading').classList.remove('show');
-          
-          // Actualizar URL sin recargar
-          const url = new URL(window.location);
-          url.searchParams.set('seccion', 'recursos');
-          // Mantener los parámetros específicos si existen
-          const evaluacionId = new URLSearchParams(window.location.search).get('evaluacion_id');
-          if (evaluacionId) {
-            url.searchParams.set('evaluacion_id', evaluacionId);
-          } else {
-            url.searchParams.delete('evaluacion_id');
-          }
-          url.searchParams.delete('action'); // Limpiar acción para evitar conflictos
-
-          // Actualizar la URL en el navegador
-          console.log('Actualizando URL a:', url.toString());
-
-          // Actualizar el título de la página
-          document.title = 'Recursos del Curso - ' + curso.nombre;
-          window.history.pushState({}, '', url);
-          })
+    .then(data => {
+      if (data.html) {
+        placeholder.innerHTML = data.html;
+      } else {
+        placeholder.innerHTML = `
+          <div class="alert alert-info">
+            <h4>Recursos de la Evaluación</h4>
+            <p>No hay recursos disponibles para esta evaluación.</p>
+          </div>
+        `;
+      }
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('action', 'ver_recursos');
+      url.searchParams.set('evaluacion_id', evaluacionId);
+      window.history.pushState({}, '', url);
+    })
     .catch(error => {
-      console.error('Error cargando recursos:', error);
-      document.getElementById('loading').classList.remove('show');
+      console.error('Error cargando recursos de evaluación:', error);
+      placeholder.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar los recursos</h4>
+          <p>Hubo un problema al cargar los recursos de esta evaluación.</p>
+        </div>
+      `;
     });
-
 }
 
+// Función para crear recurso para una evaluación específica
+function crearRecursoParaEvaluacion(evaluacionId) {
+  const placeholder = document.getElementById('recursos-content-placeholder');
+  
+  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        placeholder.innerHTML = data.html;
+      } else {
+        placeholder.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el formulario</h4>
+            <p>Hubo un problema al cargar el formulario de crear recurso.</p>
+          </div>
+        `;
+      }
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('action', 'crear_recurso');
+      url.searchParams.set('evaluacion_id', evaluacionId);
+      window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+      console.error('Error cargando formulario de crear recurso:', error);
+      placeholder.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar el formulario</h4>
+          <p>Hubo un problema al cargar el formulario de crear recurso.</p>
+        </div>
+      `;
+    });
+}
 
-function cargarFormularioCrearRecurso(){
-  return null
+// Función para cargar formulario de crear recurso
+function cargarFormularioCrearRecurso() {
+  const placeholder = document.getElementById('recursos-content-placeholder');
+  
+  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.html) {
+        placeholder.innerHTML = data.html;
+      } else {
+        placeholder.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el formulario</h4>
+            <p>Hubo un problema al cargar el formulario de crear recurso.</p>
+          </div>
+        `;
+      }
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('action', 'crear_recurso');
+      window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+      console.error('Error cargando formulario de crear recurso:', error);
+      placeholder.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar el formulario</h4>
+          <p>Hubo un problema al cargar el formulario de crear recurso.</p>
+        </div>
+      `;
+    });
+}
+
+// Función para editar un recurso
+function editarRecurso(recursoId) {
+  console.log('=== EDITANDO RECURSO ===');
+  console.log('ID del recurso:', recursoId);
+  
+  const placeholder = document.getElementById('recursos-content-placeholder');
+  
+  console.log('Enviando petición para editar recurso...');
+  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso&recurso_id=${recursoId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      console.log('Respuesta recibida (editar):', response);
+      console.log('Status (editar):', response.status);
+      return response.json();
+    })
+    .then(data => {
+      console.log('Datos recibidos (editar):', data);
+      if (data.html) {
+        placeholder.innerHTML = data.html;
+      } else {
+        placeholder.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al cargar el formulario</h4>
+            <p>Hubo un problema al cargar el formulario de editar recurso.</p>
+          </div>
+        `;
+      }
+      
+      // Actualizar URL sin recargar
+      const url = new URL(window.location);
+      url.searchParams.set('action', 'editar_recurso');
+      url.searchParams.set('recurso_id', recursoId);
+      window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+      console.error('Error cargando formulario de editar recurso:', error);
+      placeholder.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al cargar el formulario</h4>
+          <p>Hubo un problema al cargar el formulario de editar recurso.</p>
+        </div>
+      `;
+    });
+}
+
+// Función para eliminar un recurso
+function eliminarRecurso(recursoId, nombreRecurso) {
+  console.log('=== ELIMINANDO RECURSO ===');
+  console.log('ID del recurso:', recursoId);
+  console.log('Nombre del recurso:', nombreRecurso);
+  
+  if (confirm(`¿Estás seguro de que quieres eliminar el recurso "${nombreRecurso}"?`)) {
+    const placeholder = document.getElementById('recursos-content-placeholder');
+    
+    // Obtener el token CSRF del formulario principal
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    console.log('Token CSRF:', csrfToken);
+
+    fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=eliminar_recurso&recurso_id=${recursoId}`, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': csrfToken
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Mostrar mensaje de éxito
+          alert("Recurso eliminado correctamente");
+          cargarRecursosContenido();
+        } else {
+          placeholder.innerHTML = `
+            <div class="alert alert-danger">
+              <h4>Error al eliminar el recurso</h4>
+              <p>${data.error}</p>
+              <button class="btn btn-primary" onclick="cargarRecursosContenido();">
+                <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+              </button>
+            </div>
+          `;
+        }
+      })
+      .catch(error => {
+        console.error('Error eliminando recurso:', error);
+        placeholder.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al eliminar el recurso</h4>
+            <p>Hubo un problema al eliminar el recurso.</p>
+            <button class="btn btn-primary" onclick="cargarRecursosContenido();">
+              <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+            </button>
+          </div>
+        `;
+      });
+  }
+}
+
+// Función para volver al contenido principal de recursos
+function cargarRecursosContenido() {
+  const placeholder = document.getElementById('recursos-content-placeholder');
+  
+  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => response.json())
+    .then(data => {
+              if (data.html) {
+          console.log('HTML recibido, longitud:', data.html.length);
+          placeholder.innerHTML = data.html;
+          console.log('Contenido HTML cargado, inicializando formularios...');
+          console.log('Placeholder después de cargar HTML:', placeholder.innerHTML.substring(0, 200) + '...');
+          // Inicializar formularios después de cargar contenido
+          setTimeout(() => {
+            console.log('Llamando a inicializarFormulariosRecursos...');
+            inicializarFormulariosRecursos();
+          }, 100);
+        } else if (data.error) {
+        placeholder.innerHTML = 
+          `<div class="alert alert-danger">${data.error}</div>`;
+      }
+      
+      // Limpiar URL
+      const url = new URL(window.location);
+      url.searchParams.delete('action');
+      url.searchParams.delete('evaluacion_id');
+      url.searchParams.delete('recurso_id');
+      window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+      console.error('Error cargando recursos:', error);
+      placeholder.innerHTML = 
+        '<div class="alert alert-danger">Error al cargar los recursos</div>';
+    });
+}
+
+// Función para manejar el envío del formulario de crear recurso
+function manejarEnvioFormularioCrearRecurso() {
+  console.log('=== MANEJANDO ENVÍO FORMULARIO CREAR RECURSO ===');
+  const form = document.getElementById('formCrearRecurso');
+  console.log('Buscando formulario formCrearRecurso:', form);
+  if (!form) {
+    console.log('Formulario no encontrado');
+    return;
+  }
+  
+  // Verificar si ya tiene el event listener
+  if (form.hasAttribute('data-event-listener-added')) {
+    console.log('Event listener ya agregado, saltando...');
+    return;
+  }
+  
+  console.log('Agregando event listener al formulario');
+  form.addEventListener('submit', function(e) {
+    console.log('=== EVENT LISTENER EJECUTADO ===');
+    e.preventDefault();
+    console.log('Formulario enviado, procesando...');
+    
+    const formData = new FormData(this);
+    console.log('FormData creado:', formData);
+    
+    // Log de los datos del formulario
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+    
+    const placeholder = document.getElementById('recursos-content-placeholder');
+    
+    // Marcar que el formulario ya tiene el event listener
+    form.setAttribute('data-event-listener-added', 'true');
+    
+    // Mostrar loading
+    placeholder.innerHTML = `
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Creando recurso...</span>
+        </div>
+        <p class="mt-3">Creando recurso...</p>
+      </div>
+    `;
+    
+    console.log('Enviando petición a:', `{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`);
+    fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => {
+        console.log('Respuesta recibida:', response);
+        console.log('Status:', response.status);
+        return response.json();
+      })
+      .then(data => {
+        console.log('Datos recibidos:', data);
+        if (data.success) {
+          // Mostrar mensaje de éxito simple
+          placeholder.innerHTML = `
+            <div class="alert alert-success text-center">
+              <h4>Recurso creado exitosamente</h4>
+              <p class="mb-3">El recurso se ha creado correctamente.</p>
+              <button class="btn btn-primary" onclick="cargarRecursosContenido();">
+                <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+              </button>
+            </div>
+          `;
+        } else {
+          // Mostrar errores
+          let errorHtml = '<div class="alert alert-danger"><h4>Error al crear el recurso</h4><ul>';
+          if (data.errors) {
+            for (const [field, errors] of Object.entries(data.errors)) {
+              for (const error of errors) {
+                errorHtml += `<li>${error}</li>`;
+              }
+            }
+          } else if (data.error) {
+            errorHtml += `<li>${data.error}</li>`;
+          }
+          errorHtml += '</ul><button class="btn btn-primary" onclick="cargarFormularioCrearRecurso();">Intentar de nuevo</button></div>';
+          
+          placeholder.innerHTML = errorHtml;
+        }
+      })
+      .catch(error => {
+        console.error('Error creando recurso:', error);
+        placeholder.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al crear el recurso</h4>
+            <p>Hubo un problema al crear el recurso. Por favor, intenta de nuevo.</p>
+            <button class="btn btn-primary" onclick="cargarFormularioCrearRecurso();">
+              <i class="fas fa-redo me-2"></i>Intentar de nuevo
+            </button>
+          </div>
+        `;
+      });
+  });
+}
+
+// Función para manejar el envío del formulario de editar recurso
+function manejarEnvioFormularioEditarRecurso() {
+  const form = document.getElementById('formEditarRecurso');
+  if (!form) return;
+  
+  // Verificar si ya tiene el event listener
+  if (form.hasAttribute('data-event-listener-added')) {
+    console.log('Event listener ya agregado (editar), saltando...');
+    return;
+  }
+  
+  form.addEventListener('submit', function(e) {
+    console.log('=== EVENT LISTENER EJECUTADO (EDITAR) ===');
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const placeholder = document.getElementById('recursos-content-placeholder');
+    
+    // Marcar que el formulario ya tiene el event listener
+    form.setAttribute('data-event-listener-added', 'true');
+    
+    // Mostrar loading
+    placeholder.innerHTML = `
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Actualizando recurso...</span>
+        </div>
+        <p class="mt-3">Actualizando recurso...</p>
+      </div>
+    `;
+    
+    fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Mostrar mensaje de éxito
+          placeholder.innerHTML = `
+            <div class="alert alert-success">
+              <h4>Recurso actualizado exitosamente</h4>
+              <p>${data.message}</p>
+              <button class="btn btn-primary" onclick="cargarRecursosContenido();">
+                <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+              </button>
+            </div>
+          `;
+        } else {
+          // Mostrar errores
+          let errorHtml = '<div class="alert alert-danger"><h4>Error al actualizar el recurso</h4><ul>';
+          if (data.errors) {
+            for (const [field, errors] of Object.entries(data.errors)) {
+              for (const error of errors) {
+                errorHtml += `<li>${error}</li>`;
+              }
+            }
+          } else if (data.error) {
+            errorHtml += `<li>${data.error}</li>`;
+          }
+          errorHtml += '</ul><button class="btn btn-primary" onclick="editarRecurso(data.recurso_id);">Intentar de nuevo</button></div>';
+          
+          placeholder.innerHTML = errorHtml;
+        }
+      })
+      .catch(error => {
+        console.error('Error actualizando recurso:', error);
+        placeholder.innerHTML = `
+          <div class="alert alert-danger">
+            <h4>Error al actualizar el recurso</h4>
+            <p>Hubo un problema al actualizar el recurso. Por favor, intenta de nuevo.</p>
+            <button class="btn btn-primary" onclick="editarRecurso(data.recurso_id);">
+              <i class="fas fa-redo me-2"></i>Intentar de nuevo
+            </button>
+          </div>
+        `;
+      });
+  });
+}
+
+// Función para alternar el estado colapsable
+function toggleCollapse(collapseId, headerElement) {
+  const content = document.getElementById(collapseId);
+  const isExpanded = content.classList.contains('expanded');
+  
+  if (isExpanded) {
+    // Colapsar
+    content.classList.remove('expanded');
+    content.classList.add('collapsed');
+    headerElement.classList.remove('expanded');
+    headerElement.classList.add('collapsed');
+  } else {
+    // Expandir
+    content.classList.remove('collapsed');
+    content.classList.add('expanded');
+    headerElement.classList.remove('collapsed');
+    headerElement.classList.add('expanded');
+  }
+}
+
+// Función para enviar formulario de crear recurso (llamada por onclick)
+function enviarFormularioCrearRecurso() {
+  console.log('=== ENVIANDO FORMULARIO CREAR RECURSO ===');
+  const form = document.getElementById('formCrearRecurso');
+  
+  if (!form) {
+    console.log('Formulario no encontrado');
+    return;
+  }
+  
+  // Crear FormData del formulario
+  const formData = new FormData(form);
+  console.log('FormData creado:', formData);
+  
+  // Log de los datos del formulario
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}: ${value}`);
+  }
+  
+  const placeholder = document.getElementById('recursos-content-placeholder');
+  
+  // Mostrar loading
+  placeholder.innerHTML = `
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Creando recurso...</span>
+      </div>
+      <p class="mt-3">Creando recurso...</p>
+    </div>
+  `;
+  
+  console.log('Enviando petición a:', `{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`);
+  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      console.log('Respuesta recibida:', response);
+      console.log('Status:', response.status);
+      return response.json();
+    })
+    .then(data => {
+      console.log('Datos recibidos:', data);
+      if (data.success) {
+        // Mostrar mensaje de éxito
+        placeholder.innerHTML = `
+          <div class="alert alert-success">
+            <h4>Recurso creado exitosamente</h4>
+            <p>${data.message}</p>
+            <button class="btn btn-primary" onclick="cargarRecursosContenido();">
+              <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+            </button>
+          </div>
+        `;
+      } else {
+        // Mostrar errores
+        let errorHtml = '<div class="alert alert-danger"><h4>Error al crear el recurso</h4><ul>';
+        if (data.errors) {
+          for (const [field, errors] of Object.entries(data.errors)) {
+            for (const error of errors) {
+              errorHtml += `<li>${error}</li>`;
+            }
+          }
+        } else if (data.error) {
+          errorHtml += `<li>${data.error}</li>`;
+        }
+        errorHtml += '</ul><button class="btn btn-primary" onclick="cargarFormularioCrearRecurso();">Intentar de nuevo</button></div>';
+        
+        placeholder.innerHTML = errorHtml;
+      }
+    })
+    .catch(error => {
+      console.error('Error creando recurso:', error);
+      placeholder.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al crear el recurso</h4>
+          <p>Hubo un problema al crear el recurso. Por favor, intenta de nuevo.</p>
+          <button class="btn btn-primary" onclick="cargarFormularioCrearRecurso();">
+            <i class="fas fa-redo me-2"></i>Intentar de nuevo
+          </button>
+        </div>
+      `;
+    });
+}
+
+// Función para enviar formulario de editar recurso (llamada por onclick)
+function enviarFormularioEditarRecurso() {
+  console.log('=== ENVIANDO FORMULARIO EDITAR RECURSO ===');
+  const form = document.getElementById('formEditarRecurso');
+  
+  if (!form) {
+    console.log('Formulario no encontrado');
+    return;
+  }
+  
+  // Crear FormData del formulario
+  const formData = new FormData(form);
+  console.log('FormData creado:', formData);
+  
+  // Log de los datos del formulario
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}: ${value}`);
+  }
+  
+  const placeholder = document.getElementById('recursos-content-placeholder');
+  
+  // Mostrar loading
+  placeholder.innerHTML = `
+    <div class="text-center py-5">
+      <div class="spinner-border text-warning" role="status">
+        <span class="visually-hidden">Actualizando recurso...</span>
+      </div>
+      <p class="mt-3">Actualizando recurso...</p>
+    </div>
+  `;
+  
+  // Obtener el ID del recurso del formulario o del contexto
+  const recursoId = form.querySelector('[name="recurso_id"]')?.value || 
+                   form.getAttribute('data-recurso-id') || 
+                   window.location.searchParams?.get('recurso_id');
+  
+  console.log('Enviando petición a:', `{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso&recurso_id=${recursoId}`);
+  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso&recurso_id=${recursoId}`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+    .then(response => {
+      console.log('Respuesta recibida:', response);
+      console.log('Status:', response.status);
+      return response.json();
+    })
+          .then(data => {
+        console.log('Datos recibidos:', data);
+        if (data.success) {
+          // Mostrar mensaje de éxito simple
+          placeholder.innerHTML = `
+            <div class="alert alert-success text-center">
+              <h4>Recurso actualizado exitosamente</h4>
+              <p class="mb-3">El recurso se ha actualizado correctamente.</p>
+              <button class="btn btn-primary" onclick="cargarRecursosContenido();">
+                <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+              </button>
+            </div>
+          `;
+        } else {
+        // Mostrar errores
+        let errorHtml = '<div class="alert alert-danger"><h4>Error al actualizar el recurso</h4><ul>';
+        if (data.errors) {
+          for (const [field, errors] of Object.entries(data.errors)) {
+            for (const error of errors) {
+              errorHtml += `<li>${error}</li>`;
+            }
+          }
+        } else if (data.error) {
+          errorHtml += `<li>${data.error}</li>`;
+        }
+        errorHtml += '</ul><button class="btn btn-primary" onclick="editarRecurso(' + recursoId + ');">Intentar de nuevo</button></div>';
+        
+        placeholder.innerHTML = errorHtml;
+      }
+    })
+    .catch(error => {
+      console.error('Error actualizando recurso:', error);
+      placeholder.innerHTML = `
+        <div class="alert alert-danger">
+          <h4>Error al actualizar el recurso</h4>
+          <p>Hubo un problema al actualizar el recurso. Por favor, intenta de nuevo.</p>
+          <button class="btn btn-primary" onclick="editarRecurso(' + recursoId + ');">
+            <i class="fas fa-redo me-2"></i>Intentar de nuevo
+          </button>
+        </div>
+      `;
+    });
+}
+
+// Función para inicializar formularios cuando se carga contenido dinámico
+function inicializarFormulariosRecursos() {
+  console.log('=== INICIALIZANDO FORMULARIOS DE RECURSOS ===');
+  
+  // Verificar que el DOM esté listo
+  setTimeout(() => {
+    const formCrear = document.getElementById('formCrearRecurso');
+    const formEditar = document.getElementById('formEditarRecurso');
+    
+    console.log('Formulario crear encontrado:', formCrear);
+    console.log('Formulario editar encontrado:', formEditar);
+    
+    // Inicializar formulario de crear recurso
+    console.log('Inicializando formulario de crear recurso...');
+    manejarEnvioFormularioCrearRecurso();
+    
+    // Inicializar formulario de editar recurso
+    console.log('Inicializando formulario de editar recurso...');
+    manejarEnvioFormularioEditarRecurso();
+    
+    console.log('=== FORMULARIOS DE RECURSOS INICIALIZADOS ===');
+  }, 200);
 }
 
 // Event listeners para admin
