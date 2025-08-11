@@ -964,7 +964,7 @@ function cambiarSeccion(seccion) {
   const titleElement = document.getElementById('section-title');
   titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
   
-  console.log(`Cambiando a sección: ${seccion}`);
+
 
   // Si es la sección del foro, cargar contenido dinámicamente
   if (seccion === 'inicio') {
@@ -1028,7 +1028,7 @@ function cambiarSeccion(seccion) {
     const evaluacionId = urlParams.get('evaluacion_id');
     
     let url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
-    console.log("la accion es " + action)
+
     // Si hay una acción específica, agregarla a la URL
     if (action) {
       url += `?action=${action}`;
@@ -1037,7 +1037,7 @@ function cambiarSeccion(seccion) {
       }
     }
 
-    console.log(url);
+
     
     // Cargar contenido de calificaciones vía AJAX
     fetch(url, {
@@ -1393,12 +1393,8 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       const clickedButton = e.target.closest('[data-action]');
       const estado = clickedButton.getAttribute('data-estado');
-      console.log('Filtro de soporte clickeado - Estado:', estado);
-      console.log('Botón clickeado:', clickedButton);
-      console.log('Llamando a cargarSoporteFiltrado...');
       try {
         cargarSoporteFiltrado(estado, clickedButton);
-        console.log('Función cargarSoporteFiltrado llamada exitosamente');
       } catch (error) {
         console.error('Error al llamar cargarSoporteFiltrado:', error);
       }
@@ -1420,7 +1416,7 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       const evaluacionId = e.target.getAttribute('onclick').match(/cargarEliminarEvaluacion\((\d+)\)/)?.[1];
       if (evaluacionId) {
-        console.log('Llamando a cargarEliminarEvaluacion con ID:', evaluacionId);
+
         cargarEliminarEvaluacion(evaluacionId);
       }
     } else if (e.target.matches('button[onclick*="cargarCalificar"]')) {
@@ -1434,7 +1430,7 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       const evaluacionId = e.target.getAttribute('onclick').match(/cargarCalificar\((\d+)\)/)?.[1];
       if (evaluacionId) {
-        console.log('Llamando a cargarCalificar con ID:', evaluacionId);
+
         cargarCalificar(evaluacionId);
       }
     } else if (e.target.matches('button[onclick*="cargarEditarEvaluacion"]')) {
@@ -1448,7 +1444,7 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       const evaluacionId = e.target.getAttribute('onclick').match(/cargarEditarEvaluacion\((\d+)\)/)?.[1];
       if (evaluacionId) {
-        console.log('Llamando a cargarEditarEvaluacion con ID:', evaluacionId);
+
         cargarEditarEvaluacion(evaluacionId);
       }
     }
@@ -1560,14 +1556,14 @@ function subirEntrega() {
 
 // Función para validar archivo
 function validateArchivo(file) {
-  console.log('Validando archivo:', file.name, 'Tamaño:', file.size);
+
   
   const archivoStatus = document.getElementById('archivoStatus');
   const btnSubirEntrega = document.getElementById('btnSubirEntrega');
   
   // Verificar tamaño (50MB)
   if (file.size > 50 * 1024 * 1024) {
-    console.log('Archivo demasiado grande');
+
     archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm alert-dismissible">❌ El archivo es demasiado grande. Máximo 50MB.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
     if (btnSubirEntrega) btnSubirEntrega.disabled = true;
     return false;
@@ -1578,32 +1574,28 @@ function validateArchivo(file) {
   const fileName = file.name.toLowerCase();
   const isValidType = allowedExtensions.some(ext => fileName.endsWith(ext));
   
-  console.log('Tipo de archivo válido:', isValidType, 'Nombre:', fileName);
+
   
   if (!isValidType) {
-    console.log('Tipo de archivo no permitido');
+
     archivoStatus.innerHTML = '<div class="alert alert-danger alert-sm alert-dismissible">❌ Solo se permiten archivos PDF, DOC, DOCX, TXT, ZIP, RAR, JPG, JPEG, PNG, XLSX, XLS, PPT, PPTX, CSV.<button type="button" class="btn-close" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button></div>';
     if (btnSubirEntrega) btnSubirEntrega.disabled = true;
     return false;
   }
   
-  console.log('Archivo válido');
+
   return true;
 }
 
 // Función para mostrar vista previa del archivo
 function showArchivoPreview(file) {
-  console.log('Mostrando vista previa del archivo:', file.name);
+
   
   const archivoPreview = document.getElementById('archivoPreview');
   const archivoInfo = document.getElementById('archivoInfo');
   const btnSubirEntrega = document.getElementById('btnSubirEntrega');
   
-  console.log('Elementos encontrados:', {
-    archivoPreview: !!archivoPreview,
-    archivoInfo: !!archivoInfo,
-    btnSubirEntrega: !!btnSubirEntrega
-  });
+
   
   // Mostrar información del archivo
   if (archivoInfo) {
@@ -1619,12 +1611,12 @@ function showArchivoPreview(file) {
   // Habilitar botón de subir entrega
   if (btnSubirEntrega) {
     btnSubirEntrega.disabled = false;
-    console.log('Botón de subir entrega habilitado');
+
   } else {
     console.error('No se encontró el botón de subir entrega');
   }
   
-  console.log('Vista previa mostrada correctamente');
+
 }
 
 // Función para eliminar archivo
@@ -1647,7 +1639,7 @@ function removeArchivo() {
 
 // Agregar función para manejar el formulario de entrega
 function inicializarFormularioEntrega() {
-  console.log('Inicializando formulario de entrega...');
+
   
   // Configurar el botón de confirmación del modal
   const btnConfirmar = document.getElementById('btnConfirmarEntrega');
@@ -1660,18 +1652,18 @@ function inicializarFormularioEntrega() {
   const archivoInput = document.getElementById('archivo_entrega');
   
   if (uploadBtn && archivoInput) {
-    console.log('Configurando botón de seleccionar archivo...');
+
     
     // Configurar event listener para el botón
     uploadBtn.addEventListener('click', function(e) {
       e.preventDefault();
-      console.log('Botón de seleccionar archivo clickeado');
+
       archivoInput.click();
     });
     
     // Configurar event listener para el input de archivo
     archivoInput.addEventListener('change', function(e) {
-      console.log('Archivo seleccionado:', e.target.files[0]);
+
       const file = e.target.files[0];
       if (file) {
         if (validateArchivo(file)) {
@@ -1689,7 +1681,7 @@ function inicializarFormularioEntrega() {
     removeArchivoBtn.addEventListener('click', removeArchivo);
   }
   
-  console.log('Formulario de entrega inicializado');
+
 }
 
 // Función para manejar el colapso de evaluaciones
@@ -1716,7 +1708,7 @@ function toggleEvaluacion(evaluacionId) {
 
 // Función para inicializar las evaluaciones colapsables
 function inicializarEvaluacionesColapsables() {
-  console.log('Inicializando evaluaciones colapsables...');
+
   
   // Expandir la primera evaluación por defecto
   const firstEvaluacion = document.querySelector('.evaluacion-card');
@@ -1726,7 +1718,7 @@ function inicializarEvaluacionesColapsables() {
     if (content) {
       content.style.display = 'block';
       header.classList.remove('collapsed');
-      console.log('Primera evaluación expandida');
+
     }
   }
   
@@ -1749,13 +1741,13 @@ function inicializarEvaluacionesColapsables() {
       
       // Agregar event listener
       header.addEventListener('click', function() {
-        console.log('Click en evaluación:', evaluacionId);
+
         toggleEvaluacion(evaluacionId);
       });
     }
   });
   
-  console.log('Evaluaciones inicializadas:', evaluacionHeaders.length);
+
 }
 
 // Funciones para los botones de acción de entregas
@@ -1764,7 +1756,7 @@ function evaluarEntrega(button) {
   const evaluacionId = button.getAttribute('data-evaluacion-id');
   const estudianteId = button.getAttribute('data-estudiante-id');
   
-  console.log('Evaluando entrega:', { entregaId, evaluacionId, estudianteId });
+
   
   // Usar el mismo patrón que cargarCalificar para mantener consistencia SPA
   // Pasar el estudianteId para precargar el estudiante específico
@@ -1773,7 +1765,7 @@ function evaluarEntrega(button) {
 
 function abrirModalReemplazar(button) {
   const entregaId = button.getAttribute('data-entrega-id');
-  console.log('Abriendo modal para entrega:', entregaId);
+
   
   document.getElementById('entregaId').value = entregaId;
   
@@ -2207,10 +2199,7 @@ function inicializarFormularioEditarEvaluacion() {
       const cursoId = window.location.pathname.split('/')[2];
       const evaluacionId = urlParams.get('evaluacion_id');
       
-      console.log('🔍 DEBUG - Editar evaluación:');
-      console.log('cursoId:', cursoId);
-      console.log('evaluacionId:', evaluacionId);
-      console.log('URL completa:', `/curso/${cursoId}/plataforma/calificaciones/editar/${evaluacionId}/ajax/`);
+
       
       // Verificar que el evaluacionId sea válido
       if (!evaluacionId) {
@@ -2294,7 +2283,7 @@ function inicializarFormularioEditarEvaluacion() {
 
 // Función para inicializar los campos de fecha
 function inicializarCamposFecha() {
-  console.log('🔍 Iniciando búsqueda de campos de fecha...');
+
   
   // Buscar campos de fecha
   const fechaInicioField = document.querySelector('input[name="fecha_inicio"]') || 
@@ -2305,32 +2294,19 @@ function inicializarCamposFecha() {
                        document.querySelector('input[id*="fecha_fin"]') ||
                        document.querySelector('input[type="date"]:last-of-type');
   
-  console.log('Campos encontrados:');
-  console.log('Fecha inicio:', !!fechaInicioField);
-  console.log('Fecha fin:', !!fechaFinField);
+
   
   // Debug: mostrar todos los campos de fecha en la página
   const todosLosCamposFecha = document.querySelectorAll('input[type="date"]');
-  console.log('Todos los campos de fecha encontrados:', todosLosCamposFecha.length);
-  todosLosCamposFecha.forEach((campo, index) => {
-    console.log(`Campo ${index + 1}:`, {
-      id: campo.id,
-      name: campo.name,
-      value: campo.value
-    });
-  });
+
   
   // Verificar que los campos tengan valores correctos
   if (fechaInicioField) {
-    console.log('✅ Campo fecha inicio encontrado con valor:', fechaInicioField.value);
-  } else {
-    console.log('❌ No se encontró el campo de fecha de inicio');
+
   }
   
   if (fechaFinField) {
-    console.log('✅ Campo fecha fin encontrado con valor:', fechaFinField.value);
-  } else {
-    console.log('❌ No se encontró el campo de fecha de fin');
+
   }
 }
 
@@ -2385,13 +2361,11 @@ function cargarCalificar(evaluacionId, estudianteId = null) {
         // Ejecutar cálculo de nota después de cargar el contenido
         // Esto es necesario cuando se precarga un estudiante
         setTimeout(() => {
-          if (typeof calcularNota === 'function') {
-            console.log('Ejecutando cálculo de nota después de cargar contenido...');
-            console.log('Estudiante precargado:', estudianteId);
-            calcularNota();
-          } else {
-            console.warn('Función calcularNota no está disponible');
-          }
+                  if (typeof calcularNota === 'function') {
+          calcularNota();
+        } else {
+          console.warn('Función calcularNota no está disponible');
+        }
         }, 500); // Aumentar el timeout para asegurar que el DOM esté completamente cargado
       } else {
         document.getElementById('loading').classList.remove('show');
@@ -2463,14 +2437,12 @@ function cargarCrearEvaluacion() {
 
 // Función para cargar vista de eliminar evaluación
 function cargarEliminarEvaluacion(evaluacionId) {
-  console.log('=== DEBUG: cargarEliminarEvaluacion ===');
-  console.log('evaluacionId:', evaluacionId);
+
   
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
   
   const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}?action=eliminar_evaluacion&evaluacion_id=${evaluacionId}`;
-  console.log('URL de fetch:', url);
   
   fetch(url, {
     headers: {
@@ -2484,20 +2456,15 @@ function cargarEliminarEvaluacion(evaluacionId) {
       return response.json();
     })
     .then(data => {
-      console.log('=== DEBUG: Respuesta recibida ===');
-      console.log('data:', data);
-      
       if (data.html) {
-        console.log('HTML recibido, longitud:', data.html.length);
         const seccionCalificaciones = document.getElementById('seccion-calificaciones');
-        console.log('seccionCalificaciones:', seccionCalificaciones);
         
         // Ocultar todas las secciones primero
         document.querySelectorAll('.section-content').forEach(el => {
           el.classList.remove('active');
         });
         
-        console.log('Secciones ocultadas, activando sección de calificaciones...');
+
         
         // Actualizar contenido y mostrar sección de calificaciones
         seccionCalificaciones.innerHTML = data.html;
@@ -2535,7 +2502,6 @@ function cargarEliminarEvaluacion(evaluacionId) {
         url.searchParams.set('evaluacion_id', evaluacionId);
         window.history.pushState({}, '', url);
       } else {
-        console.log('No se recibió HTML en la respuesta');
         document.getElementById('loading').classList.remove('show');
       }
     })
@@ -3146,7 +3112,7 @@ function guardarCriterio() {
   formData.delete('esperables[]');
   esperablesList.forEach((esperable, index) => {
     const esperableJson = JSON.stringify(esperable);
-    console.log(`Esperable ${index} JSON:`, esperableJson);
+
     formData.append('esperables[]', esperableJson);
   });
   
@@ -3161,19 +3127,9 @@ function guardarCriterio() {
   }
   
   const url = `/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/agregar-criterio/${evaluacionId}/`;
-  console.log('URL a enviar:', url);
-  console.log('Datos a enviar:', {
-    nombre: formData.get('nombre'),
-    objetivo: formData.get('objetivo'),
-    puntaje: formData.get('puntaje'),
-    esperables: esperablesList
-  });
+
   
-  // Log de todos los datos del FormData
-  console.log('FormData completo:');
-  for (let [key, value] of formData.entries()) {
-    console.log(`${key}:`, value);
-  }
+
   
   fetch(url, {
     method: 'POST',
@@ -3429,7 +3385,7 @@ function cargarFormularioCrearTicket() {
         
         // Inicializar el formulario después de un pequeño delay para asegurar que el DOM esté listo
         setTimeout(() => {
-          console.log('Llamando a inicializarFormularioTicket desde cargarFormularioCrearTicket');
+        
           inicializarFormularioTicket();
         }, 100);
       }
@@ -3442,7 +3398,6 @@ function cargarFormularioCrearTicket() {
 
 // Función para ver un ticket específico
 function verTicket(ticketId) {
-  console.log('Viendo ticket:', ticketId);
   
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
@@ -3480,22 +3435,15 @@ function verTicket(ticketId) {
 
 // Función para cargar soporte filtrado
 function cargarSoporteFiltrado(estado, clickedButton = null) {
-  console.log('=== FUNCIÓN cargarSoporteFiltrado EJECUTADA ===');
-  console.log('=== DEBUG FILTRO SOPORTE ===');
-  console.log('Estado filtrado:', estado);
-  console.log('Botón clickeado:', clickedButton);
   
   // Actualizar botones activos
   document.querySelectorAll('[data-action="filtrar-soporte"]').forEach(btn => {
     btn.classList.remove('active');
-    console.log('Removiendo clase active de:', btn.textContent.trim());
   });
   
     // Activar el botón correspondiente si se proporciona
   if (clickedButton) {
     clickedButton.classList.add('active');
-    console.log('Agregando clase active a:', clickedButton.textContent.trim());
-    console.log('Clases del botón después de agregar active:', clickedButton.className);
     
     // Agregar efecto visual sutil al botón clickeado
     clickedButton.style.transform = 'scale(0.95)';
@@ -3510,7 +3458,6 @@ function cargarSoporteFiltrado(estado, clickedButton = null) {
   if (loadingElement) {
     loadingTimeout = setTimeout(() => {
       loadingElement.classList.add('show');
-      console.log('Mostrando loading (carga lenta)...');
     }, 500);
   }
   
@@ -3523,7 +3470,7 @@ function cargarSoporteFiltrado(estado, clickedButton = null) {
     url += `?estado=abierto`;
   }
   
-  console.log('URL de fetch:', url);
+
   
   fetch(url, {
     headers: {
@@ -3531,14 +3478,11 @@ function cargarSoporteFiltrado(estado, clickedButton = null) {
     }
   })
     .then(response => {
-      console.log('Response status:', response.status);
       return response.json();
     })
     .then(data => {
-      console.log('Datos recibidos:', data);
       if (data.html) {
         document.getElementById('seccion-soporte').innerHTML = data.html;
-        console.log('HTML actualizado correctamente');
         
         // Restaurar el estado visual del botón activo después de cargar el contenido
         if (clickedButton) {
@@ -3552,7 +3496,7 @@ function cargarSoporteFiltrado(estado, clickedButton = null) {
             });
             // Agregar clase active al botón correcto
             nuevoBoton.classList.add('active');
-            console.log('Estado visual del botón restaurado');
+    
           }
         }
         
@@ -3565,13 +3509,11 @@ function cargarSoporteFiltrado(estado, clickedButton = null) {
           }, 50);
         }
       } else {
-        console.log('No se recibió HTML en la respuesta');
       }
       
       // Ocultar loading y limpiar timeout
       if (loadingElement) {
         loadingElement.classList.remove('show');
-        console.log('Ocultando loading...');
       }
       if (loadingTimeout) {
         clearTimeout(loadingTimeout);
@@ -3591,7 +3533,6 @@ function cargarSoporteFiltrado(estado, clickedButton = null) {
 
 // Función para volver a la lista de soporte
 function volverASoporte() {
-  console.log('Volviendo a soporte...');
   
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
@@ -3712,15 +3653,14 @@ function enviarTicket() {
 
 // Función para agregar comentario (unificada)
 function agregarComentario(event) {
-  console.log('Función agregarComentario llamada');
+
   
   if (event) {
     event.preventDefault();
-    console.log('Evento prevenido');
   }
   
   const form = event ? event.target : document.getElementById('formComentario');
-  console.log('Formulario encontrado:', form);
+
   
   if (!form) {
     console.error('Formulario de comentario no encontrado');
@@ -3732,11 +3672,7 @@ function agregarComentario(event) {
   const contenido = formData.get('contenido');
   const esInterno = formData.get('es_interno');
   
-  console.log('Datos del formulario:', {
-    ticketId: ticketId,
-    contenido: contenido,
-    esInterno: esInterno
-  });
+
   
   if (!ticketId) {
     console.error('Ticket ID no encontrado en el formulario');
@@ -3746,7 +3682,7 @@ function agregarComentario(event) {
   
   // Obtener el token CSRF
   const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-  console.log('Token CSRF obtenido:', csrfToken ? 'Sí' : 'No');
+
   
   // Mostrar indicador de carga en el botón
   const submitBtn = form.querySelector('button[type="submit"]');
@@ -3755,7 +3691,7 @@ function agregarComentario(event) {
   submitBtn.disabled = true;
   
   const url = `{% url 'agregar_comentario_ticket' 0 %}`.replace('0', ticketId);
-  console.log('URL de la petición:', url);
+
   
   fetch(url, {
     method: 'POST',
@@ -3766,14 +3702,12 @@ function agregarComentario(event) {
     body: formData
   })
   .then(response => {
-    console.log('Respuesta recibida:', response.status, response.statusText);
     if (!response.ok) {
       throw new Error(`Error HTTP: ${response.status}`);
     }
     return response.json();
   })
   .then(data => {
-    console.log('Datos de respuesta:', data);
     if (data.success) {
       // Mostrar mensaje de éxito
       const successDiv = document.createElement('div');
@@ -3955,7 +3889,7 @@ function inicializarFormulariosTicket() {
   const formReabrir = document.getElementById('formReabrirTicket');
   if (formReabrir) {
     // La función confirmarReapertura ya está definida globalmente
-    console.log('Formulario de reapertura inicializado');
+  
   }
 }
 
@@ -3965,9 +3899,7 @@ function inicializarFormulariosTicket() {
 
 // Función para cargar soporte filtrado (admin)
 function cargarSoporteFiltradoAdmin(estado, clickedButton = null) {
-  console.log('=== DEBUG FILTRO ADMIN ===');
-  console.log('Estado filtro admin:', estado);
-  console.log('Botón clickeado:', clickedButton);
+
   
   // Mostrar loading
   mostrarLoadingAdmin();
@@ -3980,7 +3912,6 @@ function cargarSoporteFiltradoAdmin(estado, clickedButton = null) {
   // Activar el botón correspondiente
   if (clickedButton) {
     clickedButton.classList.add('active');
-    console.log('Botón activado:', clickedButton.textContent.trim());
   }
   
   // Simular carga de datos filtrados
@@ -3996,11 +3927,9 @@ function cargarSoporteFiltradoAdmin(estado, clickedButton = null) {
     if (estado === '') {
       // Mostrar todos los tickets
       mostrarTodosLosTicketsAdmin();
-      console.log('Mostrando todos los tickets');
-    } else {
+      } else {
       // Filtrar por estado
       filtrarTicketsPorEstadoAdmin(estado);
-      console.log('Filtrando por estado:', estado);
     }
     
     ocultarLoadingAdmin();
@@ -4160,7 +4089,7 @@ function cambiarOrdenTickets() {
   if (!orden) return;
   
   const ordenValue = orden.value;
-  console.log('Cambiando orden a:', ordenValue);
+
   
   // Implementar lógica de ordenamiento básica
   const tbody = document.querySelector('tbody');
@@ -4296,9 +4225,7 @@ function resetearFiltrosAdmin() {
   }
   if (btnTodos) {
     btnTodos.classList.add('active');
-    console.log('Botón "Todos" activado en resetearFiltrosAdmin');
-  } else {
-    console.log('No se encontró el botón "Todos" en resetearFiltrosAdmin');
+          } else {
   }
   
   // Mostrar todos los tickets
@@ -4308,7 +4235,7 @@ function resetearFiltrosAdmin() {
 
 // Funciones para acciones de tickets (admin)
 function verTicket(ticketId) {
-  console.log('Viendo ticket:', ticketId);
+
   
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
@@ -4339,10 +4266,8 @@ function verTicket(ticketId) {
         const inicializarConRetraso = () => {
           const modalReabrir = document.getElementById('modalReabrirTicket');
           if (modalReabrir) {
-            console.log('Modal encontrado, inicializando formularios...');
             inicializarFormulariosTicket();
           } else {
-            console.log('Modal no encontrado, reintentando...');
             setTimeout(inicializarConRetraso, 50);
           }
         };
@@ -4359,7 +4284,7 @@ function verTicket(ticketId) {
 
 // Función para asignar ticket (asignación inicial)
 function asignarTicket(ticketId) {
-  console.log('Asignando ticket:', ticketId);
+
   
   // Verificar que los elementos existan antes de acceder a ellos
   const ticketIdElement = document.getElementById('ticketIdReasignar');
@@ -4420,7 +4345,7 @@ function asignarTicket(ticketId) {
 
 // Función para reasignar ticket
 function reasignarTicket(ticketId) {
-  console.log('Reasignando ticket:', ticketId);
+
   
   // Verificar que los elementos existan antes de acceder a ellos
   const ticketIdElement = document.getElementById('ticketIdReasignar');
@@ -4481,7 +4406,7 @@ function reasignarTicket(ticketId) {
 
 // Función para obtener usuarios staff específicos para un ticket
 function obtenerUsuariosStaffPorTicket(ticketId, selectElement) {
-  console.log('Obteniendo usuarios staff para ticket:', ticketId);
+
   
   // Obtener el token CSRF
   const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -4512,7 +4437,7 @@ function obtenerUsuariosStaffPorTicket(ticketId, selectElement) {
         selectElement.appendChild(option);
       });
       
-      console.log(`Usuarios staff cargados: ${data.usuarios.length}`);
+
     } else {
       console.error('Error obteniendo usuarios staff:', data.error);
     }
@@ -4525,7 +4450,7 @@ function obtenerUsuariosStaffPorTicket(ticketId, selectElement) {
 
 // Función para obtener todos los usuarios staff (sin excluir a nadie)
 function obtenerTodosUsuariosStaff(selectElement) {
-  console.log('Obteniendo todos los usuarios staff');
+
   
   // Obtener el token CSRF
   const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -4556,7 +4481,7 @@ function obtenerTodosUsuariosStaff(selectElement) {
         selectElement.appendChild(option);
       });
       
-      console.log(`Todos los usuarios staff cargados: ${data.usuarios.length}`);
+
     } else {
       console.error('Error obteniendo todos los usuarios staff:', data.error);
     }
@@ -4615,7 +4540,7 @@ function confirmarReasignacion() {
 
 // Función para cambiar prioridad
 function cambiarPrioridad(ticketId) {
-  console.log('Cambiando prioridad del ticket:', ticketId);
+
   
   // Verificar que los elementos existan antes de acceder a ellos
   const ticketIdElement = document.getElementById('ticketIdPrioridad');
@@ -4709,7 +4634,7 @@ function confirmarCambioPrioridad() {
 
 // Función para resolver ticket
 function resolverTicket(ticketId) {
-  console.log('Resolviendo ticket:', ticketId);
+
   
   // Verificar que los elementos existan antes de acceder a ellos
   const ticketIdElement = document.getElementById('ticketIdResolver');
@@ -4760,7 +4685,7 @@ function resolverTicket(ticketId) {
 
 // Función para reabrir ticket
 function reabrirTicket(ticketId) {
-  console.log('Reabriendo ticket:', ticketId);
+
   
   // Verificar que los elementos existan antes de acceder a ellos
   const ticketIdElement = document.getElementById('ticketIdReabrir');
@@ -4913,7 +4838,7 @@ function confirmarReapertura() {
 
 // Función para inicializar formularios del ticket
 function inicializarFormulariosTicket() {
-  console.log('Inicializando formularios del ticket...');
+
   
   // Verificar que todos los modales estén disponibles
   const modales = [
@@ -4938,24 +4863,12 @@ function inicializarFormulariosTicket() {
     'comentarioPrioridad'
   ];
   
-  console.log('Verificando modales...');
   modales.forEach(modalId => {
     const modal = document.getElementById(modalId);
-    if (modal) {
-      console.log(`✓ Modal ${modalId} encontrado`);
-    } else {
-      console.log(`✗ Modal ${modalId} NO encontrado`);
-    }
   });
   
-  console.log('Verificando elementos...');
   elementos.forEach(elementId => {
     const elemento = document.getElementById(elementId);
-    if (elemento) {
-      console.log(`✓ Elemento ${elementId} encontrado`);
-    } else {
-      console.log(`✗ Elemento ${elementId} NO encontrado`);
-    }
   });
 }
 
@@ -5112,14 +5025,11 @@ function crearMensajeWarning(mensaje, contenedor = null) {
 // FUNCIONES PARA CALIFICAR A LOS ESTUDIANTES
 // ============================================================================
 
-console.log('Se está cargando el archivo el script');
 
 
 
-console.log("Se esta cargando el script específico para la página de calificar estudiante");
 
 function calificarEstudiante() {
-  console.log('Función calificarEstudiante() ejecutada');
   
   // Obtener el botón que disparó la función
   const submitButton = event.target;
@@ -5142,8 +5052,7 @@ function calificarEstudiante() {
   const notaField = document.getElementById('id_nota_calculada');
   const notaHidden = document.getElementById('nota_hidden');
   
-  console.log('Campo nota visible:', notaField ? notaField.value : 'No encontrado');
-  console.log('Campo nota oculto:', notaHidden ? notaHidden.value : 'No encontrado');
+
   
   if (notaField && notaField.value === '') {
     alert('Por favor, selecciona al menos un criterio antes de guardar la calificación.');
@@ -5157,7 +5066,7 @@ function calificarEstudiante() {
   // Sincronizar campo oculto
   if (notaField && notaHidden) {
     notaHidden.value = notaField.value;
-    console.log('Nota sincronizada:', notaHidden.value);
+
   }
   
   // Verificar que haya al menos un criterio seleccionado
@@ -5166,7 +5075,7 @@ function calificarEstudiante() {
   criterioFields.forEach(field => {
     if (field.value && field.value !== '') {
       criteriosSeleccionados++;
-      console.log('Criterio seleccionado:', field.name, field.value);
+
     }
   });
   
@@ -5195,11 +5104,11 @@ function calificarEstudiante() {
   
   // Obtener la URL del endpoint AJAX
   const currentUrl = window.location.pathname;
-  console.log('URL actual:', currentUrl);
+
   
   // Extraer curso_id y evaluacion_id de la URL actual
   const urlParts = currentUrl.split('/');
-  console.log('Partes de la URL:', urlParts);
+
   
   // Buscar el índice de 'calificar' en la URL
   const calificarIndex = urlParts.findIndex(part => part === 'calificar');
@@ -5241,17 +5150,11 @@ function calificarEstudiante() {
     evaluacionId = evaluacionIdParam;
   }
   
-  console.log('Curso ID:', cursoId);
-  console.log('Evaluación ID:', evaluacionId);
+
   
   const ajaxUrl = `/curso/${cursoId}/calificaciones/calificar/${evaluacionId}/ajax/`;
   
-  console.log('Enviando datos a:', ajaxUrl);
-  console.log('Datos del formulario:', Object.fromEntries(formData));
-  
-  // Enviar datos via AJAX
-  console.log('Iniciando petición AJAX a:', ajaxUrl);
-  console.log('Datos del formulario:', Object.fromEntries(formData));
+
   
   fetch(ajaxUrl, {
     method: 'POST',
@@ -5263,7 +5166,7 @@ function calificarEstudiante() {
   })
   .then(response => response.json())
   .then(data => {
-    console.log('Respuesta del servidor:', data);
+
     
     if (data.success) {
       // Mostrar mensaje de éxito
@@ -5327,9 +5230,7 @@ function calificarEstudiante() {
 
 // Funciones para el modal de edición
 function openEditModal(estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, retroalimentacion, criteriosData) {
-  console.log('Abriendo modal con datos:', {
-    estudianteId, estudianteNombre, estudianteEmail, calificacionId, notaActual, notaMaxima, criteriosData
-  });
+
   
   document.getElementById('modalEstudianteNombre').textContent = estudianteNombre;
   document.getElementById('modalEstudianteEmail').textContent = estudianteEmail;
@@ -5355,16 +5256,14 @@ function openEditModal(estudianteId, estudianteNombre, estudianteEmail, califica
   
   criterioFields.forEach(function(field) {
     const criterioId = field.getAttribute('data-criterio-id');
-    console.log(`Cargando esperables para criterio ${criterioId} sin valor predeterminado`);
+
     
     // Cargar esperables sin establecer valor predeterminado
     cargarEsperablesDisponibles(criterioId, null, estudianteId, function() {
       criteriosCargados++;
-      console.log(`Criterio ${criterioId} cargado (${criteriosCargados}/${totalCriterios})`);
       
       // Si todos los criterios están cargados, calcular la nota inicial (será 0)
       if (criteriosCargados === totalCriterios) {
-        console.log('Todos los criterios cargados, calculando nota inicial...');
         setTimeout(() => {
           calcularNotaModal();
         }, 300);
@@ -5409,11 +5308,11 @@ function cargarEsperablesDisponibles(criterioId, esperableSeleccionadoId = null,
           option.setAttribute('data-puntaje', esperable.puntaje.toFixed(2));
           option.textContent = `${Math.round(esperable.puntaje)} pts - ${esperable.nivel} - ${esperable.descripcion}`;
           field.appendChild(option);
-          console.log(`Esperable agregado: ID=${esperable.id}, Nivel=${esperable.nivel}, Seleccionado: ${esperable.es_seleccionado}`);
+
         });
         
         // NO establecer valores predeterminados - siempre mantener "Selecciona un nivel"
-        console.log(`Esperables cargados para criterio ${criterioId}:`, data.esperables.length);
+
         
         // Ejecutar callback si se proporcionó
         if (callback) {
@@ -5446,12 +5345,11 @@ function calcularNotaModal() {
     // Obtener todos los campos de criterio del modal
     const criterioFields = document.querySelectorAll('.edit-criterio-field');
     
-    console.log('Calculando nota en modal...');
-    console.log('Campos de criterio encontrados:', criterioFields.length);
+    
     
     criterioFields.forEach(function(field) {
       const selectedOption = field.options[field.selectedIndex];
-      console.log('Campo:', field.id, 'Opción seleccionada:', selectedOption ? selectedOption.text : 'Ninguna', 'Valor:', field.value);
+      
       
       if (selectedOption && selectedOption.value !== '') {
         // Usar el ID del esperable para obtener el puntaje desde el atributo data-puntaje
@@ -5459,10 +5357,7 @@ function calcularNotaModal() {
         const dataPuntaje = selectedOption.getAttribute('data-puntaje');
         const puntajeObtenido = parseFloat(dataPuntaje || '0');
         
-        console.log('Campo:', field.id);
-        console.log('Esperable ID:', esperableId);
-        console.log('Data-puntaje raw:', dataPuntaje);
-        console.log('Puntaje obtenido:', puntajeObtenido);
+        
         
         sumaPuntajesObtenidos += puntajeObtenido;
       }
@@ -5471,7 +5366,7 @@ function calcularNotaModal() {
       const puntajeMaximoStr = field.getAttribute('data-criterio-puntaje-maximo') || '0';
       const puntajeMaximo = parseFloat(puntajeMaximoStr.replace(',', '.'));
       sumaPuntajesMaximos += puntajeMaximo;
-      console.log('Puntaje máximo del criterio:', puntajeMaximo);
+
     });
     
     // Calcular la nota según la fórmula
@@ -5484,12 +5379,7 @@ function calcularNotaModal() {
     const notaField = document.getElementById('editNota');
     if (notaField) {
       notaField.value = notaCalculada.toFixed(1);
-      console.log('Nota actualizada en modal:', notaField.value);
-    }
-    
-    console.log('Modal - Puntajes obtenidos:', sumaPuntajesObtenidos);
-    console.log('Modal - Puntajes máximos:', sumaPuntajesMaximos);
-    console.log('Modal - Nota calculada:', notaCalculada.toFixed(1));
+
   } catch (error) {
     console.error('Error al calcular nota en modal:', error);
   }
@@ -5539,7 +5429,7 @@ function cargarDatosCalificacion(calificacionId, button) {
 // Event listeners para los campos de criterio en el modal
 document.addEventListener('change', function(event) {
   if (event.target.classList.contains('edit-criterio-field')) {
-    console.log('Cambio detectado en criterio:', event.target.id, 'Nuevo valor:', event.target.value);
+
     calcularNotaModal();
   }
 });
@@ -5591,7 +5481,7 @@ function saveEditCalificacion() {
       }
       
       const redirectUrl = `/curso/${cursoId}/plataforma/?seccion=calificaciones&action=ver_calificar&evaluacion_id=${evaluacionId}`;
-      console.log('Redirigiendo a:', redirectUrl);
+
       window.location.href = redirectUrl;
     } else {
       throw new Error('Error al guardar la calificación');
@@ -5624,8 +5514,7 @@ document.addEventListener('keydown', function(event) {
 
 // Función para calcular la nota automáticamente
 function calcularNota() {
-  console.log('Función calcularNota() ejecutada');
-  console.log('DOM completamente cargado:', document.readyState);
+
   
   // Buscar el campo de nota de múltiples formas
   let notaField = document.getElementById('id_nota_calculada');
@@ -5645,7 +5534,6 @@ function calcularNota() {
       notaField = allNotaFields[0];
     }
   }
-  console.log('Campo de nota encontrado:', notaField);
   
   if (notaField) {
     notaField.placeholder = 'Calculando...';
@@ -5662,46 +5550,46 @@ function calcularNota() {
       evaluacionNotaMaxima = parseFloat(evaluacionInfo.getAttribute('data-evaluacion-nota-maxima'));
     }
   } catch (e) {
-    console.log('No se pudo obtener la nota máxima de la evaluación, usando valor por defecto:', evaluacionNotaMaxima);
+    alert('No se pudo obtener la nota máxima de la evaluación, usando valor por defecto:', evaluacionNotaMaxima);
   }
   
-  console.log('Nota máxima de la evaluación:', evaluacionNotaMaxima);
+
   let sumaPuntajesObtenidos = 0;
   let sumaPuntajesMaximos = 0;
   
   // Obtener todos los campos de criterio (buscar por ID y por nombre)
   let criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
-  console.log('Campos de criterio por ID:', criterioFields.length);
+
   if (criterioFields.length === 0) {
     criterioFields = document.querySelectorAll('select[name^="criterio_"]');
-    console.log('Campos de criterio por nombre:', criterioFields.length);
+
   }
   if (criterioFields.length === 0) {
     // Buscar cualquier select que tenga atributos de criterio
     criterioFields = document.querySelectorAll('select[data-criterio-id]');
-    console.log('Campos de criterio por data-attribute:', criterioFields.length);
+
   }
-  console.log('Total de campos de criterio encontrados en calcularNota:', criterioFields.length);
+
   
   criterioFields.forEach(function(field) {
-    console.log('Procesando campo:', field.id, 'Valor seleccionado:', field.value);
+
     const selectedOption = field.options[field.selectedIndex];
     if (selectedOption && selectedOption.value !== '') {
       // Extraer el puntaje del texto de la opción (formato: "25.00 pts - Logrado - Descripción")
       const optionText = selectedOption.text;
-      console.log('Texto de la opción:', optionText);
+
       const puntajeMatch = optionText.match(/(\d+\.?\d*)\s+pts/);
       if (puntajeMatch) {
         const puntaje = parseFloat(puntajeMatch[1]);
         sumaPuntajesObtenidos += puntaje;
-        console.log('Puntaje extraído:', puntaje);
+
       }
     }
     
     // Obtener el puntaje máximo del criterio desde el atributo data
     const puntajeMaximo = parseFloat(field.getAttribute('data-criterio-puntaje-maximo') || 0);
     sumaPuntajesMaximos += puntajeMaximo;
-    console.log('Puntaje máximo del criterio:', puntajeMaximo);
+
   });
   
   // Calcular la nota según la fórmula
@@ -5722,7 +5610,7 @@ function calcularNota() {
     const notaHidden = document.getElementById('nota_hidden');
     if (notaHidden) {
       notaHidden.value = notaField.value;
-      console.log('Campo oculto actualizado con nota:', notaHidden.value);
+
     }
     
     // Remover clase después de la animación
@@ -5732,15 +5620,12 @@ function calcularNota() {
   }
   
   // Mostrar información de debug (opcional)
-  console.log('Puntajes obtenidos:', sumaPuntajesObtenidos);
-  console.log('Puntajes máximos:', sumaPuntajesMaximos);
-  console.log('Nota calculada:', notaCalculada.toFixed(1));
-  console.log('Campo de nota actualizado:', notaField ? notaField.value : 'No encontrado');
+
 }
 
 // Inicialización específica para formularios de calificación
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Inicializando sistema de calificaciones...');
+
   
   // Verificar si estamos en una página de calificación (múltiples indicadores)
   const isCalificacionPage = document.getElementById('btn-guardar-calificacion') !== null ||
@@ -5750,13 +5635,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             document.querySelector('.nota-calculada-container') !== null;
   
   if (isCalificacionPage) {
-    console.log('Página de calificación detectada en template padre');
+
     
     // Configurar event listeners para campos de criterio
     const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
     criterioFields.forEach(function(field) {
       field.addEventListener('change', function() {
-        console.log('Campo de criterio cambiado:', field.id, field.value);
+
         if (typeof calcularNota === 'function') {
           calcularNota();
         }
@@ -5769,7 +5654,7 @@ document.addEventListener('DOMContentLoaded', function() {
           (event.target.id.startsWith('id_criterio_') || 
            event.target.name.startsWith('criterio_') || 
            event.target.hasAttribute('data-criterio-id'))) {
-        console.log('Event listener global detectó cambio en:', event.target.id, event.target.name, 'Valor:', event.target.value);
+
         if (typeof calcularNota === 'function') {
           calcularNota();
         }
@@ -5779,7 +5664,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Calcular nota inicial después de un breve delay para asegurar que todos los elementos estén cargados
     if (typeof calcularNota === 'function') {
       setTimeout(() => {
-        console.log('Calculando nota inicial en página de calificación...');
+
         calcularNota();
       }, 200);
     }
@@ -5788,7 +5673,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Función para calcular la nota automáticamente
 function calcularNota() {
-  console.log('Función calcularNota() ejecutada en calificar estudiante');
+
   
   // Buscar el campo de nota de múltiples formas
   let notaField = document.getElementById('id_nota_calculada');
@@ -5808,7 +5693,7 @@ function calcularNota() {
       notaField = allNotaFields[0];
     }
   }
-  console.log('Campo de nota encontrado:', notaField);
+
   
   if (notaField) {
     notaField.placeholder = 'Calculando...';
@@ -5825,46 +5710,45 @@ function calcularNota() {
       evaluacionNotaMaxima = parseFloat(evaluacionInfo.getAttribute('data-evaluacion-nota-maxima'));
     }
   } catch (e) {
-    console.log('No se pudo obtener la nota máxima de la evaluación, usando valor por defecto:', evaluacionNotaMaxima);
+    alert('No se pudo obtener la nota máxima de la evaluación, usando valor por defecto:', evaluacionNotaMaxima);
   }
   
-  console.log('Nota máxima de la evaluación:', evaluacionNotaMaxima);
+
   let sumaPuntajesObtenidos = 0;
   let sumaPuntajesMaximos = 0;
   
   // Obtener todos los campos de criterio (buscar por ID y por nombre)
   let criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
-  console.log('Campos de criterio por ID:', criterioFields.length);
+
   if (criterioFields.length === 0) {
     criterioFields = document.querySelectorAll('select[name^="criterio_"]');
-    console.log('Campos de criterio por nombre:', criterioFields.length);
+
   }
   if (criterioFields.length === 0) {
     // Buscar cualquier select que tenga atributos de criterio
     criterioFields = document.querySelectorAll('select[data-criterio-id]');
-    console.log('Campos de criterio por data-attribute:', criterioFields.length);
+
   }
-  console.log('Total de campos de criterio encontrados en calcularNota:', criterioFields.length);
   
   criterioFields.forEach(function(field) {
-    console.log('Procesando campo:', field.id, 'Valor seleccionado:', field.value);
+
     const selectedOption = field.options[field.selectedIndex];
     if (selectedOption && selectedOption.value !== '') {
       // Extraer el puntaje del texto de la opción (formato: "25.00 pts - Logrado - Descripción")
       const optionText = selectedOption.text;
-      console.log('Texto de la opción:', optionText);
+
       const puntajeMatch = optionText.match(/(\d+\.?\d*)\s+pts/);
       if (puntajeMatch) {
         const puntaje = parseFloat(puntajeMatch[1]);
         sumaPuntajesObtenidos += puntaje;
-        console.log('Puntaje extraído:', puntaje);
+
       }
     }
     
     // Obtener el puntaje máximo del criterio desde el atributo data
     const puntajeMaximo = parseFloat(field.getAttribute('data-criterio-puntaje-maximo') || 0);
     sumaPuntajesMaximos += puntajeMaximo;
-    console.log('Puntaje máximo del criterio:', puntajeMaximo);
+
   });
   
   // Calcular la nota según la fórmula
@@ -5885,7 +5769,7 @@ function calcularNota() {
     const notaHidden = document.getElementById('nota_hidden');
     if (notaHidden) {
       notaHidden.value = notaField.value;
-      console.log('Campo oculto actualizado con nota:', notaHidden.value);
+
     }
     
     // Remover clase después de la animación
@@ -5895,23 +5779,20 @@ function calcularNota() {
   }
   
   // Mostrar información de debug (opcional)
-  console.log('Puntajes obtenidos:', sumaPuntajesObtenidos);
-  console.log('Puntajes máximos:', sumaPuntajesMaximos);
-  console.log('Nota calculada:', notaCalculada.toFixed(1));
-  console.log('Campo de nota actualizado:', notaField ? notaField.value : 'No encontrado');
+
 }
 
 // Inicialización específica para la página de calificar estudiante
-console.log("Se esta cargando el script específico para la página de calificar estudiante");
+
 
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Inicializando página de calificar estudiante...');
+
   
   // Configurar event listeners para campos de criterio
   const criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
   criterioFields.forEach(function(field) {
     field.addEventListener('change', function() {
-      console.log('Campo de criterio cambiado:', field.id, field.value);
+      
       if (typeof calcularNota === 'function') {
         calcularNota();
       }
@@ -5924,7 +5805,7 @@ document.addEventListener('DOMContentLoaded', function() {
         (event.target.id.startsWith('id_criterio_') || 
          event.target.name.startsWith('criterio_') || 
          event.target.hasAttribute('data-criterio-id'))) {
-      console.log('Event listener global detectó cambio en:', event.target.id, event.target.name, 'Valor:', event.target.value);
+      
       if (typeof calcularNota === 'function') {
         calcularNota();
       }
@@ -5933,11 +5814,11 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Calcular nota inicial después de un breve delay
   setTimeout(() => {
-    console.log('Calculando nota inicial en página de calificar estudiante...');
+    
     if (typeof calcularNota === 'function') {
       calcularNota();
     } else {
-      console.warn('Función calcularNota no está disponible');
+      alert('Función calcularNota no está disponible');
     }
   }, 200);
 });
@@ -6071,24 +5952,22 @@ function cargarFormularioCrearRecurso() {
 
 // Función para editar un recurso
 function editarRecurso(recursoId) {
-  console.log('=== EDITANDO RECURSO ===');
-  console.log('ID del recurso:', recursoId);
+
   
   const placeholder = document.getElementById('recursos-content-placeholder');
   
-  console.log('Enviando petición para editar recurso...');
+  
   fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso&recurso_id=${recursoId}`, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     }
   })
     .then(response => {
-      console.log('Respuesta recibida (editar):', response);
-      console.log('Status (editar):', response.status);
+
       return response.json();
     })
     .then(data => {
-      console.log('Datos recibidos (editar):', data);
+
       if (data.html) {
         placeholder.innerHTML = data.html;
       } else {
@@ -6119,9 +5998,7 @@ function editarRecurso(recursoId) {
 
 // Función para eliminar un recurso
 function eliminarRecurso(recursoId, nombreRecurso) {
-  console.log('=== ELIMINANDO RECURSO ===');
-  console.log('ID del recurso:', recursoId);
-  console.log('Nombre del recurso:', nombreRecurso);
+
   
   if (confirm(`¿Estás seguro de que quieres eliminar el recurso "${nombreRecurso}"?`)) {
     const placeholder = document.getElementById('recursos-content-placeholder');
@@ -6129,7 +6006,7 @@ function eliminarRecurso(recursoId, nombreRecurso) {
     // Obtener el token CSRF del formulario principal
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     
-    console.log('Token CSRF:', csrfToken);
+    
 
     fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=eliminar_recurso&recurso_id=${recursoId}`, {
       method: 'POST',
@@ -6183,13 +6060,11 @@ function cargarRecursosContenido() {
     .then(response => response.json())
     .then(data => {
               if (data.html) {
-          console.log('HTML recibido, longitud:', data.html.length);
           placeholder.innerHTML = data.html;
-          console.log('Contenido HTML cargado, inicializando formularios...');
-          console.log('Placeholder después de cargar HTML:', placeholder.innerHTML.substring(0, 200) + '...');
+
           // Inicializar formularios después de cargar contenido
           setTimeout(() => {
-            console.log('Llamando a inicializarFormulariosRecursos...');
+  
             inicializarFormulariosRecursos();
           }, 100);
         } else if (data.error) {
@@ -6213,33 +6088,19 @@ function cargarRecursosContenido() {
 
 // Función para manejar el envío del formulario de crear recurso
 function manejarEnvioFormularioCrearRecurso() {
-  console.log('=== MANEJANDO ENVÍO FORMULARIO CREAR RECURSO ===');
   const form = document.getElementById('formCrearRecurso');
-  console.log('Buscando formulario formCrearRecurso:', form);
   if (!form) {
-    console.log('Formulario no encontrado');
     return;
   }
   
   // Verificar si ya tiene el event listener
   if (form.hasAttribute('data-event-listener-added')) {
-    console.log('Event listener ya agregado, saltando...');
     return;
   }
-  
-  console.log('Agregando event listener al formulario');
   form.addEventListener('submit', function(e) {
-    console.log('=== EVENT LISTENER EJECUTADO ===');
     e.preventDefault();
-    console.log('Formulario enviado, procesando...');
     
     const formData = new FormData(this);
-    console.log('FormData creado:', formData);
-    
-    // Log de los datos del formulario
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}: ${value}`);
-    }
     
     const placeholder = document.getElementById('recursos-content-placeholder');
     
@@ -6256,7 +6117,7 @@ function manejarEnvioFormularioCrearRecurso() {
       </div>
     `;
     
-    console.log('Enviando petición a:', `{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`);
+
     fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`, {
       method: 'POST',
       body: formData,
@@ -6265,12 +6126,10 @@ function manejarEnvioFormularioCrearRecurso() {
       }
     })
       .then(response => {
-        console.log('Respuesta recibida:', response);
-        console.log('Status:', response.status);
         return response.json();
       })
       .then(data => {
-        console.log('Datos recibidos:', data);
+
         if (data.success) {
           // Mostrar mensaje de éxito simple
           placeholder.innerHTML = `
@@ -6321,12 +6180,12 @@ function manejarEnvioFormularioEditarRecurso() {
   
   // Verificar si ya tiene el event listener
   if (form.hasAttribute('data-event-listener-added')) {
-    console.log('Event listener ya agregado (editar), saltando...');
+
     return;
   }
   
   form.addEventListener('submit', function(e) {
-    console.log('=== EVENT LISTENER EJECUTADO (EDITAR) ===');
+
     e.preventDefault();
     
     const formData = new FormData(this);
@@ -6419,21 +6278,21 @@ function toggleCollapse(collapseId, headerElement) {
 
 // Función para enviar formulario de crear recurso (llamada por onclick)
 function enviarFormularioCrearRecurso() {
-  console.log('=== ENVIANDO FORMULARIO CREAR RECURSO ===');
+
   const form = document.getElementById('formCrearRecurso');
   
   if (!form) {
-    console.log('Formulario no encontrado');
+
     return;
   }
   
   // Crear FormData del formulario
   const formData = new FormData(form);
-  console.log('FormData creado:', formData);
+
   
   // Log de los datos del formulario
   for (let [key, value] of formData.entries()) {
-    console.log(`${key}: ${value}`);
+
   }
   
   const placeholder = document.getElementById('recursos-content-placeholder');
@@ -6448,7 +6307,7 @@ function enviarFormularioCrearRecurso() {
     </div>
   `;
   
-  console.log('Enviando petición a:', `{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`);
+  
   fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`, {
     method: 'POST',
     body: formData,
@@ -6457,12 +6316,11 @@ function enviarFormularioCrearRecurso() {
     }
   })
     .then(response => {
-      console.log('Respuesta recibida:', response);
-      console.log('Status:', response.status);
+
       return response.json();
     })
     .then(data => {
-      console.log('Datos recibidos:', data);
+
       if (data.success) {
         // Mostrar mensaje de éxito
         placeholder.innerHTML = `
@@ -6507,21 +6365,21 @@ function enviarFormularioCrearRecurso() {
 
 // Función para enviar formulario de editar recurso (llamada por onclick)
 function enviarFormularioEditarRecurso() {
-  console.log('=== ENVIANDO FORMULARIO EDITAR RECURSO ===');
+
   const form = document.getElementById('formEditarRecurso');
   
   if (!form) {
-    console.log('Formulario no encontrado');
+
     return;
   }
   
   // Crear FormData del formulario
   const formData = new FormData(form);
-  console.log('FormData creado:', formData);
+
   
   // Log de los datos del formulario
   for (let [key, value] of formData.entries()) {
-    console.log(`${key}: ${value}`);
+
   }
   
   const placeholder = document.getElementById('recursos-content-placeholder');
@@ -6541,7 +6399,7 @@ function enviarFormularioEditarRecurso() {
                    form.getAttribute('data-recurso-id') || 
                    window.location.searchParams?.get('recurso_id');
   
-  console.log('Enviando petición a:', `{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso&recurso_id=${recursoId}`);
+  
   fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso&recurso_id=${recursoId}`, {
     method: 'POST',
     body: formData,
@@ -6550,12 +6408,11 @@ function enviarFormularioEditarRecurso() {
     }
   })
     .then(response => {
-      console.log('Respuesta recibida:', response);
-      console.log('Status:', response.status);
+
       return response.json();
     })
           .then(data => {
-        console.log('Datos recibidos:', data);
+
         if (data.success) {
           // Mostrar mensaje de éxito simple
           placeholder.innerHTML = `
@@ -6600,25 +6457,24 @@ function enviarFormularioEditarRecurso() {
 
 // Función para inicializar formularios cuando se carga contenido dinámico
 function inicializarFormulariosRecursos() {
-  console.log('=== INICIALIZANDO FORMULARIOS DE RECURSOS ===');
+
   
   // Verificar que el DOM esté listo
   setTimeout(() => {
     const formCrear = document.getElementById('formCrearRecurso');
     const formEditar = document.getElementById('formEditarRecurso');
     
-    console.log('Formulario crear encontrado:', formCrear);
-    console.log('Formulario editar encontrado:', formEditar);
+
     
     // Inicializar formulario de crear recurso
-    console.log('Inicializando formulario de crear recurso...');
+
     manejarEnvioFormularioCrearRecurso();
     
     // Inicializar formulario de editar recurso
-    console.log('Inicializando formulario de editar recurso...');
+
     manejarEnvioFormularioEditarRecurso();
     
-    console.log('=== FORMULARIOS DE RECURSOS INICIALIZADOS ===');
+  
   }, 200);
 }
 

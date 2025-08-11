@@ -33,3 +33,7 @@ else:
     urlpatterns += [
         path('media/<path:path>', serve, {'document_root': settings.MEDIA_ROOT}),
     ]
+
+# Configuración de handlers personalizados para errores
+handler404 = 'home.views.custom_404'
+handler500 = 'home.views.custom_500'

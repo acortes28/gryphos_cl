@@ -78,7 +78,7 @@
                 {% endfor %}
               {% endif %}
               
-              <form role="form" method="post" action="#" class="text-start">
+              <form role="form" method="post" action="#" class="text-start" autocomplete="off">
                 {% if form.non_field_errors %}
                   {% for error in form.non_field_errors %}
                   <small>{{ error }}</small>

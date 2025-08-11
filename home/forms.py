@@ -106,14 +106,15 @@ class LoginForm(AuthenticationForm):
     username = UsernameField(
         widget=forms.TextInput(attrs={
             "class": "form-control",
-            "placeholder": ""
+            "placeholder": "",
+            "autocomplete": "off"
         }),
         label="Usuario o Correo Electrónico"
     )
     password = forms.CharField(
         label=_("Password"),
         strip=False,
-        widget=forms.PasswordInput(attrs={"autocomplete": "current-password", "class": "form-control"}),)
+        widget=forms.PasswordInput(attrs={"autocomplete": "off", "class": "form-control"}),)
     
     def clean_username(self):
         username = self.cleaned_data.get('username')
