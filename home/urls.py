@@ -131,6 +131,7 @@ urlpatterns = [
     path('obtener-subclasificaciones/', views.obtener_subclasificaciones, name='obtener_subclasificaciones'),
 
     # Recursos URLs
+    path('curso/<int:curso_id>/plataforma/recursos/', views.plataforma_recursos, name='plataforma_recursos'),
     path('curso/<int:curso_id>/plataforma/recursos/ajax/', views.plataforma_recursos_ajax, name='plataforma_recursos_ajax'),
     
     # Asignaturas URLs (Mantenedor para admin/staff)

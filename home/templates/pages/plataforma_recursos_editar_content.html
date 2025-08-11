@@ -1,7 +1,63 @@
-{% extends 'pages/plataforma_aprendizaje.html' %}
 {% load static %}
+<style>
+  /* Estilos específicos para los campos del formulario de recursos */
+  .form-control {
+    border: 1px solid #ced4da !important;
+    border-radius: 0.375rem !important;
+    padding: 0.375rem 0.75rem !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    color: #495057 !important;
+    background-color: #fff !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  }
+  
+  .form-control:focus {
+    border-color: #80bdff !important;
+    outline: 0 !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+  }
+  
+  .form-control:disabled,
+  .form-control[readonly] {
+    background-color: #e9ecef !important;
+    opacity: 1 !important;
+  }
+  
+  /* Estilos para campos de archivo */
+  .form-control[type="file"] {
+    padding: 0.375rem 0.75rem !important;
+    line-height: 1.5 !important;
+  }
+  
+  /* Estilos para textarea */
+  textarea.form-control {
+    min-height: 100px !important;
+  }
+  
+  /* Estilos para select */
+  select.form-control {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.75rem center !important;
+    background-size: 16px 12px !important;
+    padding-right: 2.25rem !important;
+  }
+  
+  /* Estilos para las cabeceras de las cards */
+  .card-header {
+    color: white !important;
+  }
+  
+  .card-header h6 {
+    color: white !important;
+  }
+  
+  .card-header i {
+    color: white !important;
+  }
+</style>
 
-{% block section_content %}
 <div class="container-fluid">
   <div class="row">
     <div class="col-12">
@@ -25,8 +81,11 @@
               </h6>
             </div>
             <div class="card-body">
-              <form id="formEditarRecurso" enctype="multipart/form-data">
+              <form id="formEditarRecurso" enctype="multipart/form-data" action="javascript:void(0);">
                 {% csrf_token %}
+                
+                <!-- Campo oculto para el ID del recurso -->
+                <input type="hidden" name="recurso_id" value="{{ recurso.id }}">
                 
                 <div class="row">
                   <div class="col-md-6 mb-3">
@@ -135,7 +194,7 @@
                   <button type="button" class="btn btn-secondary" onclick="cargarRecursosContenido();">
                     <i class="fas fa-times me-2"></i>Cancelar
                   </button>
-                  <button type="submit" class="btn btn-warning">
+                  <button type="button" class="btn btn-warning" onclick="enviarFormularioEditarRecurso();">
                     <i class="fas fa-save me-2"></i>Actualizar Recurso
                   </button>
                 </div>
@@ -147,107 +206,4 @@
     </div>
   </div>
 </div>
-
-<script>
-// Manejar envío del formulario
-document.getElementById('formEditarRecurso').addEventListener('submit', function(e) {
-  e.preventDefault();
-  
-  const formData = new FormData(this);
-  const seccionRecursos = document.getElementById('seccion-recursos');
-  
-  // Mostrar loading
-  seccionRecursos.innerHTML = `
-    <div class="text-center py-5">
-      <div class="spinner-border text-warning" role="status">
-        <span class="visually-hidden">Actualizando recurso...</span>
-      </div>
-      <p class="mt-3">Actualizando recurso...</p>
-    </div>
-  `;
-  
-  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso&recurso_id={{ recurso.id }}`, {
-    method: 'POST',
-    body: formData,
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Mostrar mensaje de éxito
-        seccionRecursos.innerHTML = `
-          <div class="alert alert-success">
-            <h4>Recurso actualizado exitosamente</h4>
-            <p>${data.message}</p>
-            <button class="btn btn-primary" onclick="cargarRecursosContenido();">
-              <i class="fas fa-arrow-left me-2"></i>Volver a la lista
-            </button>
-          </div>
-        `;
-      } else {
-        // Mostrar errores
-        let errorHtml = '<div class="alert alert-danger"><h4>Error al actualizar el recurso</h4><ul>';
-        if (data.errors) {
-          for (const [field, errors] of Object.entries(data.errors)) {
-            for (const error of errors) {
-              errorHtml += `<li>${error}</li>`;
-            }
-          }
-        } else if (data.error) {
-          errorHtml += `<li>${data.error}</li>`;
-        }
-        errorHtml += '</ul><button class="btn btn-primary" onclick="editarRecurso({{ recurso.id }});">Intentar de nuevo</button></div>';
-        
-        seccionRecursos.innerHTML = errorHtml;
-      }
-    })
-    .catch(error => {
-      console.error('Error actualizando recurso:', error);
-      seccionRecursos.innerHTML = `
-        <div class="alert alert-danger">
-          <h4>Error al actualizar el recurso</h4>
-          <p>Hubo un problema al actualizar el recurso. Por favor, intenta de nuevo.</p>
-          <button class="btn btn-primary" onclick="editarRecurso({{ recurso.id }});">
-            <i class="fas fa-redo me-2"></i>Intentar de nuevo
-          </button>
-        </div>
-      `;
-    });
-});
-
-// Función para editar un recurso
-function editarRecurso(recursoId) {
-  const seccionRecursos = document.getElementById('seccion-recursos');
-  
-  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso&recurso_id=${recursoId}`, {
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.html) {
-        seccionRecursos.innerHTML = data.html;
-      } else {
-        seccionRecursos.innerHTML = `
-          <div class="alert alert-danger">
-            <h4>Error al cargar el formulario</h4>
-            <p>Hubo un problema al cargar el formulario de editar recurso.</p>
-          </div>
-        `;
-      }
-    })
-    .catch(error => {
-      console.error('Error cargando formulario de editar recurso:', error);
-      seccionRecursos.innerHTML = `
-        <div class="alert alert-danger">
-          <h4>Error al cargar el formulario</h4>
-          <p>Hubo un problema al cargar el formulario de editar recurso.</p>
-        </div>
-      `;
-    });
-}
-</script>
-{% endblock section_content %} 
+ 

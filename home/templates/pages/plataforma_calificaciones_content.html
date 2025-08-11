@@ -89,11 +89,16 @@
             {% for evaluacion in evaluaciones %}
               <div class="col-12 col-lg-6 mb-3">
                 <div class="evaluacion-card">
-
-                  <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h6 class="mb-1 text-break">{{ evaluacion.nombre }}</h6>
-                    <span class="badge bg-primary ms-2">{{ evaluacion.get_tipo_display }}</span>
+                  <!-- Header de la card con color morado -->
+                  <div class="evaluacion-card-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <h6 class="mb-1 text-break text-white">{{ evaluacion.nombre }}</h6>
+                      <span class="badge bg-light text-dark ms-2">{{ evaluacion.get_tipo_display }}</span>
+                    </div>
                   </div>
+                  
+                  <!-- Cuerpo de la card -->
+                  <div class="evaluacion-card-body">
                   <p class="text-muted small mb-2">
                     <i class="fas fa-calendar me-1"></i>{{ evaluacion.fecha_inicio|date:"d/m/Y" }} - {{ evaluacion.fecha_fin|date:"d/m/Y" }}
                   </p>
@@ -142,6 +147,7 @@
                       <i class="fas fa-plus-circle me-1"></i>Abrir Rúbrica
                     </button>
                   </div>
+                  </div> <!-- Cierre de evaluacion-card-body -->
                 </div>
               </div>
             {% endfor %}
@@ -333,7 +339,7 @@
 .evaluacion-card {
   background: #ffffff !important;
   border-radius: 10px !important;
-  padding: 25px !important;
+  padding: 0 !important; /* Removido padding para el header */
   box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
   margin-bottom: 20px !important;
   transition: all 0.3s ease;
@@ -347,6 +353,27 @@
   font-size: 14px !important;
   font-weight: normal !important;
   height: 100%;
+  overflow: hidden; /* Para que el header tenga bordes redondeados */
+}
+
+/* Header morado de la card */
+.evaluacion-card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  padding: 20px 25px 15px 25px !important;
+  border-radius: 10px 10px 0 0 !important;
+  margin: 0 !important;
+}
+
+.evaluacion-card-header h6 {
+  color: white !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+}
+
+/* Cuerpo de la card */
+.evaluacion-card-body {
+  padding: 20px 25px 25px 25px !important;
 }
 
 .evaluacion-card:hover {
@@ -400,8 +427,15 @@
     font-size: 0.8rem;
   }
   
+  .evaluacion-card-header {
+    padding: 15px 20px 10px 20px !important;
+  }
+  
+  .evaluacion-card-body {
+    padding: 15px 20px 20px 20px !important;
+  }
+  
   .evaluacion-card {
-    padding: 20px !important;
     min-height: 180px !important;
   }
   
@@ -424,8 +458,15 @@
     font-size: 1.3rem;
   }
   
+  .evaluacion-card-header {
+    padding: 12px 15px 8px 15px !important;
+  }
+  
+  .evaluacion-card-body {
+    padding: 12px 15px 15px 15px !important;
+  }
+  
   .evaluacion-card {
-    padding: 15px !important;
     min-height: 160px !important;
   }
   

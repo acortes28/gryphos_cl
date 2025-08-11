@@ -5,12 +5,12 @@ from django.db import models
 import time
 import re
 import json
-from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm, EntregaForm, TicketSoporteForm, ComentarioTicketForm, TicketSoporteAdminForm
+from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm, EntregaForm, TicketSoporteForm, ComentarioTicketForm, TicketSoporteAdminForm, RecursoForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket, Asignatura
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket, Asignatura, Recurso
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -5290,7 +5290,7 @@ def obtener_esperables_criterio_por_estudiante(request, criterio_id, estudiante_
                     'esperables': esperables_data,
                     'esperable_seleccionado': None
                 })
-                
+        
         except ResultadoRubrica.DoesNotExist:
             # Si no existe resultado de rúbrica, devolver todos los esperables disponibles
             logger.debug(f"No existe ResultadoRubrica para estudiante {estudiante_id}")
@@ -6371,13 +6371,336 @@ def crear_evaluacion_ajax(request, curso_id):
 # ============================================================================
 
 @login_required
-def plataforma_recursos_ajax(request, curso_id):
+def plataforma_recursos(request, curso_id):
+    """
+    Vista principal para la página de recursos
+    """
     try:
-        plataforma_recursos = PlataformaRecursosView()
-        return plataforma_recursos.plataforma_recursos_ajax(request, curso_id)
-    except:
-        logger.error("Ocurrio un error al tratar de ejecutar plataforma_recursos_ajax")
-        return JsonResponse({'error': 'Ocurrió un error al procesar la solicitud'}, status=500)
+        curso = get_object_or_404(Curso, id=curso_id, activo=True)
+        
+        # Verificar acceso al curso
+        if curso not in request.user.cursos.all():
+            messages.error(request, 'No tienes acceso a este curso.')
+            return redirect('portal-cliente')
+        
+        # Redirigir a la plataforma principal con sección de recursos
+        from django.urls import reverse
+        return redirect(f"{reverse('plataforma_aprendizaje', kwargs={'curso_id': curso_id})}?seccion=recursos")
+        
+    except Exception as e:
+        logger.error(f"Error en plataforma_recursos: {str(e)}")
+        messages.error(request, 'Error al cargar la página de recursos.')
+        return redirect('portal-cliente')
+
+@login_required
+def plataforma_recursos_ajax(request, curso_id):
+    """
+    Vista AJAX para manejar todas las operaciones de recursos
+    """
+    try:
+        curso = get_object_or_404(Curso, id=curso_id, activo=True)
+        
+        # Verificar acceso al curso
+        if curso not in request.user.cursos.all():
+            return JsonResponse({'error': 'No tienes acceso a este curso.'}, status=403)
+        
+        action = request.GET.get('action', 'listar')
+        
+        if action == 'listar':
+            return listar_recursos(request, curso)
+        elif action == 'ver_recursos':
+            return ver_recursos_evaluacion(request, curso)
+        elif action == 'crear_recurso':
+            if request.method == 'POST':
+                return crear_recurso(request, curso)
+            else:
+                return mostrar_formulario_crear(request, curso)
+        elif action == 'editar_recurso':
+            if request.method == 'POST':
+                return editar_recurso(request, curso)
+            else:
+                return mostrar_formulario_editar(request, curso)
+        elif action == 'eliminar_recurso':
+            return eliminar_recurso(request, curso)
+        else:
+            return JsonResponse({'error': 'Acción no válida'}, status=400)
+            
+    except Exception as e:
+        logger.error(f"Error en plataforma_recursos_ajax: {str(e)}")
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+
+def listar_recursos(request, curso):
+    """
+    Lista las evaluaciones con recursos disponibles
+    """
+    try:
+        # Obtener evaluaciones que tienen recursos
+        evaluaciones_con_recursos = []
+        
+        # Para usuarios no admin/staff, mostrar solo evaluaciones con recursos
+        if not (request.user.is_staff or request.user.is_superuser):
+            evaluaciones = Evaluacion.objects.filter(
+                curso=curso, 
+                activa=True,
+                recursos__activo=True
+            ).distinct().order_by('-fecha_creacion')
+        else:
+            # Para admin/staff, mostrar todas las evaluaciones
+            evaluaciones = Evaluacion.objects.filter(
+                curso=curso, 
+                activa=True
+            ).order_by('-fecha_creacion')
+        
+        for evaluacion in evaluaciones:
+            recursos_count = evaluacion.recursos.filter(activo=True).count()
+            evaluaciones_con_recursos.append({
+                'evaluacion': evaluacion,
+                'recursos_count': recursos_count
+            })
+        
+        context = {
+            'user': request.user,
+            'curso': curso,
+            'evaluaciones_con_recursos': evaluaciones_con_recursos
+        }
+        
+        html = render_to_string('pages/plataforma_recursos_content.html', context, request=request)
+        return JsonResponse({'html': html})
+        
+    except Exception as e:
+        logger.error(f"Error listando recursos: {str(e)}")
+        return JsonResponse({'error': 'Error al listar los recursos'}, status=500)
+
+def ver_recursos_evaluacion(request, curso):
+    """
+    Muestra los recursos de una evaluación específica
+    """
+    try:
+        evaluacion_id = request.GET.get('evaluacion_id')
+        if not evaluacion_id:
+            return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+        
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso, activa=True)
+        recursos = evaluacion.recursos.filter(activo=True).order_by('-fecha_creacion')
+        
+        context = {
+            'user': request.user,
+            'curso': curso,
+            'evaluacion': evaluacion,
+            'recursos': recursos
+        }
+        
+        html = render_to_string('pages/plataforma_recursos_lista_content.html', context, request=request)
+        return JsonResponse({'html': html})
+        
+    except Exception as e:
+        logger.error(f"Error viendo recursos de evaluación: {str(e)}")
+        return JsonResponse({'error': 'Error al cargar los recursos'}, status=500)
+
+@login_required
+def mostrar_formulario_crear(request, curso):
+    """
+    Muestra el formulario para crear un nuevo recurso
+    """
+    try:
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para crear recursos'}, status=403)
+        
+        evaluacion_id = request.GET.get('evaluacion_id')
+        evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('-fecha_creacion')
+        
+        # Crear el formulario
+        form = RecursoForm()
+        logger.info(f"Formulario creado: {form}")
+        
+        # Si hay una evaluación seleccionada, obtenerla
+        evaluacion_seleccionada = None
+        if evaluacion_id:
+            try:
+                evaluacion_seleccionada = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                logger.info(f"Evaluación seleccionada: {evaluacion_seleccionada}")
+            except Evaluacion.DoesNotExist:
+                logger.warning(f"Evaluación con ID {evaluacion_id} no encontrada")
+                pass
+        
+        context = {
+            'user': request.user,
+            'curso': curso,
+            'form': form,
+            'evaluaciones': evaluaciones,
+            'evaluacion_seleccionada': evaluacion_seleccionada
+        }
+        
+        html = render_to_string('pages/plataforma_recursos_crear_content.html', context, request=request)
+        logger.info(f"HTML generado con longitud: {len(html)}")
+        return JsonResponse({'html': html})
+        
+    except Exception as e:
+        logger.error(f"Error mostrando formulario crear: {str(e)}")
+        import traceback
+        logger.error(f"Traceback completo: {traceback.format_exc()}")
+        return JsonResponse({'error': f'Error al cargar el formulario crear recurso: {str(e)}'}, status=500)
+
+@login_required
+def crear_recurso(request, curso):
+    """
+    Crea un nuevo recurso
+    """
+    try:
+        logger.info(f"Creando recurso para curso {curso.id}")
+        logger.info(f"POST data: {request.POST}")
+        logger.info(f"FILES data: {request.FILES}")
+        
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para crear recursos'}, status=403)
+        
+        # Obtener la evaluación
+        evaluacion_id = request.POST.get('evaluacion')
+        logger.info(f"Evaluación ID: {evaluacion_id}")
+        
+        if not evaluacion_id:
+            return JsonResponse({
+                'success': False,
+                'errors': {'evaluacion': ['Debes seleccionar una evaluación']}
+            })
+        
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso, activa=True)
+        logger.info(f"Evaluación encontrada: {evaluacion}")
+        
+        # Crear el formulario con los datos y la evaluación
+        form = RecursoForm(request.POST, request.FILES, evaluacion=evaluacion)
+        
+        logger.info(f"Formulario válido: {form.is_valid()}")
+        if form.is_valid():
+            # Guardar el recurso
+            recurso = form.save(commit=False)
+            recurso.creado_por = request.user
+            recurso.save()
+            
+            logger.info(f"Recurso creado exitosamente: {recurso}")
+            return JsonResponse({
+                'success': True,
+                'message': f'Recurso "{recurso.nombre}" creado exitosamente'
+            })
+        else:
+            logger.error(f"Errores del formulario: {form.errors}")
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+        
+    except Exception as e:
+        logger.error(f"Error creando recurso: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Error al crear el recurso'
+        }, status=500)
+
+@login_required
+def mostrar_formulario_editar(request, curso):
+    """
+    Muestra el formulario para editar un recurso
+    """
+    try:
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para editar recursos'}, status=403)
+        
+        recurso_id = request.GET.get('recurso_id')
+        if not recurso_id:
+            return JsonResponse({'error': 'ID de recurso requerido'}, status=400)
+        
+        recurso = get_object_or_404(Recurso, id=recurso_id, evaluacion__curso=curso, activo=True)
+        
+        # Crear el formulario con los datos existentes del recurso
+        form = RecursoForm(instance=recurso)
+        
+        context = {
+            'user': request.user,
+            'curso': curso,
+            'recurso': recurso,
+            'form': form
+        }
+        
+        html = render_to_string('pages/plataforma_recursos_editar_content.html', context, request=request)
+        return JsonResponse({'html': html})
+        
+    except Exception as e:
+        logger.error(f"Error mostrando formulario editar: {str(e)}")
+        return JsonResponse({'error': 'Error al cargar el formulario'}, status=500)
+
+@login_required
+def editar_recurso(request, curso):
+    """
+    Edita un recurso existente
+    """
+    try:
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para editar recursos'}, status=403)
+        
+        recurso_id = request.POST.get('recurso_id')
+        if not recurso_id:
+            return JsonResponse({
+                'success': False,
+                'errors': {'recurso_id': ['ID de recurso requerido']}
+            })
+        
+        recurso = get_object_or_404(Recurso, id=recurso_id, evaluacion__curso=curso, activo=True)
+        
+        # Crear el formulario con los datos existentes
+        form = RecursoForm(request.POST, request.FILES, instance=recurso)
+        
+        if form.is_valid():
+            # Guardar el recurso
+            recurso = form.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Recurso "{recurso.nombre}" actualizado exitosamente'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'errors': form.errors
+            })
+        
+    except Exception as e:
+        logger.error(f"Error editando recurso: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Error al editar el recurso'
+        }, status=500)
+
+@login_required
+def eliminar_recurso(request, curso):
+    """
+    Elimina un recurso (marca como inactivo)
+    """
+    try:
+        if not (request.user.is_staff or request.user.is_superuser):
+            return JsonResponse({'error': 'No tienes permisos para eliminar recursos'}, status=403)
+        
+        recurso_id = request.GET.get('recurso_id')
+        if not recurso_id:
+            return JsonResponse({'error': 'ID de recurso requerido'}, status=400)
+        
+        recurso = get_object_or_404(Recurso, id=recurso_id, evaluacion__curso=curso, activo=True)
+        nombre_recurso = recurso.nombre
+        
+        # Marcar como inactivo en lugar de eliminar
+        recurso.activo = False
+        recurso.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Recurso "{nombre_recurso}" eliminado exitosamente'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error eliminando recurso: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Error al eliminar el recurso'
+        }, status=500)
 
 # ============================================================================
 # VISTAS PARA EL MANTENEDOR DE ASIGNATURAS

@@ -1,14 +1,52 @@
-{% extends 'pages/plataforma_aprendizaje.html' %}
 {% load static %}
+{% load custom_filters %}
 
-{% block section_content %}
+
+<style>
+  /* Estilos para las cabeceras de las cards */
+  .card-header {
+    color: white !important;
+  }
+  
+  .card-header h6 {
+    color: white !important;
+  }
+  
+  .card-header i {
+    color: white !important;
+  }
+
+  .evaluacion-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .evaluacion-header h6 {
+    color: white !important;
+  }
+  
+  .evaluacion-header:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  }
+  
+  .evaluacion-header.collapsed {
+    border-radius: 8px;
+  }
+</style>
+
 <div class="container-fluid">
   <div class="row">
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0">
-          <i class="fas fa-book me-2"></i>Recursos de Aprendizaje
-        </h4>
+        <div>
+          <h4 class="mb-0">
+            <i class="fas fa-book me-2"></i>Recursos de Aprendizaje
+          </h4>
+        </div>
         {% if user.is_staff %}
         <button class="btn btn-primary" onclick="cargarFormularioCrearRecurso()">
           <i class="fas fa-plus me-2"></i>Subir Recurso
@@ -21,7 +59,7 @@
           {% for evaluacion_data in evaluaciones_con_recursos %}
             <div class="col-lg-6 col-xl-4 mb-4">
               <div class="card h-100 shadow-sm">
-                <div class="card-header bg-gradient-primary text-white">
+                <div class="evaluacion-header">
                   <h6 class="mb-0">
                     <i class="fas fa-clipboard-check me-2"></i>{{ evaluacion_data.evaluacion.nombre }}
                   </h6>
@@ -70,122 +108,3 @@
     </div>
   </div>
 </div>
-
-<script>
-// Función para ver recursos de una evaluación específica
-function verRecursosEvaluacion(evaluacionId) {
-  const seccionRecursos = document.getElementById('seccion-recursos');
-  
-  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=ver_recursos&evaluacion_id=${evaluacionId}`, {
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.html) {
-        seccionRecursos.innerHTML = data.html;
-      } else {
-        seccionRecursos.innerHTML = `
-          <div class="alert alert-info">
-            <h4>Recursos de la Evaluación</h4>
-            <p>No hay recursos disponibles para esta evaluación.</p>
-          </div>
-        `;
-      }
-      
-      // Actualizar URL sin recargar
-      const url = new URL(window.location);
-      url.searchParams.set('action', 'ver_recursos');
-      url.searchParams.set('evaluacion_id', evaluacionId);
-      window.history.pushState({}, '', url);
-    })
-    .catch(error => {
-      console.error('Error cargando recursos de evaluación:', error);
-      seccionRecursos.innerHTML = `
-        <div class="alert alert-danger">
-          <h4>Error al cargar los recursos</h4>
-          <p>Hubo un problema al cargar los recursos de esta evaluación.</p>
-        </div>
-      `;
-    });
-}
-
-// Función para crear recurso para una evaluación específica
-function crearRecursoParaEvaluacion(evaluacionId) {
-  const seccionRecursos = document.getElementById('seccion-recursos');
-  
-  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso&evaluacion_id=${evaluacionId}`, {
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.html) {
-        seccionRecursos.innerHTML = data.html;
-      } else {
-        seccionRecursos.innerHTML = `
-          <div class="alert alert-danger">
-            <h4>Error al cargar el formulario</h4>
-            <p>Hubo un problema al cargar el formulario de crear recurso.</p>
-          </div>
-        `;
-      }
-      
-      // Actualizar URL sin recargar
-      const url = new URL(window.location);
-      url.searchParams.set('action', 'crear_recurso');
-      url.searchParams.set('evaluacion_id', evaluacionId);
-      window.history.pushState({}, '', url);
-    })
-    .catch(error => {
-      console.error('Error cargando formulario de crear recurso:', error);
-      seccionRecursos.innerHTML = `
-        <div class="alert alert-danger">
-          <h4>Error al cargar el formulario</h4>
-          <p>Hubo un problema al cargar el formulario de crear recurso.</p>
-        </div>
-      `;
-    });
-}
-
-// Función para cargar formulario de crear recurso
-function cargarFormularioCrearRecurso() {
-  const seccionRecursos = document.getElementById('seccion-recursos');
-  
-  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso`, {
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.html) {
-        seccionRecursos.innerHTML = data.html;
-      } else {
-        seccionRecursos.innerHTML = `
-          <div class="alert alert-danger">
-            <h4>Error al cargar el formulario</h4>
-            <p>Hubo un problema al cargar el formulario de crear recurso.</p>
-          </div>
-        `;
-      }
-      
-      // Actualizar URL sin recargar
-      const url = new URL(window.location);
-      url.searchParams.set('action', 'crear_recurso');
-      window.history.pushState({}, '', url);
-    })
-    .catch(error => {
-      console.error('Error cargando formulario de crear recurso:', error);
-      seccionRecursos.innerHTML = `
-        <div class="alert alert-danger">
-          <h4>Error al cargar el formulario</h4>
-          <p>Hubo un problema al cargar el formulario de crear recurso.</p>
-        </div>
-      `;
-    });
-}
-</script>
-{% endblock section_content %} 

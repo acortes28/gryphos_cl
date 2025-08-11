@@ -1,11 +1,99 @@
-{% extends 'pages/plataforma_aprendizaje.html' %}
 {% load static %}
+{% csrf_token %}
 
-{% block section_content %}
+<style>
+
+  .badge.bg-info {
+    color: #055160 !important;
+  }
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  .bg-gradient-primary:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  }
+  .text-white {
+    color: white !important;
+  }
+  
+  /* Estilos para los grupos colapsables */
+  .collapsible-header {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+  }
+  
+  .collapsible-header:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%) !important;
+  }
+  
+  .collapsible-header .collapse-icon {
+    transition: transform 0.3s ease;
+    display: inline-block;
+  }
+  
+  .collapsible-header.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+  }
+  
+  .collapsible-header.expanded .collapse-icon {
+    transform: rotate(0deg);
+  }
+  
+  .collapsible-content {
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+  
+  .collapsible-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+  }
+  
+  .collapsible-content.expanded {
+    max-height: 1000px;
+    opacity: 1;
+    padding: 1rem;
+  }
+  
+  /* Estilos para la tabla */
+  .table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+  }
+  
+  .table td {
+    vertical-align: middle;
+    border-top: 1px solid #e9ecef;
+  }
+  
+  .table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+  }
+  
+  /* Estilos para los badges */
+  .badge {
+    font-size: 0.75em;
+    padding: 0.35em 0.65em;
+  }
+  
+  /* Estilos para los botones de acción */
+  .btn-group .btn {
+    margin-right: 2px;
+  }
+  
+  .btn-group .btn:last-child {
+    margin-right: 0;
+  }
+</style>
+
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 <div class="container-fluid">
   <div class="row">
     <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex justify-content-between align-items-center mb-4 ">
         <div>
           <button class="btn btn-outline-secondary btn-sm me-3" onclick="cargarRecursosContenido();">
             <i class="fas fa-arrow-left me-1"></i>Volver
@@ -22,77 +110,112 @@
       </div>
       
       {% if recursos %}
-        <div class="row">
-          {% for recurso in recursos %}
-            <div class="col-lg-6 col-xl-4 mb-4">
-              <div class="card h-100 shadow-sm">
-                <div class="card-header bg-gradient-info text-white">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">
-                      <i class="{{ recurso.get_icono_tipo }} me-2"></i>{{ recurso.nombre }}
-                    </h6>
-                    <span class="badge bg-light text-dark">{{ recurso.get_tipo_display_name }}</span>
-                  </div>
-                </div>
-                <div class="card-body">
-                  <p class="text-muted small mb-3">{{ recurso.descripcion|truncatewords:30 }}</p>
-                  
-                  <div class="mb-3">
-                    <small class="text-muted">
-                      <i class="fas fa-calendar me-1"></i>Creado: {{ recurso.fecha_creacion|date:"d/m/Y H:i" }}
-                    </small>
-                  </div>
-                  
-                  {% if recurso.tiene_archivo %}
-                    <div class="mb-2">
-                      <small class="text-muted">
-                        <i class="fas fa-file me-1"></i>{{ recurso.get_nombre_archivo }}
-                        {% if recurso.get_tamano_archivo %}
-                          <span class="badge bg-secondary ms-1">{{ recurso.get_tamano_archivo }}</span>
-                        {% endif %}
-                      </small>
-                    </div>
-                  {% endif %}
-                  
-                  {% if recurso.tiene_enlace %}
-                    <div class="mb-2">
-                      <small class="text-muted">
-                        <i class="fas fa-link me-1"></i>Enlace externo disponible
-                      </small>
-                    </div>
-                  {% endif %}
-                  
-                  <div class="d-flex justify-content-between align-items-center">
-                    <div class="btn-group" role="group">
-                      {% if recurso.tiene_archivo %}
-                        <a href="{{ recurso.archivo_adjunto.url }}" class="btn btn-outline-primary btn-sm" target="_blank">
-                          <i class="fas fa-download me-1"></i>Descargar
-                        </a>
-                      {% endif %}
-                      
-                      {% if recurso.tiene_enlace %}
-                        <a href="{{ recurso.enlace_externo }}" class="btn btn-outline-info btn-sm" target="_blank">
-                          <i class="fas fa-external-link-alt me-1"></i>Ver Enlace
-                        </a>
-                      {% endif %}
-                    </div>
-                    
-                    {% if user.is_staff %}
-                    <div class="btn-group" role="group">
-                      <button class="btn btn-outline-warning btn-sm" onclick="editarRecurso({{ recurso.id }});">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button class="btn btn-outline-danger btn-sm" onclick="eliminarRecurso({{ recurso.id }}, '{{ recurso.nombre }}');">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                    {% endif %}
-                  </div>
-                </div>
+        <!-- Agrupar recursos por tipo -->
+        {% regroup recursos by tipo as recursos_por_tipo %}
+        
+        {% for tipo in recursos_por_tipo %}
+          <div class="card mb-4">
+            <div class="card-header bg-gradient-primary text-white collapsible-header collapsed" 
+                 onclick="toggleCollapse('collapse-{{ forloop.counter }}', this)"
+                 data-bs-toggle="collapse" 
+                 data-bs-target="#collapse-{{ forloop.counter }}"
+                 aria-expanded="true"
+                 aria-controls="collapse-{{ forloop.counter }}">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-white">
+                  <i class="fas fa-folder me-2 text-white"></i>
+                  <i class="fas fa-chevron-down collapse-icon me-2"></i>
+                  {{ tipo.grouper|title }}s
+                  <span class="badge bg-light text-dark ms-2">{{ tipo.list|length }}</span>
+                </h5>
+                <small class="text-white-50">Haz clic para colapsar/expandir</small>
               </div>
             </div>
-          {% endfor %}
-        </div>
+            <div class="card-body p-0 collapsible-content collapsed" id="collapse-{{ forloop.counter }}">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width: 30%;">Nombre</th>
+                      <th style="width: 25%;">Descripción</th>
+                      <th style="width: 15%;">Fecha de Creación</th>
+                      <th style="width: 15%;">Archivo/Enlace</th>
+                      <th style="width: 15%;">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for recurso in tipo.list %}
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-center">
+                          <i class="{{ recurso.get_icono_tipo }} me-2 text-info"></i>
+                          <strong>{{ recurso.nombre }}</strong>
+                        </div>
+                      </td>
+                      <td>
+                        <small class="text-muted">
+                          {{ recurso.descripcion|truncatewords:15 }}
+                        </small>
+                      </td>
+                      <td>
+                        <small class="text-muted">
+                          <i class="fas fa-calendar me-1"></i>
+                          {{ recurso.fecha_creacion|date:"d/m/Y H:i" }}
+                        </small>
+                      </td>
+                      <td>
+                        {% if recurso.tiene_archivo %}
+                          <div class="d-flex align-items-center">
+                            <i class="fas fa-file me-1 text-success"></i>
+                            <small class="text-muted">
+                              {{ recurso.get_nombre_archivo }}
+                              {% if recurso.get_tamano_archivo %}
+                                <br><span class="badge bg-secondary">{{ recurso.get_tamano_archivo }}</span>
+                              {% endif %}
+                            </small>
+                          </div>
+                        {% elif recurso.tiene_enlace %}
+                          <div class="d-flex align-items-center">
+                            <i class="fas fa-link me-1 text-primary"></i>
+                            <small class="text-muted">Enlace externo</small>
+                          </div>
+                        {% else %}
+                          <span class="text-muted small">-</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        <div class="btn-group" role="group">
+                          {% if recurso.tiene_archivo %}
+                            <a href="{{ recurso.archivo_adjunto.url }}" class="btn btn-outline-primary btn-sm" target="_blank" title="Descargar">
+                              <i class="fas fa-download"></i>
+                            </a>
+                          {% endif %}
+                          
+                          {% if recurso.tiene_enlace %}
+                            <a href="{{ recurso.enlace_externo }}" class="btn btn-outline-info btn-sm" target="_blank" title="Ver Enlace">
+                              <i class="fas fa-external-link-alt"></i>
+                            </a>
+                          {% endif %}
+                          
+                          {% if user.is_staff %}
+                            <button class="btn btn-outline-warning btn-sm" onclick="editarRecurso({{ recurso.id }});" title="Editar">
+                              <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="eliminarRecurso({{ recurso.id }}, '{{ recurso.nombre }}');" title="Eliminar">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                          {% endif %}
+                        </div>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+        
       {% else %}
         <div class="text-center py-5">
           <i class="fas fa-book fa-3x text-muted mb-3"></i>
@@ -110,134 +233,33 @@
 </div>
 
 <script>
-// Función para editar un recurso
-function editarRecurso(recursoId) {
-  const seccionRecursos = document.getElementById('seccion-recursos');
+// Función para alternar el estado colapsable
+function toggleCollapse(collapseId, headerElement) {
+  const content = document.getElementById(collapseId);
+  const isExpanded = content.classList.contains('expanded');
   
-  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=editar_recurso&recurso_id=${recursoId}`, {
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.html) {
-        seccionRecursos.innerHTML = data.html;
-      } else {
-        seccionRecursos.innerHTML = `
-          <div class="alert alert-danger">
-            <h4>Error al cargar el formulario</h4>
-            <p>Hubo un problema al cargar el formulario de editar recurso.</p>
-          </div>
-        `;
-      }
-      
-      // Actualizar URL sin recargar
-      const url = new URL(window.location);
-      url.searchParams.set('action', 'editar_recurso');
-      url.searchParams.set('recurso_id', recursoId);
-      window.history.pushState({}, '', url);
-    })
-    .catch(error => {
-      console.error('Error cargando formulario de editar recurso:', error);
-      seccionRecursos.innerHTML = `
-        <div class="alert alert-danger">
-          <h4>Error al cargar el formulario</h4>
-          <p>Hubo un problema al cargar el formulario de editar recurso.</p>
-        </div>
-      `;
-    });
-}
-
-// Función para eliminar un recurso
-function eliminarRecurso(recursoId, nombreRecurso) {
-  if (confirm(`¿Estás seguro de que quieres eliminar el recurso "${nombreRecurso}"?`)) {
-    const seccionRecursos = document.getElementById('seccion-recursos');
-    
-    fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=eliminar_recurso&recurso_id=${recursoId}`, {
-      method: 'POST',
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-      }
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Mostrar mensaje de éxito
-          seccionRecursos.innerHTML = `
-            <div class="alert alert-success">
-              <h4>Recurso eliminado</h4>
-              <p>${data.message}</p>
-              <button class="btn btn-primary" onclick="verRecursosEvaluacion({{ evaluacion.id }});">
-                <i class="fas fa-arrow-left me-2"></i>Volver a la lista
-              </button>
-            </div>
-          `;
-        } else {
-          seccionRecursos.innerHTML = `
-            <div class="alert alert-danger">
-              <h4>Error al eliminar el recurso</h4>
-              <p>${data.error}</p>
-              <button class="btn btn-primary" onclick="verRecursosEvaluacion({{ evaluacion.id }});">
-                <i class="fas fa-arrow-left me-2"></i>Volver a la lista
-              </button>
-            </div>
-          `;
-        }
-      })
-      .catch(error => {
-        console.error('Error eliminando recurso:', error);
-        seccionRecursos.innerHTML = `
-          <div class="alert alert-danger">
-            <h4>Error al eliminar el recurso</h4>
-            <p>Hubo un problema al eliminar el recurso.</p>
-            <button class="btn btn-primary" onclick="verRecursosEvaluacion({{ evaluacion.id }});">
-              <i class="fas fa-arrow-left me-2"></i>Volver a la lista
-            </button>
-          </div>
-        `;
-      });
+  if (isExpanded) {
+    // Colapsar
+    content.classList.remove('expanded');
+    content.classList.add('collapsed');
+    headerElement.classList.remove('expanded');
+    headerElement.classList.add('collapsed');
+  } else {
+    // Expandir
+    content.classList.remove('collapsed');
+    content.classList.add('expanded');
+    headerElement.classList.remove('collapsed');
+    headerElement.classList.add('expanded');
   }
 }
 
-// Función para crear recurso para una evaluación específica
-function crearRecursoParaEvaluacion(evaluacionId) {
-  const seccionRecursos = document.getElementById('seccion-recursos');
-  
-  fetch(`{% url 'plataforma_recursos_ajax' curso.id %}?action=crear_recurso&evaluacion_id=${evaluacionId}`, {
-    headers: {
-      'X-Requested-With': 'XMLHttpRequest'
-    }
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.html) {
-        seccionRecursos.innerHTML = data.html;
-      } else {
-        seccionRecursos.innerHTML = `
-          <div class="alert alert-danger">
-            <h4>Error al cargar el formulario</h4>
-            <p>Hubo un problema al cargar el formulario de crear recurso.</p>
-          </div>
-        `;
-      }
-      
-      // Actualizar URL sin recargar
-      const url = new URL(window.location);
-      url.searchParams.set('action', 'crear_recurso');
-      url.searchParams.set('evaluacion_id', evaluacionId);
-      window.history.pushState({}, '', url);
-    })
-    .catch(error => {
-      console.error('Error cargando formulario de crear recurso:', error);
-      seccionRecursos.innerHTML = `
-        <div class="alert alert-danger">
-          <h4>Error al cargar el formulario</h4>
-          <p>Hubo un problema al cargar el formulario de crear recurso.</p>
-        </div>
-      `;
-    });
-}
+// Inicializar todos los grupos como expandidos por defecto
+document.addEventListener('DOMContentLoaded', function() {
+  const headers = document.querySelectorAll('.collapsible-header');
+  headers.forEach(header => {
+    header.classList.add('collapsed');
+  });
+});
 </script>
-{% endblock section_content %} 
+
+ 
