@@ -50,13 +50,13 @@ class VideollamadaInline(admin.TabularInline):
         return formset
 
 class CursoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'asignatura', 'docente_nombre', 'precio', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
+    list_display = ('nombre','codigo' ,'asignatura', 'docente_nombre', 'precio', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
     list_filter = ('activo', 'modalidad', 'nivel', 'fecha_inicio', 'asignatura')
     search_fields = ('nombre', 'docente_nombre', 'descripcion', 'asignatura__nombre')
     inlines = [VideollamadaInline]
     fieldsets = (
         ('Información Básica', {
-            'fields': ('nombre', 'descripcion', 'activo', 'asignatura')
+            'fields': ('nombre', 'codigo', 'descripcion', 'activo', 'asignatura')
         }),
         ('Fechas', {
             'fields': ('fecha_inicio', 'fecha_fin', 'dias_plazo_pago')
@@ -95,13 +95,13 @@ class VideollamadaAdmin(admin.ModelAdmin):
 class CursoInline(admin.TabularInline):
     model = Curso
     extra = 0
-    fields = ('nombre', 'docente_nombre', 'activo', 'fecha_inicio', 'fecha_fin')
-    readonly_fields = ('nombre', 'docente_nombre', 'activo', 'fecha_inicio', 'fecha_fin')
+    fields = ('nombre', 'codigo', 'docente_nombre', 'activo', 'fecha_inicio', 'fecha_fin')
+    readonly_fields = ('nombre', 'codigo', 'docente_nombre', 'activo', 'fecha_inicio', 'fecha_fin')
     can_delete = False
     max_num = 0
 
 class AsignaturaAdmin(admin.ModelAdmin):
-    list_display = ('codigo', 'nombre', 'area_conocimiento', 'creditos', 'activa', 'get_cursos_count', 'get_evaluaciones_count', 'creado_por')
+    list_display = ('codigo', 'nombre', 'area_conocimiento', 'activa', 'get_cursos_count', 'get_evaluaciones_count', 'creado_por')
     list_filter = ('activa', 'area_conocimiento', 'fecha_creacion', 'creado_por')
     search_fields = ('nombre', 'codigo', 'descripcion', 'area_conocimiento')
     readonly_fields = ('fecha_creacion', 'fecha_modificacion')
@@ -113,7 +113,7 @@ class AsignaturaAdmin(admin.ModelAdmin):
             'fields': ('codigo', 'nombre', 'descripcion', 'activa')
         }),
         ('Detalles Académicos', {
-            'fields': ('area_conocimiento', 'creditos')
+            'fields': ('area_conocimiento',)
         }),
         ('Información del Sistema', {
             'fields': ('creado_por', 'fecha_creacion', 'fecha_modificacion'),

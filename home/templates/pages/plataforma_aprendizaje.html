@@ -1046,18 +1046,18 @@ function cambiarSeccion(seccion) {
       }
     })
       .then(response => response.json())
-          .then(data => {
-      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
-      
-      // Ocultar todas las secciones primero
-      document.querySelectorAll('.section-content').forEach(el => {
-        el.classList.remove('active');
-      });
-      
-      // Actualizar contenido y mostrar sección de calificaciones
-      seccionCalificaciones.innerHTML = data.html;
-      seccionCalificaciones.classList.add('active');
-      document.getElementById('loading').classList.remove('show');
+      .then(data => {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        document.getElementById('loading').classList.remove('show');
         
         // Actualizar URL sin recargar
         const url = new URL(window.location);
@@ -1113,6 +1113,11 @@ function cambiarSeccion(seccion) {
           }
         }
         window.history.pushState({}, '', url);
+      })
+      .catch(error => {
+        console.error('Error cargando soporte:', error);
+        document.getElementById('loading').classList.remove('show');
+        document.getElementById('seccion-soporte').innerHTML = `<div class="alert alert-danger">Error al cargar el soporte: ${error.message}</div>`;
       });
   } else if (seccion === 'entregas') {
     // Limpiar mensajes anteriores
@@ -1142,6 +1147,11 @@ function cambiarSeccion(seccion) {
         inicializarEvaluacionesColapsables();
         // Inicializar el modal de reemplazo
         inicializarModalReemplazo();
+      })
+      .catch(error => {
+        console.error('Error cargando entregas:', error);
+        document.getElementById('loading').classList.remove('show');
+        document.getElementById('tabla-entregas-placeholder').innerHTML = `<div class="alert alert-danger">Error al cargar las entregas: ${error.message}</div>`;
       });
   } else {
     // Simular carga para otras secciones
@@ -5379,7 +5389,7 @@ function calcularNotaModal() {
     const notaField = document.getElementById('editNota');
     if (notaField) {
       notaField.value = notaCalculada.toFixed(1);
-
+    }
   } catch (error) {
     console.error('Error al calcular nota en modal:', error);
   }
@@ -6408,23 +6418,21 @@ function enviarFormularioEditarRecurso() {
     }
   })
     .then(response => {
-
       return response.json();
     })
-          .then(data => {
-
-        if (data.success) {
-          // Mostrar mensaje de éxito simple
-          placeholder.innerHTML = `
-            <div class="alert alert-success text-center">
-              <h4>Recurso actualizado exitosamente</h4>
-              <p class="mb-3">El recurso se ha actualizado correctamente.</p>
-              <button class="btn btn-primary" onclick="cargarRecursosContenido();">
-                <i class="fas fa-arrow-left me-2"></i>Volver a la lista
-              </button>
-            </div>
-          `;
-        } else {
+    .then(data => {
+      if (data.success) {
+        // Mostrar mensaje de éxito simple
+        placeholder.innerHTML = `
+          <div class="alert alert-success text-center">
+            <h4>Recurso actualizado exitosamente</h4>
+            <p class="mb-3">El recurso se ha actualizado correctamente.</p>
+            <button class="btn btn-primary" onclick="cargarRecursosContenido();">
+              <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+            </button>
+          </div>
+        `;
+      } else {
         // Mostrar errores
         let errorHtml = '<div class="alert alert-danger"><h4>Error al actualizar el recurso</h4><ul>';
         if (data.errors) {

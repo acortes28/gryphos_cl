@@ -121,6 +121,7 @@ class Post(models.Model):
 
 class Curso(models.Model):
     nombre = models.CharField(max_length=100)
+    codigo = models.CharField(max_length=100, unique=True)
     descripcion = models.TextField(blank=True, null=True)
     fecha_inicio = models.DateField(blank=True, null=True)
     fecha_fin = models.DateField(blank=True, null=True)
@@ -933,7 +934,6 @@ class Asignatura(models.Model):
     codigo = models.CharField(max_length=20, unique=True, help_text="Código único de la asignatura")
     descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la asignatura")
     area_conocimiento = models.CharField(max_length=100, blank=True, null=True, help_text="Área de conocimiento de la asignatura")
-    creditos = models.PositiveIntegerField(blank=True, null=True, help_text="Número de créditos de la asignatura")
     activa = models.BooleanField(default=True, help_text="Indica si la asignatura está activa")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)

@@ -6759,7 +6759,6 @@ def asignatura_create(request):
         codigo = request.POST.get('codigo')
         descripcion = request.POST.get('descripcion')
         area_conocimiento = request.POST.get('area_conocimiento')
-        creditos = request.POST.get('creditos')
         
         if nombre and codigo:
             # Verificar que el código no exista
@@ -6771,7 +6770,6 @@ def asignatura_create(request):
                     codigo=codigo,
                     descripcion=descripcion,
                     area_conocimiento=area_conocimiento,
-                    creditos=creditos if creditos else None,
                     creado_por=request.user
                 )
                 messages.success(request, f'Asignatura "{asignatura.nombre}" creada exitosamente.')
@@ -6802,7 +6800,6 @@ def asignatura_edit(request, asignatura_id):
         codigo = request.POST.get('codigo')
         descripcion = request.POST.get('descripcion')
         area_conocimiento = request.POST.get('area_conocimiento')
-        creditos = request.POST.get('creditos')
         activa = request.POST.get('activa') == 'on'
         
         if nombre and codigo:
@@ -6814,7 +6811,6 @@ def asignatura_edit(request, asignatura_id):
                 asignatura.codigo = codigo
                 asignatura.descripcion = descripcion
                 asignatura.area_conocimiento = area_conocimiento
-                asignatura.creditos = creditos if creditos else None
                 asignatura.activa = activa
                 asignatura.save()
                 

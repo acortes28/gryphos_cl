@@ -20,7 +20,6 @@ class Migration(migrations.Migration):
                 ('codigo', models.CharField(help_text='Código único de la asignatura', max_length=20, unique=True)),
                 ('descripcion', models.TextField(blank=True, help_text='Descripción de la asignatura', null=True)),
                 ('area_conocimiento', models.CharField(blank=True, help_text='Área de conocimiento de la asignatura', max_length=100, null=True)),
-                ('creditos', models.PositiveIntegerField(blank=True, help_text='Número de créditos de la asignatura', null=True)),
                 ('activa', models.BooleanField(default=True, help_text='Indica si la asignatura está activa')),
                 ('fecha_creacion', models.DateTimeField(auto_now_add=True)),
                 ('fecha_modificacion', models.DateTimeField(auto_now=True)),
