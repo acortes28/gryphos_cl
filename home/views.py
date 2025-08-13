@@ -6382,29 +6382,54 @@ def eliminar_evaluacion_ajax(request, curso_id):
     """
     Vista AJAX para eliminar evaluaciones
     """
+    import time
+    timestamp = time.time()
+    request_id = f"{timestamp}_{request.user.username}_{curso_id}"
+    
+    logger.debug(f"🔍 eliminar_evaluacion_ajax INICIADA - Request ID: {request_id}")
+    logger.debug(f"🔍 eliminar_evaluacion_ajax INICIADA - curso_id: {curso_id}, usuario: {request.user.username}, método: {request.method}")
+    logger.debug(f"🔍 Request GET params: {dict(request.GET)}")
+    logger.debug(f"🔍 Request POST params: {dict(request.POST)}")
+    logger.debug(f"🔍 Request headers: {dict(request.headers)}")
+    logger.debug(f"🔍 Request META: {dict(request.META)}")
+    
     if request.method != 'POST':
+        logger.debug(f"🔍 Método no permitido: {request.method}")
         return JsonResponse({'error': 'Método no permitido'}, status=405)
     
     try:
+        logger.debug(f"🔍 [Request ID: {request_id}] Buscando curso con id: {curso_id}")
         curso = Curso.objects.get(id=curso_id, activo=True)
+        logger.debug(f"🔍 [Request ID: {request_id}] Curso encontrado: {curso.nombre}")
+        
         evaluacion_id = request.GET.get('evaluacion_id')
+        logger.debug(f"🔍 [Request ID: {request_id}] Evaluacion ID obtenido: {evaluacion_id}")
         
         if not evaluacion_id:
+            logger.debug(f"🔍 [Request ID: {request_id}] Error: ID de evaluación requerido")
             return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
         
+        logger.debug(f"🔍 [Request ID: {request_id}] Buscando evaluación con id: {evaluacion_id}")
         evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso)
+        logger.debug(f"🔍 [Request ID: {request_id}] Evaluación encontrada: {evaluacion.nombre}")
         
         # Verificar permisos
+        logger.debug(f"🔍 [Request ID: {request_id}] Verificando permisos - usuario es staff: {request.user.is_staff}")
         if not request.user.is_staff:
+            logger.debug(f"🔍 [Request ID: {request_id}] Error: Usuario no tiene permisos para eliminar evaluaciones")
             return JsonResponse({'error': 'No tienes permisos para eliminar evaluaciones'}, status=403)
         
         # Verificar si la evaluación tiene calificaciones
         tiene_calificaciones = evaluacion.calificaciones.exists()
+        logger.debug(f"🔍 [Request ID: {request_id}] Evaluación tiene calificaciones: {tiene_calificaciones}")
         
         # Si no tiene calificaciones, eliminar directamente
         if not tiene_calificaciones:
+            logger.debug(f"🔍 [Request ID: {request_id}] Evaluación sin calificaciones - eliminando directamente")
             nombre_evaluacion = evaluacion.nombre
             evaluacion.delete()
+            logger.debug(f"🔍 [Request ID: {request_id}] Evaluación eliminada exitosamente: {nombre_evaluacion}")
+            logger.debug(f"🔍 [Request ID: {request_id}] ENVIANDO JsonResponse de éxito (sin calificaciones)")
             return JsonResponse({
                 'success': True,
                 'message': f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.'
@@ -6412,25 +6437,36 @@ def eliminar_evaluacion_ajax(request, curso_id):
         
         # Si tiene calificaciones, verificar confirmación
         confirmacion = request.POST.get('confirmacion', '').strip()
+        logger.debug(f"🔍 [Request ID: {request_id}] Confirmación recibida: '{confirmacion}'")
         if confirmacion != 'ELIMINAR':
+            logger.debug(f"🔍 [Request ID: {request_id}] Confirmación incorrecta: '{confirmacion}' != 'ELIMINAR'")
             return JsonResponse({
                 'success': False,
                 'error': 'Debes escribir "ELIMINAR" para confirmar la eliminación.'
             })
         
         # Eliminar la evaluación y todas sus calificaciones asociadas
+        logger.debug(f"🔍 [Request ID: {request_id}] Confirmación correcta - eliminando evaluación con calificaciones")
         nombre_evaluacion = evaluacion.nombre
         evaluacion.delete()
-        return JsonResponse({
+        logger.debug(f"🔍 [Request ID: {request_id}] Evaluación con calificaciones eliminada exitosamente: {nombre_evaluacion}")
+        logger.debug(f"🔍 [Request ID: {request_id}] ENVIANDO JsonResponse de éxito (con calificaciones)")
+        response = JsonResponse({
             'success': True,
             'message': f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.'
         })
+        logger.debug(f"🔍 [Request ID: {request_id}] JsonResponse creado, enviando respuesta")
+        return response
         
     except Curso.DoesNotExist:
+        logger.debug(f"🔍 [Request ID: {request_id}] Error: Curso no encontrado con id: {curso_id}")
         return JsonResponse({'error': 'Curso no encontrado'}, status=404)
     except Evaluacion.DoesNotExist:
+        logger.debug(f"🔍 [Request ID: {request_id}] Error: Evaluación no encontrada con id: {evaluacion_id}")
         return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
     except Exception as e:
+        logger.debug(f"🔍 [Request ID: {request_id}] Error inesperado al eliminar evaluación: {str(e)}")
+        logger.debug(f"🔍 [Request ID: {request_id}] Traceback: {traceback.format_exc()}")
         return JsonResponse({'error': f'Error al eliminar la evaluación: {str(e)}'}, status=500)
 
 @login_required

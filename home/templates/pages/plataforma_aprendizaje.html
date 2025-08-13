@@ -1423,6 +1423,33 @@ function cambiarSeccion(seccion) {
   const titleElement = document.getElementById('section-title');
   titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
 
+  // Limpiar parámetros de acción cuando se navega a una sección diferente
+  // Esto evita que se mantenga el contenido de subsecciones anteriores
+  const urlParams = new URLSearchParams(window.location.search);
+  const seccionActual = urlParams.get('seccion');
+  const action = urlParams.get('action');
+  
+  // Si estamos navegando a una sección diferente y hay parámetros de acción, limpiarlos
+  if (seccion !== seccionActual && action) {
+    // Limpiar parámetros inmediatamente para evitar que se mantengan en la nueva sección
+    const url = limpiarParametrosAccion();
+    url.searchParams.set('seccion', seccion);
+    window.history.pushState({}, '', url);
+    
+    // Si la nueva sección no es calificaciones, salir temprano para evitar procesamiento adicional
+    if (seccion !== 'calificaciones') {
+      // Simular carga para otras secciones
+      setTimeout(() => {
+        // Mostrar sección correspondiente
+        document.getElementById(`seccion-${seccion}`).classList.add('active');
+        
+        // Ocultar loading
+        document.getElementById('loading').classList.remove('show');
+      }, 300);
+      return; // Salir temprano
+    }
+  }
+  
 
   
   // Si es la sección del foro, cargar contenido dinámicamente
@@ -1481,19 +1508,27 @@ function cambiarSeccion(seccion) {
         placeholder.innerHTML = `<div class="alert alert-danger">Error al cargar los recursos: ${error.message}</div>`;
       });
   } else if (seccion === 'calificaciones') {
+    console.log('🔍 Navegando a sección calificaciones');
     // Verificar si hay parámetros específicos en la URL
     const urlParams = new URLSearchParams(window.location.search);
     const action = urlParams.get('action');
     const evaluacionId = urlParams.get('evaluacion_id');
     
+    console.log('🔍 Parámetros actuales de la URL:', { action, evaluacionId, seccion: urlParams.get('seccion') });
+    
     let url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
 
-    // Si hay una acción específica, agregarla a la URL
-    if (action) {
+    // Solo mantener parámetros si estamos navegando dentro de la misma sección
+    // y si la sección actual es calificaciones
+    const seccionActual = urlParams.get('seccion');
+    if (action && seccionActual === 'calificaciones') {
       url += `?action=${action}`;
       if (evaluacionId) {
         url += `&evaluacion_id=${evaluacionId}`;
       }
+    } else {
+      // Si venimos de otra sección o no hay sección actual, cargar calificaciones principales
+      // sin parámetros específicos
     }
 
 
@@ -1521,14 +1556,21 @@ function cambiarSeccion(seccion) {
         // Actualizar URL sin recargar
         const url = new URL(window.location);
         url.searchParams.set('seccion', 'calificaciones');
-        // Mantener los parámetros específicos si existen
-        if (action) {
+        // Mantener los parámetros específicos solo si estamos en la misma sección
+        if (action && seccionActual === 'calificaciones') {
           url.searchParams.set('action', action);
           if (evaluacionId) {
             url.searchParams.set('evaluacion_id', evaluacionId);
           }
+        } else {
+          // Si no hay acción específica o venimos de otra sección, limpiar parámetros
+          url.searchParams.delete('action');
+          url.searchParams.delete('evaluacion_id');
         }
         window.history.pushState({}, '', url);
+        
+        console.log('🔍 URL actualizada en cambiarSeccion calificaciones:', url.toString());
+        console.log('🔍 Parámetros finales:', Object.fromEntries(url.searchParams));
       })
       .catch(error => {
         console.error('Error cargando calificaciones:', error);
@@ -1930,8 +1972,8 @@ document.addEventListener('DOMContentLoaded', function() {
     cambiarSeccion(seccionActiva);
   }
   
-  // Iniciar observer para detectar contenido de eliminación
-  iniciarObserverEliminacion();
+  // OBSERVER ELIMINADO - Causaba duplicación de event listeners
+  // iniciarObserverEliminacion();
 });
 
 // Función para mostrar el modal de confirmación
@@ -1952,6 +1994,8 @@ function confirmarEntrega() {
     modal.show();
   }
 }
+
+
 
 // Función para manejar la subida de entrega
 function subirEntrega() {
@@ -2922,14 +2966,11 @@ function cargarCrearEvaluacion() {
 
 // Función para cargar vista de eliminar evaluación
 function cargarEliminarEvaluacion(evaluacionId) {
-
-  
+  console.log('🔍 cargarEliminarEvaluacion llamada con evaluacionId:', evaluacionId);
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
   
-  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}?action=eliminar_evaluacion&evaluacion_id=${evaluacionId}`;
-  
-  fetch(url, {
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=eliminar_evaluacion&evaluacion_id=${evaluacionId}`, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     }
@@ -2949,33 +2990,9 @@ function cargarEliminarEvaluacion(evaluacionId) {
           el.classList.remove('active');
         });
         
-
-        
         // Actualizar contenido y mostrar sección de calificaciones
         seccionCalificaciones.innerHTML = data.html;
         seccionCalificaciones.classList.add('active');
-        
-        // Asegurar visibilidad de la sección
-        seccionCalificaciones.style.display = 'block';
-        seccionCalificaciones.style.visibility = 'visible';
-        seccionCalificaciones.style.opacity = '1';
-        
-        // Asegurar visibilidad del contenido de eliminación si existe
-        setTimeout(() => {
-          const eliminarContent = seccionCalificaciones.querySelector('.eliminar-evaluacion-content');
-          if (eliminarContent) {
-            eliminarContent.style.display = 'block';
-            eliminarContent.style.visibility = 'visible';
-            eliminarContent.style.opacity = '1';
-          }
-        }, 50);
-        
-
-        
-        // Inicializar funciones de eliminación después de cargar el contenido
-        setTimeout(() => {
-          inicializarEliminacionSiExiste();
-        }, 100);
         
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
@@ -2986,6 +3003,18 @@ function cargarEliminarEvaluacion(evaluacionId) {
         url.searchParams.set('action', 'eliminar_evaluacion');
         url.searchParams.set('evaluacion_id', evaluacionId);
         window.history.pushState({}, '', url);
+        
+        // Inicializar el formulario después de cargar el contenido
+        setTimeout(() => {
+          console.log('🔍 Llamando a inicializarFormularioEliminacionEvaluacion desde cargarEliminarEvaluacion');
+          // Limpiar marca de inicialización previa si existe
+          const form = document.getElementById('formEliminarEvaluacion');
+          if (form && form._eliminacionInicializada) {
+            console.log('🔍 Limpiando marca de inicialización previa');
+            delete form._eliminacionInicializada;
+          }
+          inicializarFormularioEliminacionEvaluacion();
+        }, 100);
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -3038,6 +3067,19 @@ function cargarCalificaciones() {
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
+        // Actualizar navegación activa
+        document.querySelectorAll('.nav-link').forEach(el => {
+          el.classList.remove('active');
+        });
+        document.querySelector('[data-seccion="calificaciones"]').classList.add('active');
+        
+        // Actualizar título
+        const config = PLATAFORMA_CONFIG.secciones['calificaciones'];
+        const titleElement = document.getElementById('section-title');
+        if (titleElement && config) {
+          titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
+        }
+        
         // Actualizar URL sin recargar
         const url = new URL(window.location);
         url.searchParams.set('seccion', 'calificaciones');
@@ -3045,6 +3087,9 @@ function cargarCalificaciones() {
         url.searchParams.delete('action');
         url.searchParams.delete('evaluacion_id');
         window.history.pushState({}, '', url);
+        
+        console.log('🔍 URL actualizada después de cargar calificaciones:', url.toString());
+        console.log('🔍 Parámetros de la URL:', Object.fromEntries(url.searchParams));
       }
     })
     .catch(error => {
@@ -6962,6 +7007,128 @@ function inicializarFormulariosRecursos() {
 }
 
 // Event listeners para admin
+
+// ============================================================================
+// FUNCIONES PARA EL FORMULARIO DE ELIMINACIÓN DE EVALUACIÓN
+// ============================================================================
+
+// Función para inicializar el formulario de eliminación de evaluación
+function inicializarFormularioEliminacionEvaluacion() {
+  console.log('🔍 inicializarFormularioEliminacionEvaluacion llamada');
+  const form = document.getElementById('formEliminarEvaluacion');
+  const confirmacionInput = document.getElementById('confirmacion');
+  const btnEliminar = document.getElementById('btnEliminar');
+  
+  console.log('🔍 Elementos encontrados:', {
+    form: form ? 'SÍ' : 'NO',
+    confirmacionInput: confirmacionInput ? 'SÍ' : 'NO', 
+    btnEliminar: btnEliminar ? 'SÍ' : 'NO'
+  });
+  
+  // Verificar el contenido del DOM
+  const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+  console.log('🔍 Contenido de seccion-calificaciones:', seccionCalificaciones ? seccionCalificaciones.innerHTML.substring(0, 200) + '...' : 'NO ENCONTRADO');
+  
+  if (!form || !btnEliminar) {
+    console.error('Formulario o botón de eliminar no encontrado');
+    return;
+  }
+  
+  // PREVENCIÓN DE DUPLICACIÓN: Verificar si ya está inicializado
+  if (form._eliminacionInicializada) {
+    console.log('🔍 Formulario ya inicializado, saltando inicialización duplicada');
+    return;
+  }
+  
+  console.log('🔍 Formulario y botón encontrados, agregando event listeners');
+  
+  // Marcar como inicializado para prevenir duplicación
+  form._eliminacionInicializada = true;
+  
+  // Verificar si ya hay event listeners en el formulario
+  console.log('🔍 Event listeners actuales en el formulario:', form._eventListeners || 'Ninguno');
+  
+  // Configurar el input de confirmación si existe
+  if (confirmacionInput) {
+    console.log('🔍 Agregando event listener al input de confirmación');
+    // Remover event listeners anteriores para evitar duplicados
+    confirmacionInput.removeEventListener('input', confirmacionInput._confirmacionHandler);
+    
+    // Crear nuevo handler
+    confirmacionInput._confirmacionHandler = function() {
+      btnEliminar.disabled = this.value.trim() !== 'ELIMINAR';
+    };
+    
+    confirmacionInput.addEventListener('input', confirmacionInput._confirmacionHandler);
+  }
+  
+  // Verificar si el botón tiene otros event listeners
+  console.log('🔍 Verificando event listeners del botón:', btnEliminar.onclick ? 'Tiene onclick' : 'No tiene onclick');
+  console.log('🔍 Atributos del botón:', btnEliminar.attributes);
+  
+  // Configurar el formulario
+  console.log('🔍 Agregando event listener al formulario');
+  
+  // Remover event listeners anteriores para evitar duplicados
+  form.removeEventListener('submit', form._submitHandler);
+  
+  // Crear nuevo handler
+  form._submitHandler = function(e) {
+    console.log('🔍 Event listener de submit ejecutado - Timestamp:', new Date().getTime());
+    console.log('🔍 Event target:', e.target);
+    console.log('🔍 Event currentTarget:', e.currentTarget);
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const evaluacionId = this.getAttribute('data-evaluacion-id');
+    
+    // Mostrar loading
+    btnEliminar.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Eliminando...';
+    btnEliminar.disabled = true;
+    
+    fetch(`{% url 'eliminar_evaluacion_ajax' curso.id %}?evaluacion_id=${evaluacionId}`, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: formData
+    })
+    .then(response => {
+      console.log('🔍 Response recibida del servidor - Timestamp:', new Date().getTime(), response.status, response.statusText);
+      console.log('🔍 Response headers:', response.headers);
+      return response.json();
+    })
+    .then(data => {
+      console.log('🔍 Data parseada del servidor - Timestamp:', new Date().getTime(), data);
+      if (data.success) {
+        console.log('🔍 Respuesta exitosa del servidor, mostrando alert:', data.message);
+        console.log('🔍 URL antes de llamar a cargarCalificaciones:', window.location.href);
+        alert(data.message);
+        // Redirigir a calificaciones
+        cargarCalificaciones();
+      } else {
+        alert('Error: ' + data.error);
+        // Restaurar botón
+        btnEliminar.innerHTML = '<i class="fas fa-trash-alt me-2"></i>Eliminar Evaluación';
+        btnEliminar.disabled = false;
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error al eliminar la evaluación. Por favor, intenta nuevamente.');
+      // Restaurar botón
+      btnEliminar.innerHTML = '<i class="fas fa-trash-alt me-2"></i>Eliminar Evaluación';
+      btnEliminar.disabled = false;
+    });
+  };
+  
+  // Agregar el event listener
+  form.addEventListener('submit', form._submitHandler);
+}
+
+
+
+
 </script>
 
 </div> <!-- Cierre del contenedor plataforma-aprendizaje -->
