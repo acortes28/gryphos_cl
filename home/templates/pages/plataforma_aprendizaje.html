@@ -902,6 +902,21 @@ const PLATAFORMA_CONFIG = {
   }
 };
 
+
+// Función para limpiar parámetros de acción de la URL
+function limpiarParametrosAccion() {
+  const url = new URL(window.location);
+  // Eliminar parámetros relacionados con acciones
+  url.searchParams.delete('action');
+  url.searchParams.delete('evaluacion_id');
+  url.searchParams.delete('ticket_id');
+  url.searchParams.delete('recurso_id');
+  url.searchParams.delete('entrega_id');
+  url.searchParams.delete('post_id');
+  url.searchParams.delete('comentario_id');
+  return url;
+}
+
 // Función para toggle del sidebar en móvil
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -963,17 +978,17 @@ function cambiarSeccion(seccion) {
   const config = PLATAFORMA_CONFIG.secciones[seccion];
   const titleElement = document.getElementById('section-title');
   titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
+
+
   
-
-
   // Si es la sección del foro, cargar contenido dinámicamente
   if (seccion === 'inicio') {
     // Mostrar sección de inicio (contenido estático)
     document.getElementById('seccion-inicio').classList.add('active');
     document.getElementById('loading').classList.remove('show');
     
-    // Actualizar URL sin recargar
-    const url = new URL(window.location);
+    // Actualizar URL sin recargar y limpiar parámetros de acción
+    const url = limpiarParametrosAccion();
     url.searchParams.set('seccion', 'inicio');
     window.history.pushState({}, '', url);
     return; // Salir temprano para evitar procesamiento adicional
@@ -1012,8 +1027,8 @@ function cambiarSeccion(seccion) {
           placeholder.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
         }
         
-        // Actualizar URL sin recargar
-        const url = new URL(window.location);
+        // Actualizar URL sin recargar y limpiar parámetros de acción
+        const url = limpiarParametrosAccion();
         url.searchParams.set('seccion', 'recursos');
         window.history.pushState({}, '', url);
       })
@@ -1111,6 +1126,10 @@ function cambiarSeccion(seccion) {
           if (ticketId) {
             url.searchParams.set('ticket_id', ticketId);
           }
+        } else {
+          // Si no hay acción específica, limpiar parámetros
+          url.searchParams.delete('action');
+          url.searchParams.delete('ticket_id');
         }
         window.history.pushState({}, '', url);
       })
@@ -1137,8 +1156,8 @@ function cambiarSeccion(seccion) {
         document.getElementById('tabla-entregas-placeholder').innerHTML = data.html;
         document.getElementById('seccion-entregas').classList.add('active');
         document.getElementById('loading').classList.remove('show');
-        // Actualizar URL sin recargar
-        const url = new URL(window.location);
+        // Actualizar URL sin recargar y limpiar parámetros de acción
+        const url = limpiarParametrosAccion();
         url.searchParams.set('seccion', 'entregas');
         window.history.pushState({}, '', url);
         // Inicializar el formulario de subida si existe
@@ -1162,14 +1181,9 @@ function cambiarSeccion(seccion) {
       // Ocultar loading
       document.getElementById('loading').classList.remove('show');
       
-      // Actualizar URL sin recargar
-      const url = new URL(window.location);
+      // Actualizar URL sin recargar y limpiar parámetros de acción
+      const url = limpiarParametrosAccion();
       url.searchParams.set('seccion', seccion);
-      // Limpiar parámetros específicos del foro si no estamos en la sección foro
-      if (seccion !== 'foro') {
-        url.searchParams.delete('action');
-        url.searchParams.delete('post_id');
-      }
       window.history.pushState({}, '', url);
     }, 300);
   }
@@ -1220,8 +1234,8 @@ function cargarForoContenido() {
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
-        // Actualizar URL sin recargar
-        const url = new URL(window.location);
+        // Actualizar URL sin recargar y limpiar parámetros de acción
+        const url = limpiarParametrosAccion();
         url.searchParams.set('seccion', 'foro');
         window.history.pushState({}, '', url);
       })
@@ -1374,6 +1388,11 @@ function cargarForoFiltrado(category) {
             allCategoriesBtn.classList.add('active');
           }
         }
+        
+        // Actualizar URL sin recargar y limpiar parámetros de acción
+        const url = limpiarParametrosAccion();
+        url.searchParams.set('seccion', 'foro');
+        window.history.pushState({}, '', url);
       }
     })
     .catch(error => {
