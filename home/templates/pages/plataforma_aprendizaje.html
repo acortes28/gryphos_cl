@@ -2,6 +2,8 @@
 {% load static %}
 {% load custom_filters %}
 
+
+
 {% csrf_token %}
 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 {% block title %} {{ curso.nombre }} - Plataforma de Aprendizaje {% endblock title %}
@@ -12,6 +14,10 @@
 {% endblock header %}
 
 {% block content %}
+
+{% block footer %}
+<!-- Ocultar el footer en la plataforma de aprendizaje -->
+{% endblock footer %}
 
 <!-- Contenedor principal con clase para estilos específicos de la plataforma -->
 <div class="plataforma-aprendizaje">
@@ -1361,6 +1367,24 @@ function limpiarParametrosAccion() {
   return url;
 }
 
+// Función para limpiar parámetros Y path de la URL
+function limpiarParametrosYPath(seccion) {
+  const url = limpiarParametrosAccion();
+  
+  // LIMPIAR EL PATH: Si la URL actual tiene /calificaciones/, volver a /plataforma/
+  if (url.pathname.includes('/calificaciones/')) {
+    const cursoMatch = url.pathname.match(/\/curso\/(\d+)\/plataforma/);
+    if (cursoMatch) {
+      url.pathname = `/curso/${cursoMatch[1]}/plataforma/`;
+    }
+  }
+  
+  url.searchParams.set('seccion', seccion);
+  return url;
+}
+
+
+
 // Función para toggle del sidebar en móvil
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -1400,6 +1424,11 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+
+
+
+
+
 // Función para cambiar sección
 function cambiarSeccion(seccion) {
   // Mostrar loading
@@ -1432,25 +1461,9 @@ function cambiarSeccion(seccion) {
   // Si estamos navegando a una sección diferente y hay parámetros de acción, limpiarlos
   if (seccion !== seccionActual && action) {
     // Limpiar parámetros inmediatamente para evitar que se mantengan en la nueva sección
-    const url = limpiarParametrosAccion();
-    url.searchParams.set('seccion', seccion);
+    const url = limpiarParametrosYPath(seccion);
     window.history.pushState({}, '', url);
-    
-    // Si la nueva sección no es calificaciones, salir temprano para evitar procesamiento adicional
-    if (seccion !== 'calificaciones') {
-      // Simular carga para otras secciones
-      setTimeout(() => {
-        // Mostrar sección correspondiente
-        document.getElementById(`seccion-${seccion}`).classList.add('active');
-        
-        // Ocultar loading
-        document.getElementById('loading').classList.remove('show');
-      }, 300);
-      return; // Salir temprano
-    }
   }
-  
-
   
   // Si es la sección del foro, cargar contenido dinámicamente
   if (seccion === 'inicio') {
@@ -1459,8 +1472,7 @@ function cambiarSeccion(seccion) {
     document.getElementById('loading').classList.remove('show');
     
     // Actualizar URL sin recargar y limpiar parámetros de acción
-    const url = limpiarParametrosAccion();
-    url.searchParams.set('seccion', 'inicio');
+    const url = limpiarParametrosYPath('inicio');
     window.history.pushState({}, '', url);
     return; // Salir temprano para evitar procesamiento adicional
   } else if (seccion === 'foro') {
@@ -1499,8 +1511,7 @@ function cambiarSeccion(seccion) {
         }
         
         // Actualizar URL sin recargar y limpiar parámetros de acción
-        const url = limpiarParametrosAccion();
-        url.searchParams.set('seccion', 'recursos');
+        const url = limpiarParametrosYPath('recursos');
         window.history.pushState({}, '', url);
       })
       .catch(error => {
@@ -1528,7 +1539,9 @@ function cambiarSeccion(seccion) {
       }
     } else {
       // Si venimos de otra sección o no hay sección actual, cargar calificaciones principales
-      // sin parámetros específicos
+      // sin parámetros específicos y limpiar completamente la URL
+      const cleanUrl = limpiarParametrosYPath('calificaciones');
+      window.history.pushState({}, '', cleanUrl);
     }
 
 
@@ -1555,17 +1568,27 @@ function cambiarSeccion(seccion) {
         
         // Actualizar URL sin recargar
         const url = new URL(window.location);
+        
+        // LIMPIAR EL PATH: Si la URL actual tiene /calificaciones/, volver a /plataforma/
+        if (url.pathname.includes('/calificaciones/')) {
+          const cursoMatch = url.pathname.match(/\/curso\/(\d+)\/plataforma/);
+          if (cursoMatch) {
+            url.pathname = `/curso/${cursoMatch[1]}/plataforma/`;
+          }
+        }
+        
         url.searchParams.set('seccion', 'calificaciones');
-        // Mantener los parámetros específicos solo si estamos en la misma sección
+        // Mantener los parámetros específicos solo si estamos navegando dentro de la misma sección
         if (action && seccionActual === 'calificaciones') {
           url.searchParams.set('action', action);
           if (evaluacionId) {
             url.searchParams.set('evaluacion_id', evaluacionId);
           }
         } else {
-          // Si no hay acción específica o venimos de otra sección, limpiar parámetros
-          url.searchParams.delete('action');
-          url.searchParams.delete('evaluacion_id');
+          // Si no hay acción específica o venimos de otra sección, limpiar TODOS los parámetros
+          // Esto es crucial para evitar que se acumulen parámetros de rúbricas anteriores
+          url = limpiarParametrosAccion();
+          url.searchParams.set('seccion', 'calificaciones');
         }
         window.history.pushState({}, '', url);
         
@@ -1605,6 +1628,15 @@ function cambiarSeccion(seccion) {
         document.getElementById('loading').classList.remove('show');
         // Actualizar URL sin recargar
         const url = new URL(window.location);
+        
+        // LIMPIAR EL PATH: Si la URL actual tiene /calificaciones/, volver a /plataforma/
+        if (url.pathname.includes('/calificaciones/')) {
+          const cursoMatch = url.pathname.match(/\/curso\/(\d+)\/plataforma/);
+          if (cursoMatch) {
+            url.pathname = `/curso/${cursoMatch[1]}/plataforma/`;
+          }
+        }
+        
         url.searchParams.set('seccion', 'soporte');
         // Mantener los parámetros específicos si existen
         if (action) {
@@ -1643,8 +1675,7 @@ function cambiarSeccion(seccion) {
         document.getElementById('seccion-entregas').classList.add('active');
         document.getElementById('loading').classList.remove('show');
         // Actualizar URL sin recargar y limpiar parámetros de acción
-        const url = limpiarParametrosAccion();
-        url.searchParams.set('seccion', 'entregas');
+        const url = limpiarParametrosYPath('entregas');
         window.history.pushState({}, '', url);
         // Inicializar el formulario de subida si existe
         inicializarFormularioEntrega();
@@ -1668,8 +1699,7 @@ function cambiarSeccion(seccion) {
       document.getElementById('loading').classList.remove('show');
       
       // Actualizar URL sin recargar y limpiar parámetros de acción
-      const url = limpiarParametrosAccion();
-      url.searchParams.set('seccion', seccion);
+      const url = limpiarParametrosYPath(seccion);
       window.history.pushState({}, '', url);
     }, 300);
   }
@@ -1721,8 +1751,7 @@ function cargarForoContenido() {
         document.getElementById('loading').classList.remove('show');
         
         // Actualizar URL sin recargar y limpiar parámetros de acción
-        const url = limpiarParametrosAccion();
-        url.searchParams.set('seccion', 'foro');
+        const url = limpiarParametrosYPath('foro');
         window.history.pushState({}, '', url);
       })
       .catch(error => {
@@ -1876,8 +1905,7 @@ function cargarForoFiltrado(category) {
         }
         
         // Actualizar URL sin recargar y limpiar parámetros de acción
-        const url = limpiarParametrosAccion();
-        url.searchParams.set('seccion', 'foro');
+        const url = limpiarParametrosYPath('foro');
         window.history.pushState({}, '', url);
       }
     })
@@ -3082,6 +3110,15 @@ function cargarCalificaciones() {
         
         // Actualizar URL sin recargar
         const url = new URL(window.location);
+        
+        // LIMPIAR EL PATH: Si la URL actual tiene /calificaciones/, volver a /plataforma/
+        if (url.pathname.includes('/calificaciones/')) {
+          const cursoMatch = url.pathname.match(/\/curso\/(\d+)\/plataforma/);
+          if (cursoMatch) {
+            url.pathname = `/curso/${cursoMatch[1]}/plataforma/`;
+          }
+        }
+        
         url.searchParams.set('seccion', 'calificaciones');
         // Limpiar parámetros específicos
         url.searchParams.delete('action');

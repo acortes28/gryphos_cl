@@ -41,6 +41,13 @@ logger = logging.getLogger(__name__)
 
 User = get_user_model()  # Obtener el modelo de usuario personalizado
 
+def get_plataforma_calificaciones_url(curso_id):
+    """
+    Función auxiliar para generar la URL correcta de calificaciones
+    que apunte a la plataforma principal con seccion=calificaciones
+    """
+    return reverse('plataforma_aprendizaje', kwargs={'curso_id': curso_id}) + '?seccion=calificaciones'
+
 def generate_registration_link(request):
     if request.user.is_superuser:
         new_link = RegistrationLink.objects.create(creator=request.user)
@@ -2481,7 +2488,7 @@ def crear_evaluacion(request, curso_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para crear evaluaciones.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     if request.method == 'POST':
         form = EvaluacionForm(request.POST, curso=curso)
@@ -2686,7 +2693,7 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para calificar estudiantes.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Obtener estudiantes del curso que tienen entregas para esta evaluación (no staff/admin)
     estudiantes_con_entregas = User.objects.filter(
@@ -2703,7 +2710,7 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
     # Si no hay estudiantes con entregas, mostrar mensaje
     if not estudiantes_con_entregas.exists():
         messages.warning(request, f'No hay estudiantes con entregas para la evaluación "{evaluacion.nombre}". Solo se pueden calificar estudiantes que hayan entregado su trabajo.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     if request.method == 'POST':
         form = CalificacionForm(request.POST, curso=curso, evaluacion=evaluacion, estudiantes_con_entregas=estudiantes_disponibles_para_calificar)
@@ -2719,7 +2726,7 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
             # Verificar que la evaluación tenga una rúbrica
             if not hasattr(evaluacion, 'rubrica') or not evaluacion.rubrica:
                 messages.error(request, f'La evaluación "{evaluacion.nombre}" no tiene una rúbrica asociada. Debes crear una rúbrica antes de calificar.')
-                return redirect('plataforma_calificaciones', curso_id=curso_id)
+                return redirect(get_plataforma_calificaciones_url(curso_id))
             
             calificacion = form.save(commit=False)
             calificacion.evaluacion = evaluacion
@@ -2853,7 +2860,7 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                     
                     messages.success(request, f'Calificación registrada para {calificacion.estudiante.get_full_name()}.')
                 
-                return redirect('plataforma_calificaciones', curso_id=curso_id)
+                return redirect(get_plataforma_calificaciones_url(curso_id))
                 
             except Exception as e:
                 messages.error(request, f'Error al guardar la calificación: {str(e)}')
@@ -2927,12 +2934,12 @@ def ver_calificacion_detalle(request, curso_id, calificacion_id):
     # Verificar que el usuario tenga acceso a esta calificación
     if not request.user.is_staff and calificacion.estudiante != request.user:
         messages.error(request, 'No tienes acceso a esta calificación.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Verificar que la calificación pertenezca al curso
     if calificacion.evaluacion.curso != curso:
         messages.error(request, 'La calificación no pertenece a este curso.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Obtener la rúbrica asociada a la evaluación si existe
     rubrica = None
@@ -3023,7 +3030,7 @@ def estadisticas_curso(request, curso_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para ver estadísticas del curso.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Obtener todas las calificaciones del curso
     calificaciones = Calificacion.objects.filter(evaluacion__curso=curso, nota__isnull=False)
@@ -3093,7 +3100,7 @@ def exportar_calificaciones_excel(request, curso_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para exportar calificaciones.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Obtener todas las calificaciones del curso con información relacionada
     calificaciones = Calificacion.objects.filter(
@@ -3397,7 +3404,7 @@ def eliminar_evaluacion(request, curso_id, evaluacion_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para eliminar evaluaciones.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Verificar si la evaluación tiene calificaciones
     tiene_calificaciones = evaluacion.calificaciones.exists()
@@ -3408,7 +3415,7 @@ def eliminar_evaluacion(request, curso_id, evaluacion_id):
             nombre_evaluacion = evaluacion.nombre
             evaluacion.delete()
             messages.success(request, f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.')
-            return redirect('plataforma_calificaciones', curso_id=curso_id)
+            return redirect(get_plataforma_calificaciones_url(curso_id))
         
         # Si tiene calificaciones, verificar confirmación
         confirmacion = request.POST.get('confirmacion', '').strip()
@@ -3426,7 +3433,7 @@ def eliminar_evaluacion(request, curso_id, evaluacion_id):
         nombre_evaluacion = evaluacion.nombre
         evaluacion.delete()
         messages.success(request, f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Si es GET, mostrar página de confirmación
     context = {
@@ -3448,7 +3455,7 @@ def editar_evaluacion(request, curso_id, evaluacion_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para editar evaluaciones.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     if request.method == 'POST':
         form = EvaluacionForm(request.POST, instance=evaluacion, curso=curso)
@@ -3458,7 +3465,7 @@ def editar_evaluacion(request, curso_id, evaluacion_id):
             evaluacion.curso = curso
             evaluacion.save()
             messages.success(request, f'Evaluación "{evaluacion.nombre}" actualizada exitosamente.')
-            return redirect('plataforma_calificaciones', curso_id=curso_id)
+            return redirect(get_plataforma_calificaciones_url(curso_id))
     else:
         form = EvaluacionForm(instance=evaluacion, curso=curso)
     
@@ -3500,12 +3507,12 @@ def editar_calificacion(request):
         # Verificar que la calificación pertenezca a la evaluación correcta
         if calificacion.evaluacion != evaluacion:
             messages.error(request, 'La calificación no pertenece a esta evaluación.')
-            return redirect('plataforma_calificaciones', curso_id=evaluacion.curso.id)
+            return redirect(get_plataforma_calificaciones_url(evaluacion.curso.id))
         
         # Verificar que el estudiante esté inscrito en el curso
         if estudiante not in evaluacion.curso.usuarios.all():
             messages.error(request, 'El estudiante no está inscrito en este curso.')
-            return redirect('plataforma_calificaciones', curso_id=evaluacion.curso.id)
+            return redirect(get_plataforma_calificaciones_url(evaluacion.curso.id))
         
         # Validar la nota
         try:
@@ -3598,7 +3605,7 @@ def editar_calificacion(request):
         
     except Exception as e:
         messages.error(request, f'Error al actualizar la calificación: {str(e)}')
-        return redirect('plataforma_calificaciones', curso_id=evaluacion.curso.id)
+        return redirect(get_plataforma_calificaciones_url(evaluacion.curso.id))
 
 @login_required
 def limpiar_retroalimentaciones(request):
@@ -4462,7 +4469,7 @@ def crear_rubrica(request, curso_id, evaluacion_id):
     # Verificar que el usuario tenga permisos (staff o creador de la evaluación)
     if not request.user.is_staff and evaluacion.creado_por != request.user:
         messages.error(request, 'No tienes permisos para crear rúbricas para esta evaluación.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Verificar si ya existe una rúbrica para esta evaluación
     if hasattr(evaluacion, 'rubrica'):
@@ -4513,14 +4520,14 @@ def editar_rubrica(request, curso_id, evaluacion_id):
     # Verificar que el usuario tenga permisos
     if not request.user.is_staff and evaluacion.creado_por != request.user:
         messages.error(request, 'No tienes permisos para editar rúbricas para esta evaluación.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Obtener la rúbrica
     try:
         rubrica = evaluacion.rubrica
     except Rubrica.DoesNotExist:
         messages.error(request, 'No se encontró una rúbrica para esta evaluación.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
     from datetime import date
@@ -6510,7 +6517,7 @@ def crear_evaluacion_ajax(request, curso_id):
                     return JsonResponse({
                         'success': True,
                         'message': f'Evaluación "{evaluacion.nombre}" creada exitosamente.',
-                        'redirect_url': reverse('plataforma_calificaciones', kwargs={'curso_id': curso_id})
+                        'redirect_url': reverse('plataforma_aprendizaje', kwargs={'curso_id': curso_id}) + '?seccion=calificaciones'
                     })
                 else:
                     # Formulario con errores - retornar errores en formato JSON
