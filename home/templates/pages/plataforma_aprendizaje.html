@@ -706,6 +706,138 @@
       font-size: 1.1rem;
     }
   }
+  
+  /* Estilos específicos para la sección de inicio */
+  .avatar-lg {
+    width: 60px !important;
+    height: 60px !important;
+    font-size: 1.5rem !important;
+  }
+  
+  .card-header {
+    border-bottom: none !important;
+  }
+  
+  .card-header.bg-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+  }
+  
+  .card-header.bg-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%) !important;
+  }
+  
+  .card-header.bg-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important;
+  }
+  
+  .card-header.bg-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+  }
+  
+  /* Estilos para el panel de administración */
+  .card.bg-primary,
+  .card.bg-success,
+  .card.bg-info,
+  .card.bg-warning {
+    border: none !important;
+    transition: all 0.3s ease;
+  }
+  
+  .card.bg-primary:hover,
+  .card.bg-success:hover,
+  .card.bg-info:hover,
+  .card.bg-warning:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+  }
+  
+  /* Estilos para botones de acceso directo */
+  .d-grid.gap-2 .btn {
+    transition: all 0.3s ease;
+  }
+  
+  .d-grid.gap-2 .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  .list-group-item {
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  .list-group-item:hover {
+    background: rgba(0,0,0,0.02) !important;
+  }
+  
+  /* Animaciones para las tarjetas */
+  .card {
+    transition: all 0.3s ease;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+  }
+  
+  /* Estilos para el estado vacío */
+  .bg-light {
+    background-color: #f8f9fa !important;
+  }
+  
+  .card.border-0 {
+    border: none !important;
+  }
+  
+  /* Estilos para badges y elementos adicionales */
+  .badge.fs-6 {
+    font-size: 1rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+  
+  .list-group-item:hover {
+    background: rgba(0,0,0,0.02) !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Estilos para iconos en recursos */
+  .fa-2x {
+    font-size: 1.5rem !important;
+  }
+  
+  /* Mejorar espaciado en listas */
+  .list-group-item {
+    margin-bottom: 0.5rem !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Estilos responsivos para la sección de inicio */
+  @media (max-width: 768px) {
+    .avatar-lg {
+      width: 50px !important;
+      height: 50px !important;
+      font-size: 1.2rem !important;
+    }
+    
+    .card-body {
+      padding: 1rem !important;
+    }
+    
+    .btn-sm {
+      font-size: 0.8rem !important;
+      padding: 0.375rem 0.75rem !important;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .col-md-6 {
+      margin-bottom: 1rem !important;
+    }
+    
+    .card {
+      margin-bottom: 1rem !important;
+    }
+  }
 </style>
 
 <!-- Overlay para móviles -->
@@ -822,10 +954,322 @@
     
     <!-- Secciones de contenido -->
     <div id="seccion-inicio" class="section-content active">
-      <h4>Bienvenido a tu curso</h4>
-      <p>Esta es la sección de inicio de tu plataforma de aprendizaje.</p>
-      
-      <!-- Contenido de la sección Inicio -->
+      {% if user.is_staff %}
+        <!-- Vista para Staff/Admin -->
+        <div class="row">
+          <div class="col-12">
+            <h4 class="mb-4">
+              <i class="fas fa-tachometer-alt me-2"></i>Panel de Administración
+            </h4>
+          </div>
+        </div>
+        
+        <!-- Estadísticas del curso -->
+        <div class="row mb-4">
+          <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-primary text-white shadow-sm">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0 text-white">{{ total_estudiantes }}</h4>
+                    <p class="mb-0">Estudiantes</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="fas fa-users fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-success text-white shadow-sm">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0 text-white">{{ total_evaluaciones }}</h4>
+                    <p class="mb-0">Evaluaciones</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="fas fa-clipboard-check fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-info text-white shadow-sm">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0 text-white">{{ total_recursos }}</h4>
+                    <p class="mb-0">Recursos</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="fas fa-book fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-warning text-white shadow-sm">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0 text-white">{{ total_entregas_pendientes }}</h4>
+                    <p class="mb-0">Entregas Pendientes</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="fas fa-clock fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Información reciente -->
+        <div class="row">
+          <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+              <div class="card-header bg-success text-white">
+                <h6 class="mb-0 text-white">
+                  <i class="fas fa-upload me-2"></i>Entregas Pendientes
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if entregas_recientes %}
+                  <div class="list-group list-group-flush">
+                    {% for entrega in entregas_recientes %}
+                    <div class="list-group-item border-0 px-0 py-2">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                          <h6 class="mb-1 small">{{ entrega.evaluacion.nombre }}</h6>
+                          <small class="text-muted">{{ entrega.estudiante.get_full_name|default:entrega.estudiante.username }}</small>
+                        </div>
+                        <div class="text-end">
+                          <span class="badge bg-{{ entrega.estado|yesno:'success,warning' }}">{{ entrega.estado|title }}</span>
+                          <small class="text-muted d-block">{{ entrega.fecha_entrega|date:"d/m/Y" }}</small>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="text-center py-3">
+                    <p class="text-muted">No hay entregas recientes</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+              <div class="card-header bg-info text-white">
+                <h6 class="mb-0 text-white">
+                  <i class="fas fa-book me-2"></i>Recursos Recientes
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if recursos_recientes %}
+                  <div class="list-group list-group-flush">
+                    {% for recurso in recursos_recientes %}
+                    <div class="list-group-item border-0 px-0 py-2">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                          <h6 class="mb-1 small">{{ recurso.nombre }}</h6>
+                          <small class="text-muted">{{ recurso.get_tipo_display_name }}</small>
+                        </div>
+                        <div class="text-end">
+                          <i class="fas {{ recurso.get_icono_tipo }} text-info"></i>
+                          <small class="text-muted d-block">{{ recurso.fecha_creacion|date:"d/m/Y" }}</small>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="text-center py-3">
+                    <p class="text-muted">No hay recursos recientes</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+      {% else %}
+        <!-- Vista para Estudiantes -->
+        <div class="row">
+          <div class="col-12">
+            <h4 class="mb-4">
+              <i class="fas fa-home me-2"></i>Bienvenido a tu curso
+            </h4>
+          </div>
+        </div>
+        
+        <!-- Resumen de información principal -->
+        <div class="row mb-4">
+          <!-- Última Calificación -->
+          {% if ultima_calificacion %}
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header bg-success text-white">
+                <h6 class="mb-0 text-white">
+                  <i class="fas fa-chart-line me-2"></i>Última Calificación
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="flex-shrink-0">
+                    <div class="avatar avatar-lg bg-success rounded-circle d-flex align-items-center justify-content-center">
+                      <span class="text-white fw-bold">{{ ultima_calificacion.nota }}</span>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-1">{{ ultima_calificacion.evaluacion.nombre }}</h6>
+                    <p class="text-muted small mb-0">{{ ultima_calificacion.evaluacion.get_tipo_display }}</p>
+                    <small class="text-muted">{{ ultima_calificacion.fecha_calificacion|date:"d/m/Y" }}</small>
+                  </div>
+                </div>
+                {% if ultima_calificacion.retroalimentacion %}
+                  <p class="text-muted small mb-0">
+                    <strong>Retroalimentación:</strong> {{ ultima_calificacion.retroalimentacion|truncatewords:15 }}
+                  </p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
+          <!-- Último Recurso -->
+          {% if ultimo_recurso %}
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header bg-info text-white">
+                <h6 class="mb-0 text-white">
+                  <i class="fas fa-book me-2"></i>Último Recurso
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="flex-shrink-0">
+                    <div class="avatar avatar-lg bg-info rounded-circle d-flex align-items-center justify-content-center">
+                      <i class="fas fa-file-alt text-white"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-1">{{ ultimo_recurso.nombre }}</h6>
+                    <p class="text-muted small mb-0">{{ ultimo_recurso.get_tipo_display_name }}</p>
+                    <small class="text-muted">{{ ultimo_recurso.fecha_creacion|date:"d/m/Y" }}</small>
+                  </div>
+                </div>
+                {% if ultimo_recurso.descripcion %}
+                  <p class="text-muted small mb-0">
+                    {{ ultimo_recurso.descripcion|truncatewords:15 }}
+                  </p>
+                {% endif %}
+                <div class="mt-3">
+                  <span class="badge bg-secondary">{{ ultimo_recurso.evaluacion.nombre }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
+          <!-- Entregas Recientes -->
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header bg-warning text-white">
+                <h6 class="mb-0 text-white">
+                  <i class="fas fa-clock me-2"></i>Entregas Pendientes
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if entregas_pendientes %}
+                  <div class="list-group list-group-flush">
+                    {% for entrega in entregas_pendientes %}
+                    <div class="list-group-item border-0 px-0 py-2">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                          <h6 class="mb-1 small">{{ entrega.evaluacion.nombre }}</h6>
+                          <small class="text-muted">{{ entrega.evaluacion.get_tipo_display }}</small>
+                        </div>
+                        <div class="text-end">
+                          {% if entrega.evaluacion.fecha_fin %}
+                            <small class="text-danger">
+                              <i class="fas fa-calendar me-1"></i>{{ entrega.evaluacion.fecha_fin|date:"d/m/Y" }}
+                            </small>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  <div class="mt-3">
+                    <button class="btn btn-outline-warning btn-sm" onclick="cambiarSeccion('entregas')">
+                      <i class="fas fa-upload me-1"></i>Ver todas las entregas
+                    </button>
+                  </div>
+                {% else %}
+                  <div class="text-center py-4">
+                    <i class="fas fa-check-circle fa-2x text-success mb-3"></i>
+                    <p class="text-muted">No tienes entregas pendientes</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+
+        
+        <!-- Mensaje cuando no hay datos -->
+        {% if not ultima_calificacion and not ultimo_recurso and not entregas_pendientes %}
+        <div class="row">
+          <div class="col-12">
+            <div class="text-center py-5">
+              <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+              <h5 class="text-muted">Bienvenido a tu plataforma de aprendizaje</h5>
+              <p class="text-muted">Aquí podrás ver tu progreso, recursos y entregas pendientes.</p>
+              <div class="row mt-4">
+                <div class="col-md-4">
+                  <div class="card border-0 bg-light">
+                    <div class="card-body text-center">
+                      <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
+                      <h6>Calificaciones</h6>
+                      <p class="small text-muted">Revisa tus calificaciones y progreso</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="card border-0 bg-light">
+                    <div class="card-body text-center">
+                      <i class="fas fa-book fa-2x text-info mb-2"></i>
+                      <h6>Recursos</h6>
+                      <p class="small text-muted">Accede a materiales de estudio</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="card border-0 bg-light">
+                    <div class="card-body text-center">
+                      <i class="fas fa-upload fa-2x text-warning mb-2"></i>
+                      <h6>Entregas</h6>
+                      <p class="small text-muted">Sube tus trabajos y evaluaciones</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      {% endif %}
     </div>
     
     <!-- Bloque para contenido personalizado -->
@@ -1570,6 +2014,9 @@ function subirEntrega() {
       
       // Reinicializar el formulario
       inicializarFormularioEntrega();
+      
+      // Recargar la página completa para actualizar todos los datos
+      window.location.reload();
     })
     .catch(error => {
       console.error('Error:', error);
@@ -1581,6 +2028,15 @@ function subirEntrega() {
       submitBtn.disabled = false;
     });
   }
+}
+
+// Función para recargar la sección de inicio
+function recargarSeccionInicio() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Recargar la página para obtener los datos actualizados
+  window.location.reload();
 }
 
 // Función para validar archivo
@@ -3185,7 +3641,7 @@ function guardarCriterio() {
       // Cerrar modal y recargar página
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarCriterio'));
       modal.hide();
-      location.reload();
+      //location.reload();
     } else {
       alert('Error: ' + data.error);
     }

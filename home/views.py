@@ -1228,10 +1228,151 @@ def plataforma_aprendizaje(request, curso_id):
         action = request.GET.get('action')
         post_id = request.GET.get('post_id')
         
+        # Obtener datos según el tipo de usuario
+        if request.user.is_staff:
+            # Datos para staff/admin - estadísticas generales del curso
+            total_estudiantes = curso.usuarios.filter(is_staff=False).count()
+            total_evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).count()
+            total_recursos = Recurso.objects.filter(evaluacion__curso=curso, activo=True).count()
+            total_entregas_pendientes = Entrega.objects.filter(
+                evaluacion__curso=curso,
+                estado='pendiente'
+            ).count()
+            
+            # Evaluaciones recientes para administrar
+            evaluaciones_recientes = Evaluacion.objects.filter(curso=curso, activa=True).order_by('-fecha_creacion')[:5]
+            
+            # Entregas recientes para revisar
+            entregas_recientes = Entrega.objects.filter(
+                evaluacion__curso=curso
+            ).order_by('-fecha_entrega')[:5]
+            
+            # Recursos recientes
+            recursos_recientes = Recurso.objects.filter(
+                evaluacion__curso=curso,
+                activo=True
+            ).order_by('-fecha_creacion')[:5]
+            
+            # Variables para estudiantes (vacías para staff)
+            ultima_calificacion = None
+            ultimo_recurso = None
+            entregas_pendientes = []
+            calificaciones_recientes = []
+            
+        else:
+            # Datos para estudiantes regulares
+            # Última calificación del usuario
+            ultima_calificacion = None
+            try:
+                ultima_calificacion = Calificacion.objects.filter(
+                    evaluacion__curso=curso,
+                    estudiante=request.user,
+                    nota__isnull=False
+                ).order_by('-fecha_calificacion').first()
+            except:
+                pass
+            
+            # Último recurso subido
+            ultimo_recurso = None
+            try:
+                ultimo_recurso = Recurso.objects.filter(
+                    evaluacion__curso=curso,
+                    activo=True
+                ).order_by('-fecha_creacion').first()
+            except:
+                pass
+            
+            # Entregas pendientes del usuario (evaluaciones activas sin entrega)
+            entregas_pendientes = []
+            try:
+                # Obtener evaluaciones activas del curso que han comenzado y no han vencido
+                evaluaciones_activas = Evaluacion.objects.filter(
+                    curso=curso,
+                    activa=True
+                ).filter(
+                    fecha_inicio__lte=timezone.now().date()  # Solo evaluaciones que ya han comenzado
+                ).exclude(
+                    fecha_fin__lt=timezone.now().date()  # Excluir evaluaciones vencidas
+                ).order_by('fecha_fin')  # Ordenar por fecha de fin más cercana
+                
+                # Para cada evaluación activa, verificar si el usuario tiene una entrega
+                for evaluacion in evaluaciones_activas:
+                    entrega_existente = Entrega.objects.filter(
+                        evaluacion=evaluacion,
+                        estudiante=request.user
+                    ).first()
+                    
+                    # Solo agregar si no tiene entrega O si tiene una entrega con estado 'pendiente'
+                    if not entrega_existente:
+                        # No tiene entrega, agregar a la lista
+                        class EntregaPendiente:
+                            def __init__(self, evaluacion):
+                                self.evaluacion = evaluacion
+                                self.estado = 'pendiente'
+                        
+                        entregas_pendientes.append(EntregaPendiente(evaluacion))
+                    elif entrega_existente.estado == 'pendiente':
+                        # Tiene entrega pero está pendiente, agregar a la lista
+                        class EntregaPendiente:
+                            def __init__(self, evaluacion):
+                                self.evaluacion = evaluacion
+                                self.estado = 'pendiente'
+                        
+                        entregas_pendientes.append(EntregaPendiente(evaluacion))
+                    
+                    # Limitar a 5 entregas pendientes
+                    if len(entregas_pendientes) >= 5:
+                        break
+            except Exception as e:
+                print(f"Error obteniendo entregas pendientes: {e}")
+                pass
+            
+            # Obtener calificaciones recientes para mostrar en el dashboard
+            calificaciones_recientes = []
+            try:
+                calificaciones_recientes = Calificacion.objects.filter(
+                    evaluacion__curso=curso,
+                    estudiante=request.user,
+                    nota__isnull=False
+                ).order_by('-fecha_calificacion')[:5]  # Últimas 5 calificaciones
+            except Exception as e:
+                print(f"Error obteniendo calificaciones recientes: {e}")
+                pass
+            
+            # Obtener recursos recientes para mostrar en el dashboard
+            recursos_recientes = []
+            try:
+                recursos_recientes = Recurso.objects.filter(
+                    evaluacion__curso=curso,
+                    activo=True
+                ).order_by('-fecha_creacion')[:5]  # Últimos 5 recursos
+            except Exception as e:
+                print(f"Error obteniendo recursos recientes: {e}")
+                pass
+            
+            # Variables para staff (vacías para estudiantes)
+            total_estudiantes = 0
+            total_evaluaciones = 0
+            total_recursos = 0
+            total_entregas_pendientes = 0
+            evaluaciones_recientes = []
+            entregas_recientes = []
+        
         # Definir el contexto base
         context = {
             'curso': curso,
             'seccion_activa': seccion_activa,
+            'ultima_calificacion': ultima_calificacion,
+            'ultimo_recurso': ultimo_recurso,
+            'entregas_pendientes': entregas_pendientes,
+            'calificaciones_recientes': calificaciones_recientes,
+            'recursos_recientes': recursos_recientes,
+            'total_estudiantes': total_estudiantes,
+            'total_evaluaciones': total_evaluaciones,
+            'total_recursos': total_recursos,
+            'total_entregas_pendientes': total_entregas_pendientes,
+            'evaluaciones_recientes': evaluaciones_recientes,
+            'entregas_recientes': entregas_recientes,
         }
         
         # Si hay una acción específica, manejar según el tipo
@@ -3543,8 +3684,16 @@ def plataforma_entregas_ajax(request, curso_id):
             entrega = form.save(commit=False)
             entrega.evaluacion = evaluacion
             entrega.estudiante = user
+            
+            # Verificar si la entrega es tardía
+            from django.utils import timezone
+            if evaluacion.fecha_fin and timezone.now().date() > evaluacion.fecha_fin:
+                entrega.estado = 'tardio'
+            else:
+                entrega.estado = 'entregado'
+            
             entrega.save()
-            logger.debug("DEBUG: Entrega guardada exitosamente")
+            logger.debug(f"DEBUG: Entrega guardada exitosamente con estado: {entrega.estado}")
             messages.success(request, 'Entrega subida correctamente.')
         else:
             logger.debug("DEBUG: Formulario inválido")
