@@ -1,0 +1,46 @@
+{% if rubrica.criterios.all %}
+  <div class="criterios-list">
+    {% for criterio in rubrica.criterios.all %}
+      <div class="criterio-item mb-3 p-3 border rounded">
+        <h6 class="mb-2">{{ criterio.nombre }}</h6>
+        <p class="text-muted small mb-2">{{ criterio.objetivo|truncatewords:20 }}</p>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <small class="text-muted">{{ criterio.esperables.count }} esperables</small>
+          <span class="badge bg-primary">{% if criterio.puntaje %}{{ criterio.puntaje|puntaje_entero }}{% else %}0{% endif %} puntos</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <small class="text-muted">Puntaje máximo</small>
+          <div class="btn-group btn-group-sm">
+            {% if puede_editar %}
+              <button class="btn btn-outline-primary btn-sm" onclick="editarCriterio({{ criterio.id }})">
+                <i class="fas fa-edit"></i>Editar
+              </button>
+              <button class="btn btn-outline-danger btn-sm" onclick="eliminarCriterio({{ criterio.id }})">
+                <i class="fas fa-trash"></i>Eliminar
+              </button>
+            {% else %}
+              <button class="btn btn-outline-secondary btn-sm" disabled>
+                <i class="fas fa-lock"></i>No Editable
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center py-4">
+    <i class="fas fa-clipboard-list fa-2x text-muted mb-3"></i>
+    <p class="text-muted">No hay criterios agregados</p>
+  </div>
+{% endif %}
+
+{% if puede_editar %}
+  <button class="btn btn-success w-100" onclick="abrirModalAgregarCriterio()">
+    <i class="fas fa-plus me-2"></i>Agregar Criterio
+  </button>
+{% else %}
+  <button class="btn btn-secondary w-100" disabled>
+    <i class="fas fa-lock me-2"></i>No Se Pueden Agregar Criterios
+  </button>
+{% endif %} 

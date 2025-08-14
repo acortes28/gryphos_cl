@@ -10,7 +10,7 @@ from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket, Asignatura, Recurso
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket, Asignatura, Recurso, ObjetivoAprendizaje
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -3291,8 +3291,8 @@ def exportar_calificaciones_excel(request, curso_id):
                         # Información de la rúbrica
                         ws_detalle.cell(row=row_detalle, column=6, value=rubrica.id)
                         ws_detalle.cell(row=row_detalle, column=7, value=rubrica.nombre)
-                        ws_detalle.cell(row=row_detalle, column=8, value=rubrica.objetivo)
-                        ws_detalle.cell(row=row_detalle, column=9, value=rubrica.aprendizaje_esperado)
+                        ws_detalle.cell(row=row_detalle, column=8, value='')
+                        ws_detalle.cell(row=row_detalle, column=9, value='')
                         
                         # Información del criterio
                         ws_detalle.cell(row=row_detalle, column=10, value=criterio.id)
@@ -3337,8 +3337,8 @@ def exportar_calificaciones_excel(request, curso_id):
                         # Información de la rúbrica
                         ws_detalle.cell(row=row_detalle, column=6, value=rubrica.id)
                         ws_detalle.cell(row=row_detalle, column=7, value=rubrica.nombre)
-                        ws_detalle.cell(row=row_detalle, column=8, value=rubrica.objetivo)
-                        ws_detalle.cell(row=row_detalle, column=9, value=rubrica.aprendizaje_esperado)
+                        ws_detalle.cell(row=row_detalle, column=8, value='')
+                        ws_detalle.cell(row=row_detalle, column=9, value='')
                         
                         # Información del criterio
                         ws_detalle.cell(row=row_detalle, column=10, value=criterio.id)
@@ -4479,20 +4479,40 @@ def crear_rubrica(request, curso_id, evaluacion_id):
     if request.method == 'POST':
         # Procesar el formulario de creación de rúbrica
         nombre = request.POST.get('nombre')
-        descripcion = request.POST.get('descripcion')
-        objetivo = request.POST.get('objetivo')
-        aprendizaje_esperado = request.POST.get('aprendizaje_esperado')
         
-        if nombre and objetivo and aprendizaje_esperado:
+        if nombre:
             # Crear la rúbrica
             rubrica = Rubrica.objects.create(
                 evaluacion=evaluacion,
                 nombre=nombre,
-                descripcion=descripcion,
-                objetivo=objetivo,
-                aprendizaje_esperado=aprendizaje_esperado,
                 creado_por=request.user
             )
+            
+            # Procesar objetivos de aprendizaje si existen
+            objetivos_data = {}
+            for key, value in request.POST.items():
+                if key.startswith('objetivos[') and ']' in key:
+                    # Extraer el índice y el campo del nombre del campo
+                    # Ejemplo: objetivos[1][nombre] -> índice=1, campo=nombre
+                    import re
+                    match = re.match(r'objetivos\[(\d+)\]\[(\w+)\]', key)
+                    if match:
+                        index = match.group(1)
+                        field = match.group(2)
+                        if index not in objetivos_data:
+                            objetivos_data[index] = {}
+                        objetivos_data[index][field] = value
+            
+            # Crear los objetivos de aprendizaje
+            for index, data in objetivos_data.items():
+                if data.get('nombre') and data.get('descripcion'):
+                    ObjetivoAprendizaje.objects.create(
+                        rubrica=rubrica,
+                        nombre=data['nombre'],
+                        descripcion=data['descripcion'],
+                        orden=data.get('orden', 1),
+                        activo=True
+                    )
             
             messages.success(request, 'Rúbrica creada exitosamente. Ahora puedes agregar criterios.')
             return redirect('editar_rubrica', curso_id=curso_id, evaluacion_id=evaluacion_id)
@@ -4542,16 +4562,57 @@ def editar_rubrica(request, curso_id, evaluacion_id):
     if request.method == 'POST' and puede_editar:
         # Procesar actualización de la rúbrica
         nombre = request.POST.get('nombre')
-        descripcion = request.POST.get('descripcion')
-        objetivo = request.POST.get('objetivo')
-        aprendizaje_esperado = request.POST.get('aprendizaje_esperado')
         
-        if nombre and objetivo and aprendizaje_esperado:
+        if nombre:
             rubrica.nombre = nombre
-            rubrica.descripcion = descripcion
-            rubrica.objetivo = objetivo
-            rubrica.aprendizaje_esperado = aprendizaje_esperado
             rubrica.save()
+            
+            # Procesar objetivos de aprendizaje
+            objetivos_data = {}
+            for key, value in request.POST.items():
+                if key.startswith('objetivos[') and ']' in key:
+                    # Extraer el índice y el campo del nombre del campo
+                    import re
+                    match = re.match(r'objetivos\[(\w+)\]\[(\w+)\]', key)
+                    if match:
+                        index = match.group(1)
+                        field = match.group(2)
+                        if index not in objetivos_data:
+                            objetivos_data[index] = {}
+                        objetivos_data[index][field] = value
+            
+            # Actualizar o crear objetivos de aprendizaje
+            for index, data in objetivos_data.items():
+                if data.get('nombre') and data.get('descripcion'):
+                    # Si el índice empieza con 'nuevo_', es un objetivo nuevo
+                    if index.startswith('nuevo_'):
+                        ObjetivoAprendizaje.objects.create(
+                            rubrica=rubrica,
+                            nombre=data['nombre'],
+                            descripcion=data['descripcion'],
+                            orden=data.get('orden', 1),
+                            activo=True
+                        )
+                    else:
+                        # Es un objetivo existente, actualizarlo
+                        try:
+                            objetivo = ObjetivoAprendizaje.objects.get(
+                                id=index, 
+                                rubrica=rubrica
+                            )
+                            objetivo.nombre = data['nombre']
+                            objetivo.descripcion = data['descripcion']
+                            objetivo.orden = data.get('orden', 1)
+                            objetivo.save()
+                        except ObjetivoAprendizaje.DoesNotExist:
+                            # Si no existe, crear uno nuevo
+                            ObjetivoAprendizaje.objects.create(
+                                rubrica=rubrica,
+                                nombre=data['nombre'],
+                                descripcion=data['descripcion'],
+                                orden=data.get('orden', 1),
+                                activo=True
+                            )
             
             # Verificar si es una petición AJAX
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -4643,9 +4704,10 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
         nombre = request.POST.get('nombre')
         objetivo = request.POST.get('objetivo')
         puntaje = request.POST.get('puntaje')
+        objetivo_aprendizaje_id = request.POST.get('objetivo_aprendizaje')
         esperables_data = request.POST.getlist('esperables[]')
         
-        logger.info(f"Datos recibidos - Nombre: {nombre}, Objetivo: {objetivo}, Puntaje: {puntaje}, Esperables: {len(esperables_data)}")
+        logger.info(f"Datos recibidos - Nombre: {nombre}, Objetivo: {objetivo}, Puntaje: {puntaje}, Objetivo Aprendizaje ID: {objetivo_aprendizaje_id}, Esperables: {len(esperables_data)}")
         
         if not nombre or not objetivo or not puntaje:
             logger.error("Campos obligatorios faltantes")
@@ -4660,13 +4722,41 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
             logger.error(f"Puntaje inválido: {puntaje}")
             return JsonResponse({'error': 'El puntaje debe ser un número válido'}, status=400)
         
+        # Obtener el objetivo de aprendizaje si se especificó
+        objetivo_aprendizaje = None
+        if objetivo_aprendizaje_id:
+            logger.info(f"Procesando objetivo de aprendizaje con ID: '{objetivo_aprendizaje_id}'")
+            logger.info(f"Tipo de ID: {type(objetivo_aprendizaje_id)}")
+            logger.info(f"ID limpio: '{objetivo_aprendizaje_id.strip() if objetivo_aprendizaje_id else 'None'}'")
+            
+            try:
+                # Limpiar el ID si es necesario
+                id_limpio = objetivo_aprendizaje_id.strip() if objetivo_aprendizaje_id else None
+                if id_limpio:
+                    objetivo_aprendizaje = ObjetivoAprendizaje.objects.get(
+                        id=id_limpio, 
+                        rubrica=rubrica
+                    )
+                    logger.info(f"Objetivo de aprendizaje encontrado: {objetivo_aprendizaje.nombre} (ID: {objetivo_aprendizaje.id})")
+                else:
+                    logger.info("ID de objetivo de aprendizaje está vacío o es None")
+            except ObjetivoAprendizaje.DoesNotExist:
+                logger.error(f"Objetivo de aprendizaje con ID '{objetivo_aprendizaje_id}' no encontrado en la rúbrica {rubrica.id}")
+                logger.error(f"Objetivos disponibles en la rúbrica: {list(rubrica.objetivos_aprendizaje.values_list('id', 'nombre'))}")
+            except Exception as e:
+                logger.error(f"Error inesperado al buscar objetivo de aprendizaje: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+        else:
+            logger.info("No se especificó objetivo de aprendizaje")
+        
         # Crear el criterio
         criterio = CriterioRubrica.objects.create(
             rubrica=rubrica,
             nombre=nombre,
             objetivo=objetivo,
             puntaje=puntaje_decimal,
-            orden=rubrica.criterios.count() + 1
+            orden=rubrica.criterios.count() + 1,
+            objetivo_aprendizaje=objetivo_aprendizaje
         )
         
         logger.info(f"Criterio creado con ID: {criterio.id}")
@@ -4720,14 +4810,19 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
         
         response_data = {
             'success': True,
-            'criterio_id': criterio.id,
-            'criterio_nombre': str(criterio.nombre),
-            'criterio_objetivo': str(criterio.objetivo),
-            'criterio_puntaje': float(criterio.puntaje),
-            'esperables_count': criterio.esperables.count()
+            'criterio': {
+                'id': criterio.id,
+                'nombre': str(criterio.nombre),
+                'objetivo': str(criterio.objetivo),
+                'puntaje': float(criterio.puntaje),
+                'esperables_count': criterio.esperables.count()
+            },
+            'objetivo_aprendizaje_id': criterio.objetivo_aprendizaje.id if criterio.objetivo_aprendizaje else None,
+            'objetivo_aprendizaje_nombre': str(criterio.objetivo_aprendizaje.nombre) if criterio.objetivo_aprendizaje else None
         }
         
         logger.info(f"Respuesta exitosa: {response_data}")
+        logger.info(f"Objetivo de aprendizaje en respuesta: ID={response_data['objetivo_aprendizaje_id']}, Nombre={response_data['objetivo_aprendizaje_nombre']}")
         return JsonResponse(response_data, safe=True)
         
     except Exception as e:
@@ -4761,6 +4856,8 @@ def obtener_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
             'nombre': str(criterio.nombre),
             'objetivo': str(criterio.objetivo),
             'puntaje': float(criterio.puntaje),
+            'objetivo_aprendizaje_id': criterio.objetivo_aprendizaje.id if criterio.objetivo_aprendizaje else None,
+            'objetivo_aprendizaje_nombre': str(criterio.objetivo_aprendizaje.nombre) if criterio.objetivo_aprendizaje else None,
             'esperables': [
                 {
                     'nivel': str(e['nivel']),
@@ -4770,6 +4867,51 @@ def obtener_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
             ]
         }
     }, safe=True)
+
+@login_required
+def obtener_criterios_rubrica(request, curso_id, evaluacion_id):
+    """
+    Vista AJAX para obtener todos los criterios de una rúbrica en formato HTML
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        curso = get_object_or_404(Curso, id=curso_id)
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+        
+        # Verificar permisos
+        if not request.user.is_staff and evaluacion.creado_por != request.user:
+            return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+        
+        # Obtener la rúbrica
+        try:
+            rubrica = evaluacion.rubrica
+        except Rubrica.DoesNotExist:
+            return JsonResponse({'error': 'No se encontró una rúbrica para esta evaluación'}, status=404)
+        
+        # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
+        from datetime import date
+        hoy = date.today()
+        puede_editar = True
+        if evaluacion.fecha_inicio and hoy >= evaluacion.fecha_inicio:
+            puede_editar = False
+        
+        # Renderizar el HTML de los criterios
+        html = render_to_string('pages/editar_rubrica_criterios_list.html', {
+            'rubrica': rubrica,
+            'puede_editar': puede_editar,
+            'request': request
+        })
+        
+        return JsonResponse({
+            'success': True,
+            'html': html
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al obtener criterios de rúbrica: {str(e)}")
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
 
 @login_required
 def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
@@ -4805,9 +4947,10 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
         nombre = request.POST.get('nombre')
         objetivo = request.POST.get('objetivo')
         puntaje = request.POST.get('puntaje')
+        objetivo_aprendizaje_id = request.POST.get('objetivo_aprendizaje')
         esperables_data = request.POST.getlist('esperables[]')
         
-        logger.info(f"Datos recibidos - Nombre: {nombre}, Objetivo: {objetivo}, Puntaje: {puntaje}, Esperables: {len(esperables_data)}")
+        logger.info(f"Datos recibidos - Nombre: {nombre}, Objetivo: {objetivo}, Puntaje: {puntaje}, Objetivo Aprendizaje ID: {objetivo_aprendizaje_id}, Esperables: {len(esperables_data)}")
         
         if not nombre or not objetivo or not puntaje:
             logger.error("Campos obligatorios faltantes")
@@ -4822,10 +4965,22 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
             logger.error(f"Puntaje inválido: {puntaje}")
             return JsonResponse({'error': 'El puntaje debe ser un número válido'}, status=400)
         
+        # Obtener el objetivo de aprendizaje si se especificó
+        objetivo_aprendizaje = None
+        if objetivo_aprendizaje_id:
+            try:
+                objetivo_aprendizaje = ObjetivoAprendizaje.objects.get(
+                    id=objetivo_aprendizaje_id, 
+                    rubrica=criterio.rubrica
+                )
+            except ObjetivoAprendizaje.DoesNotExist:
+                logger.warning(f"Objetivo de aprendizaje {objetivo_aprendizaje_id} no encontrado")
+        
         # Actualizar el criterio
         criterio.nombre = nombre
         criterio.objetivo = objetivo
         criterio.puntaje = puntaje_decimal
+        criterio.objetivo_aprendizaje = objetivo_aprendizaje
         criterio.save()
         
         logger.info(f"Criterio actualizado con ID: {criterio.id}")
@@ -4872,11 +5027,15 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
         
         response_data = {
             'success': True,
-            'criterio_id': criterio.id,
-            'criterio_nombre': str(criterio.nombre),
-            'criterio_objetivo': str(criterio.objetivo),
-            'criterio_puntaje': float(criterio.puntaje),
-            'esperables_count': criterio.esperables.count()
+            'criterio': {
+                'id': criterio.id,
+                'nombre': str(criterio.nombre),
+                'objetivo': str(criterio.objetivo),
+                'puntaje': float(criterio.puntaje),
+                'esperables_count': criterio.esperables.count()
+            },
+            'objetivo_aprendizaje_id': criterio.objetivo_aprendizaje.id if criterio.objetivo_aprendizaje else None,
+            'objetivo_aprendizaje_nombre': str(criterio.objetivo_aprendizaje.nombre) if criterio.objetivo_aprendizaje else None
         }
         
         logger.info(f"Respuesta exitosa: {response_data}")

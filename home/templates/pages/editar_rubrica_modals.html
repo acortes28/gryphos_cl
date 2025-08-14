@@ -28,6 +28,15 @@
           </div>
           
           <div class="form-group mb-3">
+            <label for="criterio_objetivo_aprendizaje" class="form-label">Objetivo de Aprendizaje</label>
+            <select class="form-control" id="criterio_objetivo_aprendizaje" name="objetivo_aprendizaje">
+              <option value="">-- Seleccionar Objetivo de Aprendizaje --</option>
+              <!-- Los objetivos se cargarán dinámicamente -->
+            </select>
+            <small class="form-text text-muted">Opcional: Asocia este criterio a un objetivo de aprendizaje específico</small>
+          </div>
+          
+          <div class="form-group mb-3">
             <label class="form-label required-field">Listado de Esperables</label>
             <div id="esperables-container">
               <!-- Los esperables se agregarán dinámicamente aquí -->
@@ -80,6 +89,15 @@
             <input type="number" class="form-control" id="criterio_puntaje_editar" name="puntaje" 
                    min="0" step="0.01" required placeholder="Ej: 10.0">
             <small class="form-text text-muted">Puntaje máximo que se puede obtener en este criterio</small>
+          </div>
+          
+          <div class="form-group mb-3">
+            <label for="criterio_objetivo_aprendizaje_editar" class="form-label">Objetivo de Aprendizaje</label>
+            <select class="form-control" id="criterio_objetivo_aprendizaje_editar" name="objetivo_aprendizaje">
+              <option value="">-- Seleccionar Objetivo de Aprendizaje --</option>
+              <!-- Los objetivos se cargarán dinámicamente -->
+            </select>
+            <small class="form-text text-muted">Opcional: Asocia este criterio a un objetivo de aprendizaje específico</small>
           </div>
           
           <div class="form-group mb-3">
@@ -260,3 +278,68 @@
     </div>
   </div>
 </div> 
+
+<script>
+// Función para actualizar los objetivos de aprendizaje en el modal de criterio
+function actualizarObjetivosAprendizaje() {
+  const selectObjetivos = document.getElementById('criterio_objetivo_aprendizaje');
+  if (selectObjetivos) {
+    // Limpiar opciones existentes (mantener la primera opción por defecto)
+    selectObjetivos.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
+    
+    // Obtener objetivos de aprendizaje si la función está disponible
+    if (typeof window.obtenerObjetivosAprendizaje === 'function') {
+      const objetivos = window.obtenerObjetivosAprendizaje();
+      
+      // Agregar opciones para cada objetivo
+      objetivos.forEach(objetivo => {
+        const option = document.createElement('option');
+        option.value = objetivo.id;
+        option.textContent = objetivo.nombre;
+        selectObjetivos.appendChild(option);
+      });
+    }
+  }
+}
+
+// Función para actualizar objetivos en el modal de editar criterio
+function actualizarObjetivosAprendizajeEditar() {
+  const selectObjetivos = document.getElementById('criterio_objetivo_aprendizaje_editar');
+  if (selectObjetivos) {
+    // Limpiar opciones existentes (mantener la primera opción por defecto)
+    selectObjetivos.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
+    
+    // Obtener objetivos de aprendizaje si la función está disponible
+    if (typeof window.obtenerObjetivosAprendizaje === 'function') {
+      const objetivos = window.obtenerObjetivosAprendizaje();
+      
+      // Agregar opciones para cada objetivo
+      objetivos.forEach(objetivo => {
+        const option = document.createElement('option');
+        option.value = objetivo.id;
+        option.textContent = objetivo.nombre;
+        selectObjetivos.appendChild(option);
+      });
+    }
+  }
+}
+
+// Event listeners para actualizar objetivos cuando se abran los modales
+document.addEventListener('DOMContentLoaded', function() {
+  // Modal de agregar criterio
+  const modalAgregarCriterio = document.getElementById('modalAgregarCriterio');
+  if (modalAgregarCriterio) {
+    modalAgregarCriterio.addEventListener('show.bs.modal', function() {
+      actualizarObjetivosAprendizaje();
+    });
+  }
+  
+  // Modal de editar criterio
+  const modalEditarCriterio = document.getElementById('modalEditarCriterio');
+  if (modalEditarCriterio) {
+    modalEditarCriterio.addEventListener('show.bs.modal', function() {
+      actualizarObjetivosAprendizajeEditar();
+    });
+  }
+});
+</script> 

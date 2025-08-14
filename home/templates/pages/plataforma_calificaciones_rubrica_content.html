@@ -30,26 +30,7 @@
               <small class="form-text text-muted">Nombre descriptivo que identifique la rúbrica</small>
             </div>
             
-            <div class="form-group">
-              <label for="descripcion" class="form-label">Descripción</label>
-              <textarea class="form-control" id="descripcion" name="descripcion" rows="3"
-                        placeholder="Descripción opcional de la rúbrica" {% if not puede_editar %}disabled{% endif %}>{{ rubrica.descripcion }}</textarea>
-              <small class="form-text text-muted">Descripción adicional de la rúbrica (opcional)</small>
-            </div>
-            
-            <div class="form-group">
-              <label for="objetivo" class="form-label required-field">Objetivo</label>
-              <textarea class="form-control" id="objetivo" name="objetivo" rows="4" required
-                        placeholder="¿Cuál es el objetivo principal de esta rúbrica?" {% if not puede_editar %}disabled{% endif %}>{{ rubrica.objetivo }}</textarea>
-              <small class="form-text text-muted">Define claramente el propósito de esta rúbrica</small>
-            </div>
-            
-            <div class="form-group">
-              <label for="aprendizaje_esperado" class="form-label required-field">Aprendizaje Esperado</label>
-              <textarea class="form-control" id="aprendizaje_esperado" name="aprendizaje_esperado" rows="4" required
-                        placeholder="¿Qué se espera que el estudiante aprenda o demuestre?" {% if not puede_editar %}disabled{% endif %}>{{ rubrica.aprendizaje_esperado }}</textarea>
-              <small class="form-text text-muted">Describe los aprendizajes que se evaluarán</small>
-            </div>
+
             
             <div class="d-flex justify-content-between">
               <button type="button" onclick="cargarCalificaciones()" class="btn btn-primary">
@@ -66,6 +47,79 @@
               {% endif %}
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Card separada para Objetivos de Aprendizaje -->
+    <div class="col-lg-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-bullseye me-2"></i>Objetivos de Aprendizaje
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="objetivos-container">
+            {% if rubrica.objetivos_aprendizaje.all %}
+              {% for objetivo in rubrica.objetivos_aprendizaje.all %}
+                <div class="objetivo-item mb-3 p-3 border rounded" id="objetivo_{{ objetivo.id }}">
+                  <div class="row">
+                    <div class="col-md-4">
+                      <div class="form-group mb-2">
+                        <label class="form-label small">Nombre del Objetivo</label>
+                        <input type="text" class="form-control form-control-sm" 
+                               name="objetivos[{{ objetivo.id }}][nombre]" 
+                               value="{{ objetivo.nombre }}" 
+                               placeholder="Ej: Comprensión conceptual" 
+                               {% if not puede_editar %}disabled{% endif %} required>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group mb-2">
+                        <label class="form-label small">Descripción</label>
+                        <textarea class="form-control form-control-sm" rows="2" 
+                                  name="objetivos[{{ objetivo.id }}][descripcion]" 
+                                  placeholder="Descripción del objetivo" 
+                                  {% if not puede_editar %}disabled{% endif %} required>{{ objetivo.descripcion }}</textarea>
+                      </div>
+                    </div>
+                    <div class="col-md-2">
+                      <div class="form-group mb-2">
+                        <label class="form-label small">Orden</label>
+                        <input type="number" class="form-control form-control-sm" 
+                               name="objetivos[{{ objetivo.id }}][orden]" 
+                               value="{{ objetivo.orden }}" min="1" 
+                               {% if not puede_editar %}disabled{% endif %} required>
+                      </div>
+                    </div>
+                  </div>
+                  {% if puede_editar %}
+                    <div class="text-end">
+                      <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarObjetivo({{ objetivo.id }})">
+                        <i class="fas fa-trash me-1"></i>Eliminar
+                      </button>
+                    </div>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="text-center py-4">
+                <i class="fas fa-bullseye fa-2x text-muted mb-3"></i>
+                <p class="text-muted">No hay objetivos de aprendizaje configurados</p>
+              </div>
+            {% endif %}
+          </div>
+          
+                            {% if puede_editar %}
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="abrirModalObjetivo()">
+                      <i class="fas fa-plus me-1"></i>Agregar Objetivo de Aprendizaje
+                    </button>
+                    <small class="form-text text-muted d-block mt-2">
+                      <i class="fas fa-info-circle me-1"></i>
+                      Los objetivos de aprendizaje se pueden asociar a los criterios de evaluación
+                    </small>
+                  {% endif %}
         </div>
       </div>
     </div>
@@ -134,6 +188,16 @@
 <!-- Incluir los modales y scripts necesarios -->
 {% include 'pages/editar_rubrica_modals.html' %}
 
+<script>
+// Inicializar objetivos existentes cuando se cargue la página
+document.addEventListener('DOMContentLoaded', function() {
+  // Inicializar objetivos existentes usando la función del template padre
+  if (typeof window.inicializarObjetivosExistentes === 'function') {
+    window.inicializarObjetivosExistentes();
+  }
+});
+</script>
+
 <style>
   .form-group {
     margin-bottom: 20px;
@@ -201,5 +265,44 @@
   .criterio-item:hover {
     background: #e9ecef;
     transform: translateY(-1px);
+  }
+  
+  /* Estilos para objetivos de aprendizaje */
+  .objetivo-item {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6 !important;
+    transition: all 0.3s ease;
+  }
+  
+  .objetivo-item:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd !important;
+  }
+  
+  .objetivo-item .form-control-sm {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+  
+  .objetivo-item .btn-sm {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  /* Estilos para el select de objetivos en el modal */
+  .form-select {
+    border-radius: 8px;
+    border: 2px solid #d1d5db;
+    padding: 12px 16px;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  
+  .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    outline: none;
   }
 </style> 

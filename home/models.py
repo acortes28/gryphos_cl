@@ -516,9 +516,6 @@ class Rubrica(models.Model):
     """
     evaluacion = models.OneToOneField(Evaluacion, on_delete=models.CASCADE, related_name='rubrica')
     nombre = models.CharField(max_length=200, help_text="Nombre de la rúbrica")
-    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la rúbrica")
-    objetivo = models.TextField(help_text="Objetivo de la rúbrica")
-    aprendizaje_esperado = models.TextField(help_text="Aprendizaje esperado")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
     activa = models.BooleanField(default=True, help_text="Indica si la rúbrica está activa")
@@ -540,6 +537,31 @@ class Rubrica(models.Model):
         """Retorna el puntaje total de la rúbrica"""
         return self.criterios.aggregate(total=models.Sum('puntaje'))['total'] or 0
 
+class ObjetivoAprendizaje(models.Model):
+    """
+    Modelo para objetivos de aprendizaje que pueden estar asociados a múltiples criterios de rúbrica
+    """
+    rubrica = models.ForeignKey(Rubrica, on_delete=models.CASCADE, related_name='objetivos_aprendizaje')
+    nombre = models.CharField(max_length=200, help_text="Nombre del objetivo de aprendizaje")
+    descripcion = models.TextField(help_text="Descripción detallada del objetivo")
+    orden = models.PositiveIntegerField(default=0, help_text="Orden de aparición del objetivo")
+    activo = models.BooleanField(default=True, help_text="Indica si el objetivo está activo")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['orden', 'nombre']
+        verbose_name = 'Objetivo de Aprendizaje'
+        verbose_name_plural = 'Objetivos de Aprendizaje'
+        unique_together = ['rubrica', 'nombre']
+    
+    def __str__(self):
+        return f"{self.nombre} - {self.rubrica.nombre}"
+    
+    def get_criterios_count(self):
+        """Retorna el número de criterios asociados a este objetivo"""
+        return self.criterios.count()
+
 class CriterioRubrica(models.Model):
     """
     Modelo para criterios de una rúbrica
@@ -549,6 +571,14 @@ class CriterioRubrica(models.Model):
     objetivo = models.TextField(help_text="Objetivo del criterio")
     puntaje = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Puntaje máximo para este criterio")
     orden = models.PositiveIntegerField(default=0, help_text="Orden de aparición del criterio")
+    objetivo_aprendizaje = models.ForeignKey(
+        ObjetivoAprendizaje, 
+        on_delete=models.SET_NULL, 
+        blank=True, 
+        null=True, 
+        related_name='criterios',
+        help_text="Objetivo de aprendizaje asociado a este criterio"
+    )
     
     class Meta:
         ordering = ['orden', 'nombre']
@@ -995,12 +1025,21 @@ class Asignatura(models.Model):
                 nueva_rubrica = Rubrica.objects.create(
                     evaluacion=nueva_evaluacion,
                     nombre=rubrica_origen.nombre,
-                    descripcion=rubrica_origen.descripcion,
-                    objetivo=rubrica_origen.objetivo,
-                    aprendizaje_esperado=rubrica_origen.aprendizaje_esperado,
                     activa=rubrica_origen.activa,
                     creado_por=usuario_copia
                 )
+                
+                # Copiar objetivos de aprendizaje
+                objetivos_mapping = {}  # Para mapear objetivos originales a nuevos
+                for objetivo_origen in rubrica_origen.objetivos_aprendizaje.all():
+                    nuevo_objetivo = ObjetivoAprendizaje.objects.create(
+                        rubrica=nueva_rubrica,
+                        nombre=objetivo_origen.nombre,
+                        descripcion=objetivo_origen.descripcion,
+                        orden=objetivo_origen.orden,
+                        activo=objetivo_origen.activo
+                    )
+                    objetivos_mapping[objetivo_origen.id] = nuevo_objetivo
                 
                 # Copiar criterios y esperables
                 for criterio_origen in rubrica_origen.criterios.all():
@@ -1009,7 +1048,8 @@ class Asignatura(models.Model):
                         nombre=criterio_origen.nombre,
                         objetivo=criterio_origen.objetivo,
                         puntaje=criterio_origen.puntaje,
-                        orden=criterio_origen.orden
+                        orden=criterio_origen.orden,
+                        objetivo_aprendizaje=objetivos_mapping.get(criterio_origen.objetivo_aprendizaje.id) if criterio_origen.objetivo_aprendizaje else None
                     )
                     
                     # Copiar esperables

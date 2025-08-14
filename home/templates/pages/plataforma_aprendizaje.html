@@ -844,6 +844,54 @@
       margin-bottom: 1rem !important;
     }
   }
+  
+  /* Estilos para el modal de objetivos */
+  .modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+  
+  .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    border-bottom: none;
+  }
+  
+  .modal-header .btn-close {
+    filter: invert(1);
+  }
+  
+  .modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 20px 25px;
+  }
+  
+  /* Estilos para campos requeridos */
+  .required-field::after {
+    content: " *";
+    color: #dc3545;
+    font-weight: bold;
+  }
+  
+  /* Estilos para mensajes de alerta */
+  .alert {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  
+  .alert-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+  }
+  
+  .alert-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+    color: white;
+  }
 </style>
 
 <!-- Overlay para móviles -->
@@ -1351,6 +1399,352 @@ const PLATAFORMA_CONFIG = {
     entregas: { titulo: 'Entregas', icono: 'fas fa-upload' }
   }
 };
+
+// ===== FUNCIONES PARA OBJETIVOS DE APRENDIZAJE =====
+
+// Variables globales para objetivos de aprendizaje
+let objetivosAprendizaje = [];
+let contadorObjetivos = 0;
+
+// Función para agregar un nuevo objetivo de aprendizaje
+function agregarObjetivo() {
+  contadorObjetivos++;
+  const objetivoId = `nuevo_${contadorObjetivos}`;
+  
+  const objetivoHtml = `
+    <div class="objetivo-item mb-3 p-3 border rounded" id="objetivo_${objetivoId}">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group mb-2">
+            <label class="form-label small">Nombre del Objetivo</label>
+            <input type="text" class="form-control form-control-sm" 
+                   name="objetivos[${objetivoId}][nombre]" 
+                   placeholder="Ej: Comprensión conceptual" required>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group mb-2">
+            <label class="form-label small">Descripción</label>
+            <textarea class="form-control form-control-sm" rows="2" 
+                      name="objetivos[${objetivoId}][descripcion]" 
+                      placeholder="Descripción del objetivo" required></textarea>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="form-group mb-2">
+            <label class="form-label small">Orden</label>
+            <input type="number" class="form-control form-control-sm" 
+                   name="objetivos[${objetivoId}][orden]" 
+                   value="${contadorObjetivos}" min="1" required>
+          </div>
+        </div>
+      </div>
+      <div class="text-end">
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarObjetivo('${objetivoId}')">
+          <i class="fas fa-trash me-1"></i>Eliminar
+        </button>
+      </div>
+    </div>
+  `;
+  
+  const container = document.getElementById('objetivos-container');
+  if (container) {
+    container.insertAdjacentHTML('beforeend', objetivoHtml);
+    objetivosAprendizaje.push(objetivoId);
+    
+    // Ocultar mensaje de "no hay objetivos" si existe
+    const noObjetivosMsg = container.querySelector('.text-center');
+    if (noObjetivosMsg) {
+      noObjetivosMsg.style.display = 'none';
+    }
+  }
+}
+
+// Función para eliminar un objetivo de aprendizaje
+function eliminarObjetivo(objetivoId) {
+  const objetivoElement = document.getElementById(`objetivo_${objetivoId}`);
+  if (objetivoElement) {
+    objetivoElement.remove();
+    const index = objetivosAprendizaje.indexOf(objetivoId);
+    if (index > -1) {
+      objetivosAprendizaje.splice(index, 1);
+    }
+    
+    // Mostrar mensaje de "no hay objetivos" si no quedan
+    if (objetivosAprendizaje.length === 0) {
+      const container = document.getElementById('objetivos-container');
+      if (container) {
+        const noObjetivosMsg = container.querySelector('.text-center');
+        if (noObjetivosMsg) {
+          noObjetivosMsg.style.display = 'block';
+        }
+      }
+    }
+    
+    // Actualizar todos los dropdowns después de eliminar
+    actualizarDropdownsObjetivos();
+  }
+}
+
+// Función para obtener los objetivos de aprendizaje del formulario
+function obtenerObjetivosAprendizaje() {
+  const objetivos = [];
+  
+  // Obtener TODOS los objetivos que estén en el DOM (tanto existentes como nuevos)
+  const todosLosObjetivos = document.querySelectorAll('.objetivo-item');
+  todosLosObjetivos.forEach(objetivo => {
+    const objetivoId = objetivo.id.replace('objetivo_', '');
+    const nombre = objetivo.querySelector('input[name*="[nombre]"]').value;
+    const descripcion = objetivo.querySelector('textarea[name*="[descripcion]"]').value;
+    const orden = objetivo.querySelector('input[name*="[orden]"]').value;
+    
+    if (nombre && descripcion) {
+      objetivos.push({
+        id: objetivoId,
+        nombre: nombre,
+        descripcion: descripcion,
+        orden: parseInt(orden) || 1,
+        esExistente: !objetivoId.startsWith('nuevo_')
+      });
+    }
+  });
+  
+  // Ordenar por orden numérico
+  objetivos.sort((a, b) => a.orden - b.orden);
+  
+  return objetivos;
+}
+
+// Función para inicializar objetivos existentes (para editar rúbrica)
+function inicializarObjetivosExistentes() {
+  const objetivosExistentes = document.querySelectorAll('.objetivo-item');
+  objetivosExistentes.forEach(objetivo => {
+    const objetivoId = objetivo.id.replace('objetivo_', '');
+    if (!objetivosAprendizaje.includes(objetivoId)) {
+      objetivosAprendizaje.push(objetivoId);
+    }
+  });
+  contadorObjetivos = objetivosAprendizaje.length;
+}
+
+// ===== FUNCIONES DEL MODAL DE OBJETIVOS =====
+
+// Función para abrir el modal de objetivo
+function abrirModalObjetivo() {
+  // Limpiar el formulario
+  document.getElementById('formObjetivo').reset();
+  
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(document.getElementById('modalObjetivo'));
+  modal.show();
+}
+
+// Función para cerrar el modal de objetivo
+function cerrarModalObjetivo() {
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalObjetivo'));
+  if (modal) {
+    modal.hide();
+  }
+}
+
+// Función para guardar el objetivo desde el modal
+function guardarObjetivo() {
+  const nombre = document.getElementById('objetivo_nombre').value.trim();
+  const descripcion = document.getElementById('objetivo_descripcion').value.trim();
+  const orden = document.getElementById('objetivo_orden').value;
+  
+  // Validar campos
+  if (!nombre || !descripcion) {
+    alert('Por favor completa todos los campos obligatorios.');
+    return;
+  }
+  
+  // Crear el objetivo en memoria
+  contadorObjetivos++;
+  const objetivoId = `nuevo_${contadorObjetivos}`;
+  
+  // Agregar a la lista en memoria
+  objetivosAprendizaje.push(objetivoId);
+  
+  // Crear el elemento HTML en el contenedor
+  const objetivoHtml = `
+    <div class="objetivo-item mb-3 p-3 border rounded" id="objetivo_${objetivoId}">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group mb-2">
+            <label class="form-label small">Nombre del Objetivo</label>
+            <input type="text" class="form-control form-control-sm" 
+                   name="objetivos[${objetivoId}][nombre]" 
+                   value="${nombre}" readonly>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group mb-2">
+            <label class="form-label small">Descripción</label>
+            <textarea class="form-control form-control-sm" rows="2" 
+                      name="objetivos[${objetivoId}][descripcion]" 
+                      readonly>${descripcion}</textarea>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="form-group mb-2">
+            <label class="form-label small">Orden</label>
+            <input type="number" class="form-control form-control-sm" 
+                   name="objetivos[${objetivoId}][orden]" 
+                   value="${orden}" readonly>
+          </div>
+        </div>
+      </div>
+      <div class="text-end">
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarObjetivo('${objetivoId}')">
+          <i class="fas fa-trash me-1"></i>Eliminar
+        </button>
+      </div>
+    </div>
+  `;
+  
+  const container = document.getElementById('objetivos-container');
+  if (container) {
+    container.insertAdjacentHTML('beforeend', objetivoHtml);
+    
+    // Ocultar mensaje de "no hay objetivos" si existe
+    const noObjetivosMsg = container.querySelector('.text-center');
+    if (noObjetivosMsg) {
+      noObjetivosMsg.style.display = 'none';
+    }
+  }
+  
+  // Cerrar el modal
+  cerrarModalObjetivo();
+  
+  // Actualizar todos los dropdowns de objetivos de aprendizaje
+  actualizarDropdownsObjetivos();
+  
+  // Mostrar mensaje de éxito
+  mostrarMensaje('Objetivo de aprendizaje agregado exitosamente', 'success');
+}
+
+// Función para mostrar mensajes
+function mostrarMensaje(mensaje, tipo = 'info') {
+  // Crear elemento de mensaje
+  const mensajeElement = document.createElement('div');
+  mensajeElement.className = `alert alert-${tipo === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
+  mensajeElement.innerHTML = `
+    ${mensaje}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
+  
+  // Insertar al inicio del contenedor principal
+  const container = document.querySelector('.plataforma-aprendizaje');
+  if (container) {
+    container.insertBefore(mensajeElement, container.firstChild);
+    
+    // Auto-ocultar después de 3 segundos
+    setTimeout(() => {
+      if (mensajeElement.parentNode) {
+        mensajeElement.remove();
+      }
+    }, 3000);
+  }
+}
+
+// Función para actualizar todos los dropdowns de objetivos de aprendizaje
+function actualizarDropdownsObjetivos() {
+  console.log('🔄 Actualizando dropdowns de objetivos de aprendizaje...');
+  
+  // Actualizar dropdown del modal de agregar criterio
+  const selectAgregar = document.getElementById('criterio_objetivo_aprendizaje');
+  if (selectAgregar) {
+    console.log('✅ Actualizando dropdown de agregar criterio');
+    actualizarDropdownObjetivo(selectAgregar);
+  } else {
+    console.log('⚠️ Dropdown de agregar criterio no encontrado');
+  }
+  
+  // Actualizar dropdown del modal de editar criterio
+  const selectEditar = document.getElementById('criterio_objetivo_aprendizaje_editar');
+  if (selectEditar) {
+    console.log('✅ Actualizando dropdown de editar criterio');
+    actualizarDropdownObjetivo(selectEditar);
+  } else {
+    console.log('⚠️ Dropdown de editar criterio no encontrado');
+  }
+  
+  // Buscar otros dropdowns que puedan existir
+  const otrosDropdowns = document.querySelectorAll('select[name*="objetivo_aprendizaje"]');
+  otrosDropdowns.forEach(dropdown => {
+    if (dropdown.id !== 'criterio_objetivo_aprendizaje' && dropdown.id !== 'criterio_objetivo_aprendizaje_editar') {
+      console.log(`✅ Actualizando dropdown adicional: ${dropdown.id}`);
+      actualizarDropdownObjetivo(dropdown);
+    }
+  });
+  
+  console.log('✅ Dropdowns actualizados correctamente');
+}
+
+// Función auxiliar para obtener un objetivo por ID
+function obtenerObjetivoPorId(objetivoId) {
+  const objetivos = obtenerObjetivosAprendizaje();
+  return objetivos.find(objetivo => objetivo.id === objetivoId);
+}
+
+// Función auxiliar para actualizar un dropdown específico
+function actualizarDropdownObjetivo(selectElement) {
+  if (!selectElement) return;
+  
+  console.log(`🔄 Actualizando dropdown: ${selectElement.id}`);
+  
+  // Guardar la selección actual
+  const valorSeleccionado = selectElement.value;
+  
+  // Limpiar opciones existentes (mantener la primera opción por defecto)
+  selectElement.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
+  
+  // Obtener objetivos de aprendizaje
+  const objetivos = obtenerObjetivosAprendizaje();
+  console.log(`📋 Objetivos encontrados: ${objetivos.length}`, objetivos);
+  
+  // Agregar opciones para cada objetivo
+  objetivos.forEach(objetivo => {
+    const option = document.createElement('option');
+    
+    // Para objetivos nuevos en memoria, usar un ID temporal que se pueda identificar
+    if (objetivo.id.startsWith('nuevo_')) {
+      // Crear un ID temporal único que se pueda enviar al backend
+      const tempId = `temp_${objetivo.id}_${Date.now()}`;
+      option.value = tempId;
+      // Guardar el ID real como atributo de datos
+      option.setAttribute('data-real-id', objetivo.id);
+      option.setAttribute('data-temp-id', tempId);
+    } else {
+      option.value = objetivo.id;
+    }
+    
+    option.textContent = objetivo.nombre;
+    
+    // Marcar como seleccionado si era el valor anterior
+    if (objetivo.id === valorSeleccionado || option.value === valorSeleccionado) {
+      option.selected = true;
+    }
+    
+    selectElement.appendChild(option);
+    console.log(`➕ Agregada opción: ${objetivo.nombre} (ID: ${objetivo.id}, Valor: ${option.value})`);
+  });
+  
+  console.log(`✅ Dropdown ${selectElement.id} actualizado con ${objetivos.length} opciones`);
+}
+
+// Hacer las funciones globales para que puedan ser accedidas desde otros scripts
+window.obtenerObjetivosAprendizaje = obtenerObjetivosAprendizaje;
+window.agregarObjetivo = agregarObjetivo;
+window.eliminarObjetivo = eliminarObjetivo;
+window.inicializarObjetivosExistentes = inicializarObjetivosExistentes;
+window.abrirModalObjetivo = abrirModalObjetivo;
+window.cerrarModalObjetivo = cerrarModalObjetivo;
+window.guardarObjetivo = guardarObjetivo;
+window.mostrarMensaje = mostrarMensaje;
+window.actualizarDropdownsObjetivos = actualizarDropdownsObjetivos;
+window.actualizarDropdownObjetivo = actualizarDropdownObjetivo;
 
 
 // Función para limpiar parámetros de acción de la URL
@@ -3657,6 +4051,14 @@ function guardarCriterio() {
   const nombre = formData.get('nombre');
   const objetivo = formData.get('objetivo');
   const puntaje = formData.get('puntaje');
+  const objetivoAprendizaje = formData.get('objetivo_aprendizaje');
+  
+  console.log('🔍 Datos del formulario:', {
+    nombre,
+    objetivo,
+    puntaje,
+    objetivoAprendizaje
+  });
   
   if (!nombre || !objetivo || !puntaje) {
     alert('Por favor completa todos los campos obligatorios.');
@@ -3682,6 +4084,46 @@ function guardarCriterio() {
 
     formData.append('esperables[]', esperableJson);
   });
+  
+  // Log del FormData completo antes de enviar
+  console.log('📤 FormData completo antes de enviar:');
+  for (let [key, value] of formData.entries()) {
+    console.log(`  ${key}: ${value}`);
+  }
+  
+  // Log específico del objetivo de aprendizaje
+  const objetivoAprendizajeSelect = document.getElementById('criterio_objetivo_aprendizaje');
+  if (objetivoAprendizajeSelect) {
+    console.log('🎯 Objetivo de aprendizaje seleccionado:', {
+      valor: objetivoAprendizajeSelect.value,
+      texto: objetivoAprendizajeSelect.options[objetivoAprendizajeSelect.selectedIndex]?.text,
+      opcionesDisponibles: Array.from(objetivoAprendizajeSelect.options).map(opt => ({value: opt.value, text: opt.text}))
+    });
+  }
+  
+  // Procesar objetivo de aprendizaje si es temporal
+  const objetivoSeleccionado = objetivoAprendizajeSelect?.value;
+  if (objetivoSeleccionado && objetivoSeleccionado.startsWith('temp_')) {
+    // Es un objetivo temporal, obtener la información real
+    const option = objetivoAprendizajeSelect.options[objetivoAprendizajeSelect.selectedIndex];
+    const realId = option.getAttribute('data-real-id');
+    const objetivoReal = obtenerObjetivoPorId(realId);
+    
+    if (objetivoReal) {
+      console.log('🔄 Procesando objetivo temporal:', objetivoReal);
+      
+      // Agregar información del objetivo temporal al FormData
+      formData.append('objetivo_aprendizaje_temp', JSON.stringify({
+        id: realId,
+        nombre: objetivoReal.nombre,
+        descripcion: objetivoReal.descripcion,
+        orden: objetivoReal.orden
+      }));
+      
+      // Limpiar el campo del dropdown para evitar confusión
+      formData.set('objetivo_aprendizaje', '');
+    }
+  }
   
   // Enviar datos vía AJAX
   // Obtener el evaluacion_id de la URL actual
@@ -3720,10 +4162,22 @@ function guardarCriterio() {
   })
   .then(data => {
     if (data.success) {
-      // Cerrar modal y recargar página
+      // Cerrar modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarCriterio'));
       modal.hide();
-      //location.reload();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Criterio agregado exitosamente', 'success');
+      
+      // Verificar si se guardó el objetivo de aprendizaje
+      if (data.objetivo_aprendizaje_id && data.objetivo_aprendizaje_nombre) {
+        mostrarMensaje(`Objetivo de aprendizaje "${data.objetivo_aprendizaje_nombre}" asociado correctamente`, 'info');
+      }
+      
+      // Agregar el criterio dinámicamente al DOM
+      if (data.criterio) {
+        agregarCriterioAlDOM(data.criterio);
+      }
     } else {
       alert('Error: ' + data.error);
     }
@@ -3731,6 +4185,190 @@ function guardarCriterio() {
   .catch(error => {
     console.error('Error completo:', error);
     alert('Error al guardar el criterio. Por favor, intenta nuevamente.\n\nDetalles: ' + error.message);
+  });
+}
+
+// ===== FUNCIONES PARA CRITERIOS DINÁMICOS =====
+
+// Función para agregar un criterio dinámicamente al DOM
+function agregarCriterioAlDOM(criterio) {
+  console.log('🔄 Agregando criterio al DOM:', criterio);
+  
+  // Buscar el contenedor de criterios
+  const criteriosContainer = document.querySelector('.criterios-list');
+  if (!criteriosContainer) {
+    console.error('No se encontró el contenedor de criterios');
+    return;
+  }
+  
+  // Crear el HTML del criterio
+  const criterioHtml = `
+    <div class="criterio-item mb-3 p-3 border rounded">
+      <h6 class="mb-2">${criterio.nombre}</h6>
+      <p class="text-muted small mb-2">${criterio.objetivo}</p>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted">${criterio.esperables_count || 0} esperables</small>
+        <span class="badge bg-primary">${criterio.puntaje || 0} puntos</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted">Puntaje máximo</small>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-primary btn-sm" onclick="editarCriterio(${criterio.id})">
+            <i class="fas fa-edit"></i>Editar
+          </button>
+          <button class="btn btn-outline-danger btn-sm" onclick="eliminarCriterio(${criterio.id})">
+            <i class="fas fa-trash"></i>Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Ocultar mensaje de "no hay criterios" si existe
+  // Buscar específicamente dentro del contenedor de criterios
+  const noCriteriosMsg = criteriosContainer.querySelector('.text-center');
+  if (noCriteriosMsg && noCriteriosMsg.textContent.includes('No hay criterios')) {
+    noCriteriosMsg.remove(); // Eliminar completamente el mensaje
+    console.log('✅ Mensaje "No hay criterios" eliminado');
+  }
+  
+  // Agregar el criterio al final del contenedor
+  criteriosContainer.insertAdjacentHTML('beforeend', criterioHtml);
+  
+  console.log('✅ Criterio agregado al DOM exitosamente');
+}
+
+// Función para eliminar un criterio dinámicamente del DOM
+function eliminarCriterioDelDOM(criterioId) {
+  console.log('🔄 Eliminando criterio del DOM:', criterioId);
+  
+  // Buscar el criterio por el botón de eliminar que contiene el criterioId
+  const botonEliminar = document.querySelector(`button[onclick*="eliminarCriterio(${criterioId})"]`);
+  if (botonEliminar) {
+    const criterioElement = botonEliminar.closest('.criterio-item');
+    if (criterioElement) {
+      criterioElement.remove();
+      console.log('✅ Criterio eliminado del DOM exitosamente');
+      
+      // Verificar si quedan criterios
+      const criteriosRestantes = document.querySelectorAll('.criterio-item');
+      if (criteriosRestantes.length === 0) {
+        // Mostrar mensaje de "no hay criterios"
+        const criteriosContainer = document.querySelector('.criterios-list');
+        if (criteriosContainer) {
+          const noCriteriosMsg = criteriosContainer.querySelector('.text-center');
+          if (noCriteriosMsg && noCriteriosMsg.textContent.includes('No hay criterios')) {
+            noCriteriosMsg.style.display = 'block';
+            console.log('✅ Mensaje "No hay criterios" mostrado');
+          } else {
+            // Crear mensaje si no existe
+            const mensajeHtml = `
+              <div class="text-center py-4">
+                <i class="fas fa-clipboard-list fa-2x text-muted mb-3"></i>
+                <p class="text-muted">No hay criterios agregados</p>
+              </div>
+            `;
+            criteriosContainer.innerHTML = mensajeHtml;
+            console.log('✅ Mensaje "No hay criterios" creado');
+          }
+        }
+      }
+    } else {
+      console.error('No se encontró el elemento padre del criterio');
+    }
+  } else {
+    console.error('No se encontró el botón de eliminar para el criterio:', criterioId);
+  }
+}
+
+// Función para actualizar dinámicamente la lista de criterios sin recargar la página
+function actualizarListaCriterios() {
+  console.log('🔄 Actualizando lista de criterios dinámicamente...');
+  
+  // Preservar los objetivos de aprendizaje existentes antes de actualizar
+  const objetivosContainer = document.getElementById('objetivos-container');
+  const objetivosExistentes = objetivosContainer ? objetivosContainer.innerHTML : '';
+  
+  // Preservar las variables globales de objetivos de aprendizaje
+  const objetivosEnMemoria = window.objetivosAprendizaje ? [...window.objetivosAprendizaje] : [...objetivosAprendizaje];
+  const contadorPreservado = window.contadorObjetivos || contadorObjetivos;
+  
+  console.log('💾 Preservando objetivos en memoria:', objetivosEnMemoria);
+  console.log('💾 Contador preservado:', contadorPreservado);
+  
+  // Determinar el contexto y obtener la URL correcta
+  let url;
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (evaluacionId) {
+    // Contexto de plataforma_aprendizaje.html
+    url = `/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/obtener-criterios-rubrica/${evaluacionId}/`;
+  } else {
+    // Contexto de editar_rubrica.html - obtener de la URL actual
+    const pathSegments = window.location.pathname.split('/');
+    const cursoIdIndex = pathSegments.indexOf('curso') + 1;
+    const evaluacionIdIndex = pathSegments.indexOf('editar-rubrica') + 1;
+    
+    if (cursoIdIndex < pathSegments.length && evaluacionIdIndex < pathSegments.length) {
+      const cursoId = pathSegments[cursoIdIndex];
+      const evaluacionIdFromPath = pathSegments[evaluacionIdIndex];
+      url = `/curso/${cursoId}/calificaciones/obtener-criterios-rubrica/${evaluacionIdFromPath}/`;
+    } else {
+      console.error('No se pudo determinar la evaluación');
+      return;
+    }
+  }
+  
+  // Hacer una petición AJAX para obtener la lista actualizada de criterios
+  fetch(url, {
+    method: 'GET',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Actualizar solo el contenedor de criterios
+      const criteriosContainer = document.querySelector('.criterios-list');
+      if (criteriosContainer) {
+        criteriosContainer.innerHTML = data.html;
+        console.log('✅ Lista de criterios actualizada exitosamente');
+        
+        // Restaurar los objetivos de aprendizaje si se perdieron
+        if (objetivosContainer && objetivosExistentes) {
+          objetivosContainer.innerHTML = objetivosExistentes;
+          console.log('✅ Objetivos de aprendizaje preservados en DOM');
+        }
+        
+        // Restaurar las variables globales de objetivos de aprendizaje
+        if (window.objetivosAprendizaje) {
+          window.objetivosAprendizaje = [...objetivosEnMemoria];
+          window.contadorObjetivos = contadorPreservado;
+          console.log('✅ Variables globales de objetivos restauradas:', window.objetivosAprendizaje);
+        } else {
+          objetivosAprendizaje = [...objetivosEnMemoria];
+          contadorObjetivos = contadorPreservado;
+          console.log('✅ Variables globales de objetivos restauradas:', objetivosAprendizaje);
+        }
+        
+        // Actualizar los dropdowns de objetivos de aprendizaje en los modales
+        if (typeof window.actualizarDropdownsObjetivos === 'function') {
+          window.actualizarDropdownsObjetivos();
+        } else if (typeof actualizarDropdownsObjetivos === 'function') {
+          actualizarDropdownsObjetivos();
+        }
+      } else {
+        console.error('No se encontró el contenedor de criterios');
+      }
+    } else {
+      console.error('Error al actualizar criterios:', data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error al actualizar criterios:', error);
   });
 }
 
@@ -3844,10 +4482,54 @@ function guardarCriterioEditado() {
   })
   .then(data => {
     if (data.success) {
-      // Cerrar modal y recargar página
+      // Cerrar modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarCriterio'));
       modal.hide();
-      location.reload();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Criterio editado exitosamente', 'success');
+      
+      // Verificar si se guardó el objetivo de aprendizaje
+      if (data.objetivo_aprendizaje_id && data.objetivo_aprendizaje_nombre) {
+        mostrarMensaje(`Objetivo de aprendizaje "${data.objetivo_aprendizaje_nombre}" asociado correctamente`, 'info');
+      }
+      
+      // Actualizar el criterio en el DOM
+      if (data.criterio) {
+        // Buscar el criterio existente y reemplazarlo
+        const botonEditar = document.querySelector(`button[onclick*="editarCriterio(${data.criterio.id})"]`);
+        if (botonEditar) {
+          const criterioElement = botonEditar.closest('.criterio-item');
+          if (criterioElement) {
+            // Crear el nuevo HTML del criterio
+            const criterioHtml = `
+              <div class="criterio-item mb-3 p-3 border rounded">
+                <h6 class="mb-2">${data.criterio.nombre}</h6>
+                <p class="text-muted small mb-2">${data.criterio.objetivo}</p>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <small class="text-muted">${data.criterio.esperables_count || 0} esperables</small>
+                  <span class="badge bg-primary">${data.criterio.puntaje || 0} puntos</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <small class="text-muted">Puntaje máximo</small>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" onclick="editarCriterio(${data.criterio.id})">
+                      <i class="fas fa-edit"></i>Editar
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="eliminarCriterio(${data.criterio.id})">
+                      <i class="fas fa-trash"></i>Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+            
+            // Reemplazar el elemento existente
+            criterioElement.outerHTML = criterioHtml;
+            console.log('✅ Criterio actualizado en el DOM exitosamente');
+          }
+        }
+      }
     } else {
       alert('Error: ' + data.error);
     }
@@ -3899,8 +4581,12 @@ function confirmarEliminarCriterio() {
       // Cerrar el modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarEliminarCriterio'));
       modal.hide();
-      // Recargar la página
-      location.reload();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Criterio eliminado exitosamente', 'success');
+      
+      // Eliminar el criterio del DOM
+      eliminarCriterioDelDOM(criterioId);
     } else {
       alert('Error al eliminar el criterio: ' + (data.error || 'Error desconocido'));
     }
@@ -7167,6 +7853,56 @@ function inicializarFormularioEliminacionEvaluacion() {
 
 
 </script>
+
+<!-- Modal para Agregar Objetivo de Aprendizaje -->
+<div class="modal fade" id="modalObjetivo" tabindex="-1" aria-labelledby="modalObjetivoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalObjetivoLabel">
+          <i class="fas fa-bullseye me-2"></i>Agregar Objetivo de Aprendizaje
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formObjetivo">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="objetivo_nombre" class="form-label required-field">Nombre del Objetivo</label>
+                <input type="text" class="form-control" id="objetivo_nombre" 
+                       placeholder="Ej: Comprensión conceptual" required>
+                <small class="form-text text-muted">Nombre descriptivo y conciso del objetivo</small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group mb-3">
+                <label for="objetivo_orden" class="form-label">Orden</label>
+                <input type="number" class="form-control" id="objetivo_orden" 
+                       value="1" min="1" required>
+                <small class="form-text text-muted">Orden de aparición del objetivo</small>
+              </div>
+            </div>
+          </div>
+          <div class="form-group mb-3">
+            <label for="objetivo_descripcion" class="form-label required-field">Descripción</label>
+            <textarea class="form-control" id="objetivo_descripcion" rows="4" 
+                      placeholder="Describe detalladamente qué se espera que el estudiante logre..." required></textarea>
+            <small class="form-text text-muted">Descripción clara y específica del objetivo de aprendizaje</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalObjetivo()">
+          <i class="fas fa-times me-1"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" onclick="guardarObjetivo()">
+          <i class="fas fa-save me-1"></i>Guardar Objetivo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </div> <!-- Cierre del contenedor plataforma-aprendizaje -->
 

@@ -34,26 +34,7 @@
               <small class="form-text text-muted">Nombre descriptivo que identifique la rúbrica</small>
             </div>
             
-            <div class="form-group">
-              <label for="descripcion" class="form-label">Descripción</label>
-              <textarea class="form-control" id="descripcion" name="descripcion" rows="3"
-                        placeholder="Descripción opcional de la rúbrica" {% if not puede_editar %}disabled{% endif %}>{{ rubrica.descripcion }}</textarea>
-              <small class="form-text text-muted">Descripción adicional de la rúbrica (opcional)</small>
-            </div>
-            
-            <div class="form-group">
-              <label for="objetivo" class="form-label required-field">Objetivo</label>
-              <textarea class="form-control" id="objetivo" name="objetivo" rows="4" required
-                        placeholder="¿Cuál es el objetivo principal de esta rúbrica?" {% if not puede_editar %}disabled{% endif %}>{{ rubrica.objetivo }}</textarea>
-              <small class="form-text text-muted">Define claramente el propósito de esta rúbrica</small>
-            </div>
-            
-            <div class="form-group">
-              <label for="aprendizaje_esperado" class="form-label required-field">Aprendizaje Esperado</label>
-              <textarea class="form-control" id="aprendizaje_esperado" name="aprendizaje_esperado" rows="4" required
-                        placeholder="¿Qué se espera que el estudiante aprenda o demuestre?" {% if not puede_editar %}disabled{% endif %}>{{ rubrica.aprendizaje_esperado }}</textarea>
-              <small class="form-text text-muted">Describe los aprendizajes que se evaluarán</small>
-            </div>
+
             
             <div class="d-flex justify-content-between">
               <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-primary">
@@ -968,10 +949,17 @@ function guardarCriterio() {
   .then(data => {
     console.log('Response data:', data);
     if (data.success) {
-      // Cerrar modal y recargar página
+      // Cerrar modal y actualizar dinámicamente
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarCriterio'));
       modal.hide();
-      location.reload();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Criterio agregado exitosamente', 'success');
+      
+      // Actualizar dinámicamente la lista de criterios sin recargar la página
+      setTimeout(() => {
+        actualizarListaCriterios();
+      }, 1000);
     } else {
       console.error('Server error:', data.error);
       alert('Error: ' + data.error);
@@ -1096,10 +1084,17 @@ function guardarCriterioEditado() {
   .then(data => {
     console.log('Response data:', data);
     if (data.success) {
-      // Cerrar modal y recargar página
+      // Cerrar modal y actualizar dinámicamente
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarCriterio'));
       modal.hide();
-      location.reload();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Criterio editado exitosamente', 'success');
+      
+      // Actualizar dinámicamente la lista de criterios sin recargar la página
+      setTimeout(() => {
+        actualizarListaCriterios();
+      }, 1000);
     } else {
       console.error('Server error:', data.error);
       alert('Error: ' + data.error);
@@ -1148,8 +1143,14 @@ function confirmarEliminarCriterio() {
       // Cerrar el modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarEliminarCriterio'));
       modal.hide();
-      // Recargar la página
-      location.reload();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Criterio eliminado exitosamente', 'success');
+      
+      // Actualizar dinámicamente la lista de criterios sin recargar la página
+      setTimeout(() => {
+        actualizarListaCriterios();
+      }, 1000);
     } else {
       alert('Error al eliminar el criterio: ' + (data.error || 'Error desconocido'));
     }
@@ -1159,6 +1160,8 @@ function confirmarEliminarCriterio() {
     alert('Error al eliminar el criterio. Por favor, intenta nuevamente.');
   });
 }
+
+
 
 // Función para cerrar el modal y redirigir a la página de calificaciones
 function cerrarModalYRedirigir() {

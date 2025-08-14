@@ -73,6 +73,7 @@ urlpatterns = [
     path('curso/<int:curso_id>/calificaciones/crear-rubrica/<int:evaluacion_id>/', views.crear_rubrica, name='crear_rubrica'),
     path('curso/<int:curso_id>/calificaciones/editar-rubrica/<int:evaluacion_id>/', views.editar_rubrica, name='editar_rubrica'),
     path('curso/<int:curso_id>/calificaciones/obtener-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.obtener_criterio_rubrica, name='obtener_criterio_rubrica'),
+    path('curso/<int:curso_id>/calificaciones/obtener-criterios-rubrica/<int:evaluacion_id>/', views.obtener_criterios_rubrica, name='obtener_criterios_rubrica'),
     path('curso/<int:curso_id>/calificaciones/editar-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.editar_criterio_rubrica, name='editar_criterio_rubrica'),
     path('curso/<int:curso_id>/calificaciones/eliminar-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.eliminar_criterio_rubrica, name='eliminar_criterio_rubrica'),
     
