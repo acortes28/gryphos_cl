@@ -313,23 +313,23 @@ admin.site.register(SubclasificacionTicket, SubclasificacionTicketAdmin)
 class ObjetivoAprendizajeInline(admin.TabularInline):
     model = ObjetivoAprendizaje
     extra = 1
-    fields = ('nombre', 'descripcion', 'orden', 'activo')
+    fields = ('nombre', 'descripcion', 'activo')
 
 class EsperableInline(admin.TabularInline):
     model = Esperable
     extra = 1
-    fields = ('nivel', 'descripcion', 'puntaje', 'orden')
+    fields = ('nivel', 'descripcion', 'puntaje')
 
 class CriterioRubricaAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'rubrica', 'objetivo_aprendizaje', 'puntaje', 'orden')
-    list_filter = ('rubrica', 'orden', 'objetivo_aprendizaje')
+    list_display = ('nombre', 'rubrica', 'objetivo_aprendizaje')
+    list_filter = ('rubrica', 'objetivo_aprendizaje')
     search_fields = ('nombre', 'objetivo', 'rubrica__nombre', 'objetivo_aprendizaje__nombre')
-    ordering = ('rubrica', 'orden')
-    inlines = [EsperableInline]
+    ordering = ('rubrica',)
+    inlines = [EsperableInline] 
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('rubrica', 'nombre', 'objetivo', 'puntaje', 'orden')
+            'fields': ('rubrica', 'nombre', 'objetivo', 'puntaje')
         }),
         ('Objetivo de Aprendizaje', {
             'fields': ('objetivo_aprendizaje',)
@@ -358,14 +358,14 @@ class RubricaAdmin(admin.ModelAdmin):
     )
 
 class ObjetivoAprendizajeAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'rubrica', 'orden', 'activo', 'fecha_creacion')
-    list_filter = ('activo', 'orden', 'rubrica__evaluacion__curso')
+    list_display = ('nombre', 'rubrica', 'activo', 'fecha_creacion')
+    list_filter = ('activo', 'rubrica__evaluacion__curso')
     search_fields = ('nombre', 'descripcion', 'rubrica__nombre')
-    ordering = ('rubrica', 'orden')
+    ordering = ('rubrica',)
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('rubrica', 'nombre', 'descripcion', 'orden', 'activo')
+            'fields': ('rubrica', 'nombre', 'descripcion', 'activo')
         }),
         ('Fechas', {
             'fields': ('fecha_creacion', 'fecha_modificacion'),

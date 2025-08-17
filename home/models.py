@@ -544,13 +544,12 @@ class ObjetivoAprendizaje(models.Model):
     rubrica = models.ForeignKey(Rubrica, on_delete=models.CASCADE, related_name='objetivos_aprendizaje')
     nombre = models.CharField(max_length=200, help_text="Nombre del objetivo de aprendizaje")
     descripcion = models.TextField(help_text="Descripción detallada del objetivo")
-    orden = models.PositiveIntegerField(default=0, help_text="Orden de aparición del objetivo")
     activo = models.BooleanField(default=True, help_text="Indica si el objetivo está activo")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_modificacion = models.DateTimeField(auto_now=True)
     
     class Meta:
-        ordering = ['orden', 'nombre']
+        ordering = ['nombre']
         verbose_name = 'Objetivo de Aprendizaje'
         verbose_name_plural = 'Objetivos de Aprendizaje'
         unique_together = ['rubrica', 'nombre']
@@ -569,8 +568,6 @@ class CriterioRubrica(models.Model):
     rubrica = models.ForeignKey(Rubrica, on_delete=models.CASCADE, related_name='criterios')
     nombre = models.CharField(max_length=200, help_text="Nombre del criterio")
     objetivo = models.TextField(help_text="Objetivo del criterio")
-    puntaje = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Puntaje máximo para este criterio")
-    orden = models.PositiveIntegerField(default=0, help_text="Orden de aparición del criterio")
     objetivo_aprendizaje = models.ForeignKey(
         ObjetivoAprendizaje, 
         on_delete=models.SET_NULL, 
@@ -581,7 +578,7 @@ class CriterioRubrica(models.Model):
     )
     
     class Meta:
-        ordering = ['orden', 'nombre']
+        ordering = ['nombre']
         verbose_name = 'Criterio de Rúbrica'
         verbose_name_plural = 'Criterios de Rúbrica'
     
@@ -596,10 +593,9 @@ class Esperable(models.Model):
     nivel = models.CharField(max_length=100, help_text="Nivel de desempeño (ej: Aceptable, Bueno, Excelente)")
     descripcion = models.TextField(help_text="Descripción de la expectativa para este nivel")
     puntaje = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Puntaje asociado a este esperable")
-    orden = models.PositiveIntegerField(default=0, help_text="Orden de aparición del esperable")
     
     class Meta:
-        ordering = ['orden', 'nivel']
+        ordering = ['nivel']
         verbose_name = 'Esperable'
         verbose_name_plural = 'Esperables'
     
@@ -656,7 +652,6 @@ class PuntajeCriterio(models.Model):
     comentarios = models.TextField(blank=True, null=True, help_text="Comentarios específicos para este criterio")
     
     class Meta:
-        ordering = ['criterio__orden']
         verbose_name = 'Puntaje de Criterio'
         verbose_name_plural = 'Puntajes de Criterios'
         unique_together = ['resultado_rubrica', 'criterio']
