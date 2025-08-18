@@ -4723,8 +4723,33 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
         
         # Obtener el objetivo de aprendizaje si se especificó
         objetivo_aprendizaje = None
-        if objetivo_aprendizaje_id:
-            logger.info(f"Procesando objetivo de aprendizaje con ID: '{objetivo_aprendizaje_id}'")
+        
+        # Verificar si hay un objetivo temporal (nuevo objetivo)
+        objetivo_aprendizaje_temp = request.POST.get('objetivo_aprendizaje_temp')
+        if objetivo_aprendizaje_temp:
+            try:
+                objetivo_temp_data = json.loads(objetivo_aprendizaje_temp)
+                logger.info(f"Procesando objetivo temporal: {objetivo_temp_data}")
+                
+                # Crear el objetivo de aprendizaje en la base de datos
+                objetivo_aprendizaje = ObjetivoAprendizaje.objects.create(
+                    rubrica=rubrica,
+                    nombre=objetivo_temp_data.get('nombre', ''),
+                    descripcion=objetivo_temp_data.get('descripcion', ''),
+                    activo=True
+                )
+                logger.info(f"Objetivo de aprendizaje temporal creado: {objetivo_aprendizaje.nombre} (ID: {objetivo_aprendizaje.id})")
+                
+            except (json.JSONDecodeError, KeyError) as e:
+                logger.error(f"Error procesando objetivo temporal: {str(e)}")
+                logger.error(f"Datos del objetivo temporal: {objetivo_aprendizaje_temp}")
+            except Exception as e:
+                logger.error(f"Error inesperado al crear objetivo temporal: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Si no hay objetivo temporal, verificar si hay un objetivo existente seleccionado
+        elif objetivo_aprendizaje_id:
+            logger.info(f"Procesando objetivo de aprendizaje existente con ID: '{objetivo_aprendizaje_id}'")
             logger.info(f"Tipo de ID: {type(objetivo_aprendizaje_id)}")
             logger.info(f"ID limpio: '{objetivo_aprendizaje_id.strip() if objetivo_aprendizaje_id else 'None'}'")
             
@@ -4736,7 +4761,7 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
                         id=id_limpio, 
                         rubrica=rubrica
                     )
-                    logger.info(f"Objetivo de aprendizaje encontrado: {objetivo_aprendizaje.nombre} (ID: {objetivo_aprendizaje.id})")
+                    logger.info(f"Objetivo de aprendizaje existente encontrado: {objetivo_aprendizaje.nombre} (ID: {objetivo_aprendizaje.id})")
                 else:
                     logger.info("ID de objetivo de aprendizaje está vacío o es None")
             except ObjetivoAprendizaje.DoesNotExist:
@@ -4996,8 +5021,7 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
                         criterio=criterio,
                         nivel=esperable_obj.get('nivel', f"Nivel {i+1}"),
                         descripcion=esperable_obj.get('descripcion', ''),
-                        puntaje=esperable_obj.get('puntaje', 0),
-                        orden=i+1
+                        puntaje=esperable_obj.get('puntaje', 0)
                     )
                     esperables_creados += 1
                 except (json.JSONDecodeError, TypeError) as e:
@@ -5007,8 +5031,7 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
                         criterio=criterio,
                         nivel=f"Nivel {i+1}",
                         descripcion=esperable_data.strip(),
-                        puntaje=0,
-                        orden=i+1
+                        puntaje=0
                     )
                     esperables_creados += 1
         
@@ -5749,8 +5772,13 @@ def plataforma_calificaciones_ajax(request, curso_id):
         if curso not in request.user.cursos.all():
             return JsonResponse({'error': 'No tienes acceso a este curso'}, status=403)
         
-        # Verificar si es una acción específica
-        action = request.GET.get('action')
+        # Verificar si es una acción específica (GET o POST)
+        action = request.GET.get('action') or request.POST.get('action')
+        
+        logger.debug(f"DEBUG: Action recibida: {action}")
+        logger.debug(f"DEBUG: Método HTTP: {request.method}")
+        logger.debug(f"DEBUG: GET params: {dict(request.GET)}")
+        logger.debug(f"DEBUG: POST params: {dict(request.POST)}")
         
         if action == 'ver_rubricas':
             # Cargar vista de rúbricas para todos los usuarios
@@ -5974,6 +6002,80 @@ def plataforma_calificaciones_ajax(request, curso_id):
                 logger.debug(f"Traceback: {traceback.format_exc()}")
                 return JsonResponse({'error': f'Error al cargar la vista de editar evaluación: {str(e)}'}, status=500)
         
+        elif action == 'ver_editar_criterio':
+            # Cargar vista de editar criterio con datos precargados
+            criterio_id = request.POST.get('criterio_id')
+            evaluacion_id = request.POST.get('evaluacion_id')
+            
+            if not criterio_id or not evaluacion_id:
+                return JsonResponse({'error': 'ID de criterio y evaluación requeridos'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                criterio = CriterioRubrica.objects.get(
+                    id=criterio_id,
+                    rubrica__evaluacion=evaluacion
+                )
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para editar este criterio'}, status=403)
+                
+                # Obtener todos los objetivos de aprendizaje de la rúbrica
+                objetivos_aprendizaje = criterio.rubrica.objetivos_aprendizaje.filter(activo=True).order_by('nombre')
+                
+                # Obtener los esperables del criterio
+                esperables = criterio.esperables.all().order_by('nivel')
+                
+                # Calcular el puntaje total basado en los esperables
+                puntaje_total = criterio.esperables.aggregate(total=Max('puntaje'))['total'] or 0
+                
+                context = {
+                    'criterio': criterio,
+                    'objetivos_aprendizaje': objetivos_aprendizaje,
+                    'esperables': esperables,
+                    'puntaje_total': puntaje_total,
+                    'puede_editar': True,
+                    'curso': curso,
+                    'evaluacion': evaluacion
+                }
+                
+                # Renderizar el HTML del modal de edición
+                html = render_to_string('pages/plataforma_calificaciones_editar_criterio_content.html', context, request=request)
+                
+                # Incluir datos adicionales en la respuesta
+                response_data = {
+                    'html': html,
+                    'criterio_data': {
+                        'id': criterio.id,
+                        'nombre': criterio.nombre,
+                        'objetivo': criterio.objetivo,
+                        'puntaje': float(puntaje_total),
+                        'objetivo_aprendizaje_id': criterio.objetivo_aprendizaje.id if criterio.objetivo_aprendizaje else None,
+                        'objetivo_aprendizaje_nombre': criterio.objetivo_aprendizaje.nombre if criterio.objetivo_aprendizaje else None,
+                        'esperables': [
+                            {
+                                'nivel': str(e.nivel),
+                                'descripcion': str(e.descripcion),
+                                'puntaje': float(e.puntaje)
+                            } for e in esperables
+                        ]
+                    }
+                }
+                
+                logger.info(f"Modal de editar criterio cargado: criterio_id={criterio_id}, evaluacion_id={evaluacion_id}")
+                return JsonResponse(response_data)
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except CriterioRubrica.DoesNotExist:
+                return JsonResponse({'error': 'Criterio no encontrado'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.error(f"Error al cargar modal de editar criterio: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+        
         elif action == 'ver_rubrica':
             # Cargar vista de rúbrica específica
             evaluacion_id = request.GET.get('evaluacion_id')
@@ -6106,6 +6208,201 @@ def plataforma_calificaciones_ajax(request, curso_id):
                 logger.error(f"Error al obtener puntajes actualizados: {str(e)}")
                 logger.error(f"Traceback: {traceback.format_exc()}")
                 return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+        
+        elif action == 'obtener_objetivos_aprendizaje':
+            logger.debug(f"DEBUG: Ejecutando obtener_objetivos_aprendizaje")
+            logger.debug(f"DEBUG: GET data: {dict(request.GET)}")
+            logger.debug(f"DEBUG: POST data: {dict(request.POST)}")
+            
+            # Obtener objetivos de aprendizaje de una rúbrica
+            evaluacion_id = request.POST.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para ver esta evaluación'}, status=403)
+                
+                # Obtener la rúbrica
+                rubrica = None
+                try:
+                    rubrica = evaluacion.rubrica
+                except Rubrica.DoesNotExist:
+                    # Si no hay rúbrica, devolver lista vacía
+                    return JsonResponse({
+                        'success': True,
+                        'objetivos': [],
+                        'evaluacion_id': evaluacion_id
+                    }, safe=True)
+                
+                # Obtener objetivos de aprendizaje activos
+                objetivos = rubrica.objetivos_aprendizaje.filter(activo=True).order_by('nombre')
+                
+                objetivos_data = []
+                for objetivo in objetivos:
+                    objetivos_data.append({
+                        'id': objetivo.id,
+                        'nombre': str(objetivo.nombre),
+                        'descripcion': str(objetivo.descripcion),
+                        'criterios_count': objetivo.get_criterios_count()
+                    })
+                
+                response_data = {
+                    'success': True,
+                    'objetivos': objetivos_data,
+                    'evaluacion_id': evaluacion_id
+                }
+                
+                logger.info(f"Objetivos de aprendizaje obtenidos para evaluación {evaluacion_id}: {len(objetivos_data)} objetivos")
+                return JsonResponse(response_data, safe=True)
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.error(f"Error al obtener objetivos de aprendizaje: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+        
+        elif action == 'guardar_objetivo_aprendizaje':
+            logger.debug(f"DEBUG: Ejecutando guardar_objetivo_aprendizaje")
+            logger.debug(f"DEBUG: POST data: {dict(request.POST)}")
+            
+            # Guardar un nuevo objetivo de aprendizaje
+            evaluacion_id = request.POST.get('evaluacion_id')
+            nombre = request.POST.get('nombre')
+            descripcion = request.POST.get('descripcion')
+            
+            logger.debug(f"DEBUG: evaluacion_id={evaluacion_id}, nombre={nombre}, descripcion={descripcion}")
+            
+            if not evaluacion_id or not nombre or not descripcion:
+                return JsonResponse({'error': 'Todos los campos son obligatorios'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+                
+                # Obtener o crear la rúbrica
+                rubrica = None
+                try:
+                    rubrica = evaluacion.rubrica
+                    logger.debug(f"DEBUG: Rúbrica existente encontrada con ID: {rubrica.id}")
+                except Rubrica.DoesNotExist:
+                    # Crear una rúbrica automáticamente si no existe
+                    logger.debug(f"DEBUG: Creando nueva rúbrica para evaluación {evaluacion.id}")
+                    rubrica = Rubrica.objects.create(
+                        evaluacion=evaluacion,
+                        nombre=f"Rúbrica de {evaluacion.nombre}"
+                    )
+                    logger.info(f"Rúbrica creada con ID: {rubrica.id}")
+                
+                # Verificar si ya existe un objetivo con el mismo nombre en esta rúbrica
+                if ObjetivoAprendizaje.objects.filter(rubrica=rubrica, nombre=nombre).exists():
+                    return JsonResponse({
+                        'error': f'Ya existe un objetivo de aprendizaje con el nombre "{nombre}" en esta rúbrica'
+                    }, status=400)
+                
+                # Crear el objetivo de aprendizaje
+                logger.debug(f"DEBUG: Creando objetivo de aprendizaje: rubrica_id={rubrica.id}, nombre={nombre}")
+                objetivo = ObjetivoAprendizaje.objects.create(
+                    rubrica=rubrica,
+                    nombre=nombre,
+                    descripcion=descripcion,
+                    activo=True
+                )
+                
+                logger.info(f"Objetivo de aprendizaje creado: {objetivo.nombre} (ID: {objetivo.id})")
+                
+                response_data = {
+                    'success': True,
+                    'objetivo': {
+                        'id': objetivo.id,
+                        'nombre': str(objetivo.nombre),
+                        'descripcion': str(objetivo.descripcion)
+                    },
+                    'evaluacion_id': evaluacion_id
+                }
+                
+                return JsonResponse(response_data, safe=True)
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.error(f"Error al guardar objetivo de aprendizaje: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({
+                    'error': 'Error interno del servidor',
+                    'details': str(e)
+                }, status=500)
+        
+        elif action == 'eliminar_objetivo_aprendizaje':
+            logger.debug(f"DEBUG: Ejecutando eliminar_objetivo_aprendizaje")
+            logger.debug(f"DEBUG: POST data: {dict(request.POST)}")
+            
+            # Eliminar un objetivo de aprendizaje
+            objetivo_id = request.POST.get('objetivo_id')
+            evaluacion_id = request.POST.get('evaluacion_id')
+            
+            logger.debug(f"DEBUG: objetivo_id={objetivo_id}, evaluacion_id={evaluacion_id}")
+            
+            if not objetivo_id or not evaluacion_id:
+                return JsonResponse({'error': 'ID de objetivo y evaluación son obligatorios'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+                
+                # Obtener el objetivo de aprendizaje
+                try:
+                    objetivo = ObjetivoAprendizaje.objects.get(
+                        id=objetivo_id,
+                        rubrica__evaluacion=evaluacion
+                    )
+                except ObjetivoAprendizaje.DoesNotExist:
+                    return JsonResponse({'error': 'Objetivo de aprendizaje no encontrado'}, status=404)
+                
+                # Verificar si el objetivo está siendo usado por algún criterio
+                criterios_que_usan_objetivo = objetivo.criterios.count()
+                if criterios_que_usan_objetivo > 0:
+                    return JsonResponse({
+                        'error': f'No se puede eliminar el objetivo porque está siendo usado por {criterios_que_usan_objetivo} criterio(s)'
+                    }, status=400)
+                
+                # Eliminar el objetivo (soft delete - marcar como inactivo)
+                objetivo = ObjetivoAprendizaje.objects.get(
+                        id=objetivo_id,
+                        rubrica__evaluacion=evaluacion
+                    ).delete()
+
+                logger.info(f"Objetivo de aprendizaje eliminado correctamente")
+                
+                response_data = {
+                    'success': True,
+                    'message': f'Objetivo de aprendizaje eliminado correctamente'
+                }
+                
+                return JsonResponse(response_data, safe=True)
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.error(f"Error al eliminar objetivo de aprendizaje: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({
+                    'error': 'Error interno del servidor',
+                    'details': str(e)
+                }, status=500)
         
         elif action == 'crear_evaluacion':
             # Cargar formulario de crear evaluación
@@ -6547,6 +6844,24 @@ def plataforma_calificaciones_spa(request, curso_id):
         messages.error(request, 'No tienes acceso a este curso.')
         return redirect('user_space')
     
+    else:
+        # Si no hay acción específica o la acción no es reconocida, cargar la vista por defecto
+        logger.debug(f"DEBUG: No hay acción específica o acción no reconocida: {action}")
+        logger.debug(f"DEBUG: Cargando vista por defecto de calificaciones")
+        
+        # Cargar vista por defecto de calificaciones
+        evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('-fecha_creacion')
+        
+        context = {
+            'curso': curso,
+            'evaluaciones': evaluaciones,
+            'user': request.user,
+        }
+        
+        html = render_to_string('pages/plataforma_calificaciones_content.html', context, request=request)
+        return JsonResponse({'html': html})
+    
+    # Si llegamos aquí, cargar la vista SPA por defecto
     context = {
         'curso': curso,
         'user': request.user,

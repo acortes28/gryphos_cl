@@ -1400,6 +1400,42 @@ const PLATAFORMA_CONFIG = {
   }
 };
 
+// Función de debug para verificar URLs
+function debugURLs() {
+  console.log('🔍 DEBUG: Verificando URLs de la plataforma...');
+  console.log('🔍 PLATAFORMA_CONFIG.cursoId:', PLATAFORMA_CONFIG.cursoId);
+  console.log('🔍 URL de calificaciones AJAX:', `{% url 'plataforma_calificaciones_ajax' curso.id %}`);
+  console.log('🔍 URL actual:', window.location.href);
+  console.log('🔍 Parámetros de URL:', Object.fromEntries(new URLSearchParams(window.location.search)));
+}
+
+// Función de debug para verificar elementos del DOM
+function debugDOM() {
+  console.log('🔍 DEBUG: Verificando elementos del DOM...');
+  
+  // Verificar modal de objetivo
+  const modalObjetivo = document.getElementById('modalObjetivo');
+  console.log('🔍 Modal objetivo encontrado:', modalObjetivo ? 'SÍ' : 'NO');
+  
+  // Verificar formulario de objetivo
+  const formObjetivo = document.getElementById('formObjetivo');
+  console.log('🔍 Formulario objetivo encontrado:', formObjetivo ? 'SÍ' : 'NO');
+  
+  // Verificar campos del formulario
+  const campoNombre = document.getElementById('objetivo_nombre');
+  const campoDescripcion = document.getElementById('objetivo_descripcion');
+  console.log('🔍 Campo nombre encontrado:', campoNombre ? 'SÍ' : 'NO');
+  console.log('🔍 Campo descripción encontrado:', campoDescripcion ? 'SÍ' : 'NO');
+  
+  // Verificar CSRF token
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  console.log('🔍 CSRF token encontrado:', csrfToken ? 'SÍ' : 'NO');
+  
+  // Verificar modal de criterio
+  const modalCriterio = document.getElementById('modalAgregarCriterio');
+  console.log('🔍 Modal criterio encontrado:', modalCriterio ? 'SÍ' : 'NO');
+}
+
 // ===== SISTEMA DE GESTIÓN DE ESTADO DE RÚBRICA =====
 
 // Estado global de la rúbrica actual
@@ -1528,28 +1564,120 @@ function agregarObjetivo() {
 
 // Función para eliminar un objetivo de aprendizaje
 function eliminarObjetivo(objetivoId) {
-  const objetivoElement = document.getElementById(`objetivo_${objetivoId}`);
-  if (objetivoElement) {
-    objetivoElement.remove();
-    const index = objetivosAprendizaje.indexOf(objetivoId);
-    if (index > -1) {
-      objetivosAprendizaje.splice(index, 1);
+  console.log('🔄 Eliminando objetivo de aprendizaje:', objetivoId);
+  
+  // Obtener el ID de la evaluación desde la URL o del contexto
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    console.error('❌ No se pudo obtener el ID de la evaluación');
+    alert('Error: No se pudo obtener el ID de la evaluación');
+    return;
+  }
+  
+  // Confirmar eliminación
+  if (!confirm('¿Estás seguro de que quieres eliminar este objetivo de aprendizaje?')) {
+    return;
+  }
+  
+  // Construir la URL para eliminar objetivo usando la URL de Django
+  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+  const formData = new FormData();
+  formData.append('action', 'eliminar_objetivo_aprendizaje');
+  formData.append('objetivo_id', objetivoId);
+  formData.append('evaluacion_id', evaluacionId);
+  
+  // Verificar CSRF token
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  console.log('🔍 CSRF Token encontrado para eliminar objetivo:', csrfToken ? 'SÍ' : 'NO');
+  if (csrfToken) {
+    console.log('🔍 CSRF Token valor para eliminar objetivo:', csrfToken.substring(0, 10) + '...');
+  }
+  
+  console.log('🔍 URL construida para eliminar objetivo:', url);
+  console.log('🔍 Datos a enviar para eliminar objetivo:', {
+    action: 'eliminar_objetivo_aprendizaje',
+    objetivo_id: objetivoId,
+    evaluacion_id: evaluacionId
+  });
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: formData
+  })
+  .then(response => {
+    console.log('🔍 Response recibida para eliminar objetivo:', response);
+    console.log('🔍 Response status para eliminar objetivo:', response.status);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
     
-    // Mostrar mensaje de "no hay objetivos" si no quedan
-    if (objetivosAprendizaje.length === 0) {
-      const container = document.getElementById('objetivos-container');
-      if (container) {
-        const noObjetivosMsg = container.querySelector('.text-center');
-        if (noObjetivosMsg) {
-          noObjetivosMsg.style.display = 'block';
+    return response.text().then(text => {
+      console.log('🔍 Response text para eliminar objetivo:', text);
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('❌ Error parseando JSON para eliminar objetivo:', e);
+        console.error('❌ Texto que no se pudo parsear para eliminar objetivo:', text);
+        throw new Error('Respuesta del servidor no es JSON válido para eliminar objetivo: ' + text);
+      }
+    });
+  })
+  .then(data => {
+    console.log('🔍 Data parseada para eliminar objetivo:', data);
+    console.log('🔍 Tipo de data para eliminar objetivo:', typeof data);
+    console.log('🔍 Data.success para eliminar objetivo:', data.success);
+    
+    if (data.success) {
+      console.log('✅ Objetivo de aprendizaje eliminado exitosamente');
+      
+      // Eliminar el elemento del DOM
+      const objetivoElement = document.getElementById(`objetivo_${objetivoId}`);
+      if (objetivoElement) {
+        objetivoElement.remove();
+      }
+      
+      // Remover de la lista de objetivos
+      const index = objetivosAprendizaje.indexOf(objetivoId);
+      if (index > -1) {
+        objetivosAprendizaje.splice(index, 1);
+      }
+      
+      // Mostrar mensaje de "no hay objetivos" si no quedan
+      if (objetivosAprendizaje.length === 0) {
+        const container = document.getElementById('objetivos-container');
+        if (container) {
+          const noObjetivosMsg = container.querySelector('.text-center');
+          if (noObjetivosMsg) {
+            noObjetivosMsg.style.display = 'block';
+          }
         }
       }
+      
+      // Recargar objetivos desde la base de datos y actualizar dropdowns
+      cargarObjetivosAprendizaje();
+      
+      // Mostrar mensaje de éxito
+      alert(data.message || 'Objetivo de aprendizaje eliminado correctamente');
+      
+    } else {
+      console.warn('⚠️ Error al eliminar objetivo:', data.error);
+      alert('Error al eliminar objetivo: ' + (data.error || 'Error desconocido'));
     }
-    
-    // Actualizar todos los dropdowns después de eliminar
-    actualizarDropdownsObjetivos();
-  }
+  })
+  .catch(error => {
+    console.error('❌ Error al eliminar objetivo de aprendizaje:', error);
+    console.error('🔍 URL que falló:', url);
+    console.error('🔍 Objetivo ID:', objetivoId);
+    console.error('🔍 Evaluación ID:', evaluacionId);
+    alert('Error al eliminar objetivo de aprendizaje: ' + error.message);
+  });
 }
 
 // Función para obtener los objetivos de aprendizaje del formulario
@@ -1705,32 +1833,103 @@ function mostrarMensaje(mensaje, tipo = 'info') {
   }
 }
 
+// Función para cargar objetivos de aprendizaje en el modal de editar criterio
+function cargarObjetivosAprendizajeParaModal() {
+  console.log('🔄 Cargando objetivos de aprendizaje para el modal...');
+  
+  return new Promise((resolve, reject) => {
+    // Obtener el evaluacion_id de la URL actual
+    const urlParams = new URLSearchParams(window.location.search);
+    const evaluacionId = urlParams.get('evaluacion_id');
+    
+    if (!evaluacionId) {
+      console.warn('⚠️ No se pudo determinar la evaluación para cargar objetivos');
+      reject('No se pudo determinar la evaluación');
+      return;
+    }
+    
+    // Construir la URL para obtener objetivos usando la URL de Django
+    const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+    const formData = new FormData();
+    formData.append('action', 'obtener_objetivos_aprendizaje');
+    formData.append('evaluacion_id', evaluacionId);
+    
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: formData
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        console.log(`✅ Objetivos de aprendizaje cargados para modal: ${data.objetivos.length} objetivos`);
+        
+        // Actualizar el dropdown del modal
+        const objetivoSelect = document.getElementById('criterio_objetivo_aprendizaje_editar');
+        if (objetivoSelect) {
+          // Limpiar opciones existentes
+          objetivoSelect.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
+          
+          // Agregar nuevas opciones
+          data.objetivos.forEach(objetivo => {
+            const option = document.createElement('option');
+            option.value = objetivo.id;
+            option.textContent = objetivo.nombre;
+            objetivoSelect.appendChild(option);
+          });
+          
+          console.log('✅ Dropdown de objetivos actualizado en el modal');
+        }
+        
+        resolve();
+      } else {
+        console.warn('⚠️ Error al cargar objetivos para modal:', data.error);
+        reject(data.error);
+      }
+    })
+    .catch(error => {
+      console.error('❌ Error al cargar objetivos de aprendizaje para modal:', error);
+      reject(error);
+    });
+  });
+}
+
 // Función para actualizar todos los dropdowns de objetivos de aprendizaje
 function actualizarDropdownsObjetivos() {
   console.log('🔄 Actualizando dropdowns de objetivos de aprendizaje...');
   
-  // Actualizar dropdown del modal de agregar criterio
-  const selectAgregar = document.getElementById('criterio_objetivo_aprendizaje');
-  if (selectAgregar) {
-    console.log('✅ Actualizando dropdown de agregar criterio');
-    actualizarDropdownObjetivo(selectAgregar);
-  } else {
-    console.log('⚠️ Dropdown de agregar criterio no encontrado');
-  }
+  // Obtener objetivos de aprendizaje del formulario (objetivos en memoria)
+  const objetivos = obtenerObjetivosAprendizaje();
   
-  // Actualizar dropdown del modal de editar criterio
-  const selectEditar = document.getElementById('criterio_objetivo_aprendizaje_editar');
-  if (selectEditar) {
-    console.log('✅ Actualizando dropdown de editar criterio');
-    actualizarDropdownObjetivo(selectEditar);
-  } else {
-    console.log('⚠️ Dropdown de editar criterio no encontrado');
-  }
+  // Lista de IDs de dropdowns que deben ser actualizados
+  const dropdownIds = [
+    'objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje_editar'
+  ];
+  
+  dropdownIds.forEach(dropdownId => {
+    const dropdown = document.getElementById(dropdownId);
+    if (dropdown) {
+      console.log(`✅ Actualizando dropdown: ${dropdownId}`);
+      actualizarDropdownObjetivo(dropdown);
+    } else {
+      console.log(`⚠️ Dropdown no encontrado: ${dropdownId}`);
+    }
+  });
   
   // Buscar otros dropdowns que puedan existir
   const otrosDropdowns = document.querySelectorAll('select[name*="objetivo_aprendizaje"]');
   otrosDropdowns.forEach(dropdown => {
-    if (dropdown.id !== 'criterio_objetivo_aprendizaje' && dropdown.id !== 'criterio_objetivo_aprendizaje_editar') {
+    if (!dropdownIds.includes(dropdown.id)) {
       console.log(`✅ Actualizando dropdown adicional: ${dropdown.id}`);
       actualizarDropdownObjetivo(dropdown);
     }
@@ -1802,6 +2001,17 @@ window.guardarObjetivo = guardarObjetivo;
 window.mostrarMensaje = mostrarMensaje;
 window.actualizarDropdownsObjetivos = actualizarDropdownsObjetivos;
 window.actualizarDropdownObjetivo = actualizarDropdownObjetivo;
+window.actualizarListaObjetivosVisual = actualizarListaObjetivosVisual;
+window.cargarObjetivosAprendizajeParaModal = cargarObjetivosAprendizajeParaModal;
+window.mostrarFormularioNuevoObjetivo = mostrarFormularioNuevoObjetivo;
+window.actualizarDropdownsObjetivosConDatos = actualizarDropdownsObjetivosConDatos;
+window.actualizarDropdownConObjetivos = actualizarDropdownConObjetivos;
+window.agregarEventListenersObjetivos = agregarEventListenersObjetivos;
+window.handleObjetivoChange = handleObjetivoChange;
+window.agregarEventListenersModales = agregarEventListenersModales;
+window.handleModalShown = handleModalShown;
+window.debugURLs = debugURLs;
+window.debugDOM = debugDOM;
 
 
 // Función para limpiar parámetros de acción de la URL
@@ -3140,6 +3350,11 @@ function cargarRubrica(evaluacionId) {
         url.searchParams.set('action', 'ver_rubrica');
         url.searchParams.set('evaluacion_id', evaluacionId);
         window.history.pushState({}, '', url);
+        
+        // Agregar event listeners a los modales después de cargar la rúbrica
+        setTimeout(() => {
+          agregarEventListenersModales();
+        }, 500);
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -3652,6 +3867,11 @@ function cargarCalificaciones() {
         setTimeout(() => {
           inicializarCalculosPuntaje();
         }, 300);
+        
+        // Agregar event listeners a los modales después de cargar calificaciones
+        setTimeout(() => {
+          agregarEventListenersModales();
+        }, 500);
       }
     })
     .catch(error => {
@@ -3896,8 +4116,25 @@ function abrirModalAgregarCriterio() {
   esperablesList = [];
   actualizarListaEsperables();
   
+  // Cargar objetivos de aprendizaje desde la base de datos
+cargarObjetivosAprendizaje();
+
+// Agregar event listeners globales para objetivos de aprendizaje
+document.addEventListener('DOMContentLoaded', function() {
+  // Agregar event listeners a los modales cuando se cargue la página
+  agregarEventListenersModales();
+  
+  // Debug de URLs para verificar que estén correctas
+  debugURLs();
+  
+  // Debug del DOM para verificar que los elementos estén presentes
+  debugDOM();
+});
+  
   const modal = new bootstrap.Modal(document.getElementById('modalAgregarCriterio'));
   modal.show();
+  
+
 }
 
 function abrirModalAgregarEsperable() {
@@ -4232,27 +4469,26 @@ function guardarCriterio() {
     });
   }
   
-  // Procesar objetivo de aprendizaje si es temporal
+  // Procesar objetivo de aprendizaje
   const objetivoSeleccionado = objetivoAprendizajeSelect?.value;
-  if (objetivoSeleccionado && objetivoSeleccionado.startsWith('temp_')) {
-    // Es un objetivo temporal, obtener la información real
-    const option = objetivoAprendizajeSelect.options[objetivoAprendizajeSelect.selectedIndex];
-    const realId = option.getAttribute('data-real-id');
-    const objetivoReal = obtenerObjetivoPorId(realId);
-    
-    if (objetivoReal) {
-      console.log('🔄 Procesando objetivo temporal:', objetivoReal);
+  if (objetivoSeleccionado) {
+    if (objetivoSeleccionado === 'nuevo') {
+      // El usuario quiere crear un nuevo objetivo
+      console.log('🔄 Usuario seleccionó crear nuevo objetivo');
       
-      // Agregar información del objetivo temporal al FormData
-      formData.append('objetivo_aprendizaje_temp', JSON.stringify({
-        id: realId,
-        nombre: objetivoReal.nombre,
-        descripcion: objetivoReal.descripcion,
-        orden: objetivoReal.orden
-      }));
+      // Mostrar el formulario para crear nuevo objetivo
+      mostrarFormularioNuevoObjetivo();
+      return; // No continuar con el guardado del criterio
       
-      // Limpiar el campo del dropdown para evitar confusión
-      formData.set('objetivo_aprendizaje', '');
+    } else if (objetivoSeleccionado && objetivoSeleccionado !== '') {
+      // El usuario seleccionó un objetivo existente
+      const selectedOption = objetivoAprendizajeSelect.options[objetivoAprendizajeSelect.selectedIndex];
+      const realId = selectedOption.getAttribute('data-real-id');
+      
+      if (realId) {
+        console.log('🔄 Objetivo existente seleccionado:', realId);
+        formData.append('objetivo_aprendizaje', realId);
+      }
     }
   }
   
@@ -4396,6 +4632,17 @@ function crearContenedorCriterios() {
 
 // Función para agregar un criterio dinámicamente al DOM
 function agregarCriterioAlDOM(criterio) {
+
+  const noCriteriosMsg = document.querySelector('#no-criterios');
+  console.log('🔍 Mensaje "No hay criterios agregados" encontrado:', noCriteriosMsg);
+  if (noCriteriosMsg) {
+    noCriteriosMsg.remove(); // Eliminar completamente el mensaje
+    console.log('✅ Mensaje "No hay criterios agregados" eliminado');
+  } else {
+    console.log('✅ Mensaje "No hay criterios agregados" no encontrado');
+  }
+
+
   console.log('🔄 Agregando criterio al DOM:', criterio);
   
   // Buscar el contenedor de criterios
@@ -4521,12 +4768,8 @@ function agregarCriterioAlDOM(criterio) {
   });
   
   // Ocultar mensaje de "no hay criterios" si existe
-  // Buscar específicamente dentro del contenedor de criterios
-  const noCriteriosMsg = criteriosContainer.querySelector('.text-center');
-  if (noCriteriosMsg && noCriteriosMsg.textContent.includes('No hay criterios')) {
-    noCriteriosMsg.remove(); // Eliminar completamente el mensaje
-    console.log('✅ Mensaje "No hay criterios" eliminado');
-  }
+  // Buscar por atributo data-mensaje para mayor precisión
+
   
   // Agregar el criterio al final del contenedor
   criteriosContainer.insertAdjacentHTML('beforeend', criterioHtml);
@@ -4750,7 +4993,7 @@ function eliminarCriterioDelDOM(criterioId) {
           } else {
             // Crear mensaje si no existe
             const mensajeHtml = `
-              <div class="text-center py-4">
+              <div class="text-center py-4" data-mensaje="no-criterios">
                 <i class="fas fa-clipboard-list fa-2x text-muted mb-3"></i>
                 <p class="text-muted">No hay criterios agregados</p>
               </div>
@@ -4909,6 +5152,11 @@ function actualizarListaCriterios() {
       } else if (typeof actualizarDropdownsObjetivos === 'function') {
         actualizarDropdownsObjetivos();
       }
+      
+      // Agregar event listeners a los modales después de actualizar
+      setTimeout(() => {
+        agregarEventListenersModales();
+      }, 200);
     } else {
       console.error('Error al actualizar criterios:', data.error);
     }
@@ -4919,7 +5167,8 @@ function actualizarListaCriterios() {
 }
 
 function editarCriterio(criterioId) {
-  // Cargar los datos del criterio
+  console.log('🔄 Editando criterio:', criterioId);
+  
   // Obtener el evaluacion_id de la URL actual
   const urlParams = new URLSearchParams(window.location.search);
   const evaluacionId = urlParams.get('evaluacion_id');
@@ -4929,31 +5178,51 @@ function editarCriterio(criterioId) {
     return;
   }
   
-  fetch(`/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/obtener-criterio/${evaluacionId}/${criterioId}/`, {
-    method: 'GET',
+  // Construir la URL para editar criterio usando la URL de Django
+  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+  const formData = new FormData();
+  formData.append('action', 'ver_editar_criterio');
+  formData.append('criterio_id', criterioId);
+  formData.append('evaluacion_id', evaluacionId);
+  
+  fetch(url, {
+    method: 'POST',
     headers: {
       'X-Requested-With': 'XMLHttpRequest',
       'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-    }
+    },
+    body: formData
   })
   .then(response => response.json())
   .then(data => {
-    if (data.success) {
-      // Llenar el formulario con los datos del criterio
-      document.getElementById('criterio_id_editar').value = data.criterio.id;
-      document.getElementById('criterio_nombre_editar').value = data.criterio.nombre;
-      document.getElementById('criterio_objetivo_editar').value = data.criterio.objetivo;
-      document.getElementById('criterio_puntaje_editar').value = data.criterio.puntaje;
-      
-      // Cargar los esperables
-      esperablesListEditar = data.criterio.esperables;
-      actualizarListaEsperablesEditar();
-      
-      // Mostrar el modal
-      const modal = new bootstrap.Modal(document.getElementById('modalEditarCriterio'));
-      modal.show();
+    if (data.html) {
+      // Actualizar el contenido del modal con el HTML renderizado
+      const modalBody = document.querySelector('#modalEditarCriterio .modal-body');
+      if (modalBody) {
+        modalBody.innerHTML = data.html;
+        
+        // Si hay datos adicionales del criterio, configurar el estado
+        if (data.criterio_data) {
+          console.log('✅ Datos del criterio cargados:', data.criterio_data);
+          
+          // Configurar los esperables para el sistema de edición
+          if (data.criterio_data.esperables) {
+            esperablesListEditar = data.criterio_data.esperables;
+            console.log('✅ Esperables cargados:', esperablesListEditar);
+            
+            // Actualizar la lista visual de esperables usando el sistema original
+            actualizarListaEsperablesEditar();
+          }
+        }
+        
+        // Mostrar el modal
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarCriterio'));
+        modal.show();
+      } else {
+        alert('Error: No se pudo encontrar el contenedor del modal');
+      }
     } else {
-      alert('Error al cargar los datos del criterio: ' + data.error);
+      alert('Error al cargar los datos del criterio: ' + (data.error || 'Error desconocido'));
     }
   })
   .catch(error => {
@@ -6992,6 +7261,11 @@ window.limpiarTodoEstado = limpiarTodoEstado;
 window.RUBRICA_STATE = RUBRICA_STATE;
 window.debugDOMCriterios = debugDOMCriterios;
 window.obtenerPuntajesActualizadosDelBackend = obtenerPuntajesActualizadosDelBackend;
+window.cargarObjetivosAprendizaje = cargarObjetivosAprendizaje;
+window.guardarObjetivoAprendizaje = guardarObjetivoAprendizaje;
+window.mostrarFormularioNuevoObjetivo = mostrarFormularioNuevoObjetivo;
+window.cerrarModalObjetivo = cerrarModalObjetivo;
+window.debugModalObjetivo = debugModalObjetivo;
 
 // Función para inicializar los cálculos de puntaje cuando se carga la página
 function inicializarCalculosPuntaje() {
@@ -7281,6 +7555,499 @@ function verificarVisualizacionCriterios() {
   });
   
   console.log('✅ Verificación de visualización completada');
+}
+
+// Función para cerrar el modal de objetivo
+function cerrarModalObjetivo() {
+  console.log('🔄 Cerrando modal de objetivo...');
+  
+  const modalObjetivo = bootstrap.Modal.getInstance(document.getElementById('modalObjetivo'));
+  if (modalObjetivo) {
+    modalObjetivo.hide();
+  }
+  
+  // Volver a mostrar el modal de criterio
+  setTimeout(() => {
+    const modalCriterio = new bootstrap.Modal(document.getElementById('modalAgregarCriterio'));
+    modalCriterio.show();
+  }, 500);
+}
+
+// Función para mostrar el formulario de nuevo objetivo de aprendizaje
+function mostrarFormularioNuevoObjetivo() {
+  console.log('🔄 Mostrando formulario para nuevo objetivo de aprendizaje...');
+  
+  // Debug del DOM antes de mostrar el modal
+  debugDOM();
+  
+  // Ocultar el modal de criterio
+  const modalCriterio = bootstrap.Modal.getInstance(document.getElementById('modalAgregarCriterio'));
+  if (modalCriterio) {
+    modalCriterio.hide();
+  }
+  
+  // Mostrar el modal de objetivo de aprendizaje
+  const modalObjetivo = new bootstrap.Modal(document.getElementById('modalObjetivo'));
+  modalObjetivo.show();
+  
+  // Limpiar el formulario
+  const formObjetivo = document.getElementById('formObjetivo');
+  if (formObjetivo) {
+    formObjetivo.reset();
+  }
+  
+  // Debug del DOM después de mostrar el modal
+  setTimeout(() => {
+    console.log('🔍 DEBUG: Verificando DOM después de mostrar modal...');
+    debugDOM();
+  }, 100);
+}
+
+// Función para guardar un nuevo objetivo de aprendizaje en la base de datos
+function guardarObjetivoAprendizaje() {
+  console.log('🔄 Guardando nuevo objetivo de aprendizaje...');
+  
+  const formObjetivo = document.getElementById('formObjetivo');
+  console.log('🔍 Formulario encontrado:', formObjetivo);
+  
+  if (!formObjetivo) {
+    console.error('❌ Formulario de objetivo no encontrado');
+    console.log('🔍 Elementos en el DOM:', {
+      'formObjetivo': document.getElementById('formObjetivo'),
+      'modalObjetivo': document.getElementById('modalObjetivo'),
+      'objetivo_nombre': document.getElementById('objetivo_nombre'),
+      'objetivo_descripcion': document.getElementById('objetivo_descripcion')
+    });
+    return;
+  }
+  
+  const nombre = document.getElementById('objetivo_nombre').value;
+  const descripcion = document.getElementById('objetivo_descripcion').value;
+  
+  console.log('🔍 Valores del formulario:', { nombre, descripcion });
+  
+  if (!nombre || !descripcion) {
+    alert('Por favor completa todos los campos obligatorios.');
+    return;
+  }
+  
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  // Construir la URL para guardar el objetivo usando la URL de Django
+  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+  const formDataObjetivo = new FormData();
+  formDataObjetivo.append('action', 'guardar_objetivo_aprendizaje');
+  formDataObjetivo.append('evaluacion_id', evaluacionId);
+  formDataObjetivo.append('nombre', nombre);
+  formDataObjetivo.append('descripcion', descripcion);
+  
+  // Verificar CSRF token
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  console.log('🔍 CSRF Token encontrado:', csrfToken ? 'SÍ' : 'NO');
+  if (csrfToken) {
+    console.log('🔍 CSRF Token valor:', csrfToken.substring(0, 10) + '...');
+  }
+  
+  console.log('🔍 URL construida:', url);
+  console.log('🔍 Datos a enviar:', {
+    action: 'guardar_objetivo_aprendizaje',
+    evaluacion_id: evaluacionId,
+    nombre: nombre,
+    descripcion: descripcion
+  });
+  
+  // Debug del FormData
+  console.log('🔍 FormData contenido:');
+  for (let [key, value] of formDataObjetivo.entries()) {
+    console.log(`  ${key}: ${value}`);
+  }
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: formDataObjetivo
+  })
+  .then(response => {
+    console.log('🔍 Response recibida:', response);
+    console.log('🔍 Response status:', response.status);
+    console.log('🔍 Response headers:', response.headers);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    // Capturar la respuesta como texto primero para debug
+    return response.text().then(text => {
+      console.log('🔍 Response text:', text);
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('❌ Error parseando JSON:', e);
+        console.error('❌ Texto que no se pudo parsear:', text);
+        throw new Error('Respuesta del servidor no es JSON válido: ' + text);
+      }
+    });
+  })
+  .then(data => {
+    console.log('🔍 Data parseada:', data);
+    console.log('🔍 Tipo de data:', typeof data);
+    console.log('🔍 Data.success:', data.success);
+    
+    if (data.success) {
+      console.log('✅ Objetivo de aprendizaje guardado exitosamente:', data.objetivo);
+      
+      // Cerrar modal de objetivo
+      const modalObjetivo = bootstrap.Modal.getInstance(document.getElementById('modalObjetivo'));
+      if (modalObjetivo) {
+        modalObjetivo.hide();
+      }
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Objetivo de aprendizaje guardado exitosamente', 'success');
+      
+      // Recargar objetivos de aprendizaje
+      cargarObjetivosAprendizaje();
+      
+      // Actualizar todos los dropdowns de objetivos de aprendizaje
+      setTimeout(() => {
+        actualizarDropdownsObjetivos();
+      }, 100);
+      
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('❌ Error completo:', error);
+    console.error('🔍 URL que falló:', url);
+    console.error('🔍 Evaluación ID:', evaluacionId);
+    console.error('🔍 Datos del formulario:', { nombre, descripcion });
+    
+    let mensajeError = 'Error al guardar el objetivo de aprendizaje. Por favor, intenta nuevamente.\n\n';
+    mensajeError += 'Detalles: ' + error.message + '\n\n';
+    mensajeError += 'URL: ' + url + '\n';
+    mensajeError += 'Evaluación ID: ' + evaluacionId;
+    
+    alert(mensajeError);
+  });
+}
+
+// Función para cargar objetivos de aprendizaje desde la base de datos
+function cargarObjetivosAprendizaje() {
+  console.log('🔄 Cargando objetivos de aprendizaje desde la base de datos...');
+  
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    console.warn('⚠️ No se pudo determinar la evaluación para cargar objetivos');
+    return;
+  }
+  
+  // Construir la URL para obtener objetivos usando la URL de Django
+  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+  const formData = new FormData();
+  formData.append('action', 'obtener_objetivos_aprendizaje');
+  formData.append('evaluacion_id', evaluacionId);
+  
+  // Verificar CSRF token
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  console.log('🔍 CSRF Token encontrado para obtener objetivos:', csrfToken ? 'SÍ' : 'NO');
+  if (csrfToken) {
+    console.log('🔍 CSRF Token valor para obtener objetivos:', csrfToken.substring(0, 10) + '...');
+  }
+  
+  console.log('🔍 URL construida para obtener objetivos:', url);
+  console.log('🔍 Datos a enviar para obtener objetivos:', {
+    action: 'obtener_objetivos_aprendizaje',
+    evaluacion_id: evaluacionId
+  });
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: formData
+  })
+  .then(response => {
+    console.log('🔍 Response recibida para obtener objetivos:', response);
+    console.log('🔍 Response status para obtener objetivos:', response.status);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    // Capturar la respuesta como texto primero para debug
+    return response.text().then(text => {
+      console.log('🔍 Response text para obtener objetivos:', text);
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('❌ Error parseando JSON para obtener objetivos:', e);
+        console.error('❌ Texto que no se pudo parsear para obtener objetivos:', text);
+        throw new Error('Respuesta del servidor no es JSON válido para obtener objetivos: ' + text);
+      }
+    });
+  })
+  .then(data => {
+    console.log('🔍 Data parseada para obtener objetivos:', data);
+    console.log('🔍 Tipo de data para obtener objetivos:', typeof data);
+    console.log('🔍 Data.success para obtener objetivos:', data.success);
+    
+    if (data.success) {
+      console.log(`✅ Objetivos de aprendizaje cargados: ${data.objetivos.length} objetivos`);
+      
+      // Actualizar la lista visual de objetivos
+      actualizarListaObjetivosVisual(data.objetivos);
+      
+      // Actualizar TODOS los dropdowns de objetivos de aprendizaje
+      actualizarDropdownsObjetivosConDatos(data.objetivos);
+      
+      // Agregar event listeners a todos los dropdowns de objetivos de aprendizaje
+      agregarEventListenersObjetivos();
+      
+      // Actualizar la lista de objetivos temporales si existe
+      if (window.objetivosAprendizaje) {
+        // Limpiar objetivos temporales que ya no son necesarios
+        window.objetivosAprendizaje = [];
+      }
+      
+    } else {
+      console.warn('⚠️ Error al cargar objetivos:', data.error);
+    }
+  })
+  .catch(error => {
+    console.error('❌ Error al cargar objetivos de aprendizaje:', error);
+    console.error('🔍 URL que falló:', url);
+    console.error('🔍 Evaluación ID:', evaluacionId);
+  });
+}
+
+// Nueva función para actualizar todos los dropdowns con datos de la base de datos
+function actualizarDropdownsObjetivosConDatos(objetivos) {
+  console.log('🔄 Actualizando todos los dropdowns con objetivos de la base de datos...');
+  
+  // Lista de IDs de dropdowns que deben ser actualizados
+  const dropdownIds = [
+    'objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje_editar'
+  ];
+  
+  dropdownIds.forEach(dropdownId => {
+    const dropdown = document.getElementById(dropdownId);
+    if (dropdown) {
+      console.log(`✅ Actualizando dropdown: ${dropdownId}`);
+      actualizarDropdownConObjetivos(dropdown, objetivos);
+    } else {
+      console.log(`⚠️ Dropdown no encontrado: ${dropdownId}`);
+    }
+  });
+  
+  // Buscar otros dropdowns que puedan existir
+  const otrosDropdowns = document.querySelectorAll('select[name*="objetivo_aprendizaje"]');
+  otrosDropdowns.forEach(dropdown => {
+    if (!dropdownIds.includes(dropdown.id)) {
+      console.log(`✅ Actualizando dropdown adicional: ${dropdown.id}`);
+      actualizarDropdownConObjetivos(dropdown, objetivos);
+    }
+  });
+  
+  console.log('✅ Todos los dropdowns actualizados correctamente');
+}
+
+// Función para actualizar la lista visual de objetivos de aprendizaje
+function actualizarListaObjetivosVisual(objetivos) {
+  console.log('🔄 Actualizando lista visual de objetivos de aprendizaje...');
+  
+  const container = document.getElementById('objetivos-container');
+  if (!container) {
+    console.warn('⚠️ Contenedor de objetivos no encontrado');
+    return;
+  }
+  
+  // Limpiar el contenedor
+  container.innerHTML = '';
+  
+  if (objetivos.length === 0) {
+    // Mostrar mensaje de "no hay objetivos"
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="fas fa-bullseye fa-2x text-muted mb-3"></i>
+        <p class="text-muted">No hay objetivos de aprendizaje configurados</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Crear elementos para cada objetivo
+  objetivos.forEach(objetivo => {
+    const objetivoElement = document.createElement('div');
+    objetivoElement.className = 'objetivo-item mb-3 p-3 border rounded';
+    objetivoElement.id = `objetivo_${objetivo.id}`;
+    
+    objetivoElement.innerHTML = `
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group mb-2">
+            <label class="form-label small">Nombre del Objetivo</label>
+            <input type="text" class="form-control form-control-sm" 
+                   name="objetivos[${objetivo.id}][nombre]" 
+                   value="${objetivo.nombre}" 
+                   placeholder="Ej: Comprensión conceptual" 
+                   required>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group mb-2">
+            <label class="form-label small">Descripción</label>
+            <textarea class="form-control form-control-sm" rows="2" 
+                      name="objetivos[${objetivo.id}][descripcion]" 
+                      placeholder="Descripción del objetivo" 
+                      required>${objetivo.descripcion}</textarea>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="form-group mb-2">
+            <label class="form-label small">Orden</label>
+            <input type="number" class="form-control form-control-sm" 
+                   name="objetivos[${objetivo.id}][orden]" 
+                   value="1" min="1" 
+                   required>
+          </div>
+        </div>
+      </div>
+      <div class="text-end">
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarObjetivo('${objetivo.id}')">
+          <i class="fas fa-trash me-1"></i>Eliminar
+        </button>
+      </div>
+    `;
+    
+    container.appendChild(objetivoElement);
+  });
+  
+  console.log(`✅ Lista visual actualizada con ${objetivos.length} objetivos`);
+}
+
+// Función auxiliar para actualizar un dropdown específico con objetivos de la base de datos
+function actualizarDropdownConObjetivos(dropdown, objetivos) {
+  if (!dropdown) return;
+  
+  // Guardar la selección actual
+  const valorSeleccionado = dropdown.value;
+  
+  // Limpiar opciones existentes
+  dropdown.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
+  
+  // Agregar opción para crear nuevo objetivo
+  const opcionNuevo = document.createElement('option');
+  opcionNuevo.value = 'nuevo';
+  opcionNuevo.textContent = '➕ Crear nuevo objetivo';
+  dropdown.appendChild(opcionNuevo);
+  
+  // Agregar objetivos existentes
+  objetivos.forEach(objetivo => {
+    const opcion = document.createElement('option');
+    opcion.value = objetivo.id;
+    opcion.textContent = `${objetivo.nombre} (${objetivo.criterios_count || 0} criterios)`;
+    opcion.setAttribute('data-real-id', objetivo.id);
+    dropdown.appendChild(opcion);
+  });
+  
+  // Restaurar la selección anterior si es posible
+  if (valorSeleccionado && valorSeleccionado !== '') {
+    const opcionAnterior = dropdown.querySelector(`option[value="${valorSeleccionado}"]`);
+    if (opcionAnterior) {
+      opcionAnterior.selected = true;
+    }
+  }
+  
+  console.log(`✅ Dropdown ${dropdown.id} actualizado con ${objetivos.length} objetivos`);
+}
+
+// Función para agregar event listeners a todos los dropdowns de objetivos de aprendizaje
+function agregarEventListenersObjetivos() {
+  console.log('🔄 Agregando event listeners a dropdowns de objetivos...');
+  
+  // Lista de IDs de dropdowns que deben tener event listeners
+  const dropdownIds = [
+    'objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje_editar'
+  ];
+  
+  dropdownIds.forEach(dropdownId => {
+    const dropdown = document.getElementById(dropdownId);
+    if (dropdown) {
+      // Remover event listeners anteriores para evitar duplicados
+      dropdown.removeEventListener('change', handleObjetivoChange);
+      // Agregar nuevo event listener
+      dropdown.addEventListener('change', handleObjetivoChange);
+      console.log(`✅ Event listener agregado a: ${dropdownId}`);
+    }
+  });
+  
+  // Buscar otros dropdowns que puedan existir
+  const otrosDropdowns = document.querySelectorAll('select[name*="objetivo_aprendizaje"]');
+  otrosDropdowns.forEach(dropdown => {
+    if (!dropdownIds.includes(dropdown.id)) {
+      // Remover event listeners anteriores para evitar duplicados
+      dropdown.removeEventListener('change', handleObjetivoChange);
+      // Agregar nuevo event listener
+      dropdown.addEventListener('change', handleObjetivoChange);
+      console.log(`✅ Event listener agregado a dropdown adicional: ${dropdown.id}`);
+    }
+  });
+  
+  // Agregar event listeners para cuando se abran los modales
+  agregarEventListenersModales();
+}
+
+// Función para agregar event listeners a los modales
+function agregarEventListenersModales() {
+  // Modal de agregar criterio
+  const modalAgregar = document.getElementById('modalAgregarCriterio');
+  if (modalAgregar) {
+    modalAgregar.removeEventListener('shown.bs.modal', handleModalShown);
+    modalAgregar.addEventListener('shown.bs.modal', handleModalShown);
+  }
+  
+  // Modal de editar criterio
+  const modalEditar = document.getElementById('modalEditarCriterio');
+  if (modalEditar) {
+    modalEditar.removeEventListener('shown.bs.modal', handleModalShown);
+    modalEditar.addEventListener('shown.bs.modal', handleModalShown);
+  }
+}
+
+// Función manejadora para cuando se abre un modal
+function handleModalShown() {
+  console.log('🔄 Modal abierto, actualizando dropdowns...');
+  setTimeout(() => {
+    agregarEventListenersObjetivos();
+  }, 100);
+}
+
+// Función manejadora del cambio en dropdowns de objetivos
+function handleObjetivoChange(event) {
+  if (event.target.value === 'nuevo') {
+    console.log('🔄 Usuario seleccionó crear nuevo objetivo');
+    mostrarFormularioNuevoObjetivo();
+  }
 }
 
 // Función para hacer debug del DOM y ver qué está pasando
@@ -9251,7 +10018,7 @@ function inicializarFormularioEliminacionEvaluacion() {
         <button type="button" class="btn btn-secondary" onclick="cerrarModalObjetivo()">
           <i class="fas fa-times me-1"></i>Cancelar
         </button>
-        <button type="button" class="btn btn-primary" onclick="guardarObjetivo()">
+        <button type="button" class="btn btn-primary" onclick="guardarObjetivoAprendizaje()">
           <i class="fas fa-save me-1"></i>Guardar Objetivo
         </button>
       </div>
