@@ -904,7 +904,7 @@
       <i class="fas fa-graduation-cap me-2"></i>
       {{ curso.nombre }}
     </h5>
-    <small class="text-white-50">Plataforma de Aprendizaje</small>
+    <small class="text-white-50">Gryphos Training</small>
   </div>
   
   <nav class="sidebar-nav">
@@ -1400,6 +1400,72 @@ const PLATAFORMA_CONFIG = {
   }
 };
 
+// ===== SISTEMA DE GESTIÓN DE ESTADO DE RÚBRICA =====
+
+// Estado global de la rúbrica actual
+const RUBRICA_STATE = {
+  evaluacionId: null,
+  criterios: [],
+  puntajeTotal: 0,
+  ultimaActualizacion: null
+};
+
+// Función para guardar el estado de la rúbrica en localStorage
+function guardarEstadoRubrica() {
+  try {
+    const estadoSerializado = JSON.stringify(RUBRICA_STATE);
+    localStorage.setItem(`rubrica_${RUBRICA_STATE.evaluacionId}`, estadoSerializado);
+    console.log('💾 Estado de rúbrica guardado en localStorage:', RUBRICA_STATE);
+  } catch (error) {
+    console.warn('⚠️ No se pudo guardar el estado en localStorage:', error);
+  }
+}
+
+// Función para cargar el estado de la rúbrica desde localStorage
+function cargarEstadoRubrica(evaluacionId) {
+  try {
+    const estadoSerializado = localStorage.getItem(`rubrica_${evaluacionId}`);
+    if (estadoSerializado) {
+      const estadoCargado = JSON.parse(estadoSerializado);
+      Object.assign(RUBRICA_STATE, estadoCargado);
+      console.log('📂 Estado de rúbrica cargado desde localStorage:', RUBRICA_STATE);
+      return true;
+    }
+  } catch (error) {
+    console.warn('⚠️ No se pudo cargar el estado desde localStorage:', error);
+  }
+  return false;
+}
+
+// Función para limpiar el estado de la rúbrica
+function limpiarEstadoRubrica() {
+  RUBRICA_STATE.evaluacionId = null;
+  RUBRICA_STATE.criterios = [];
+  RUBRICA_STATE.puntajeTotal = 0;
+  RUBRICA_STATE.ultimaActualizacion = null;
+  console.log('🧹 Estado de rúbrica limpiado');
+}
+
+// Función para actualizar el estado de la rúbrica
+function actualizarEstadoRubrica(evaluacionId, criterios) {
+  RUBRICA_STATE.evaluacionId = evaluacionId;
+  RUBRICA_STATE.criterios = criterios || [];
+  RUBRICA_STATE.puntajeTotal = calcularPuntajeTotalCriterios(criterios);
+  RUBRICA_STATE.ultimaActualizacion = new Date().toISOString();
+  
+  guardarEstadoRubrica();
+  console.log('🔄 Estado de rúbrica actualizado:', RUBRICA_STATE);
+}
+
+// Función para calcular el puntaje total de los criterios
+function calcularPuntajeTotalCriterios(criterios) {
+  if (!Array.isArray(criterios)) return 0;
+  return criterios.reduce((total, criterio) => {
+    const puntaje = parseFloat(criterio.puntaje) || 0;
+    return total + puntaje;
+  }, 0);
+}
+
 // ===== FUNCIONES PARA OBJETIVOS DE APRENDIZAJE =====
 
 // Variables globales para objetivos de aprendizaje
@@ -1551,7 +1617,6 @@ function cerrarModalObjetivo() {
 function guardarObjetivo() {
   const nombre = document.getElementById('objetivo_nombre').value.trim();
   const descripcion = document.getElementById('objetivo_descripcion').value.trim();
-  const orden = document.getElementById('objetivo_orden').value;
   
   // Validar campos
   if (!nombre || !descripcion) {
@@ -1578,20 +1643,12 @@ function guardarObjetivo() {
                    value="${nombre}" readonly>
           </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-8">
           <div class="form-group mb-2">
             <label class="form-label small">Descripción</label>
             <textarea class="form-control form-control-sm" rows="2" 
                       name="objetivos[${objetivoId}][descripcion]" 
                       readonly>${descripcion}</textarea>
-          </div>
-        </div>
-        <div class="col-md-2">
-          <div class="form-group mb-2">
-            <label class="form-label small">Orden</label>
-            <input type="number" class="form-control form-control-sm" 
-                   name="objetivos[${objetivoId}][orden]" 
-                   value="${orden}" readonly>
           </div>
         </div>
       </div>
@@ -1959,6 +2016,11 @@ function cambiarSeccion(seccion) {
         seccionCalificaciones.innerHTML = data.html;
         seccionCalificaciones.classList.add('active');
         document.getElementById('loading').classList.remove('show');
+        
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
         
         // Actualizar URL sin recargar
         const url = new URL(window.location);
@@ -2818,6 +2880,11 @@ function cargarEstadisticasCalificaciones() {
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
+        
         // Actualizar URL sin recargar
         const url = new URL(window.location);
         url.searchParams.set('seccion', 'calificaciones');
@@ -2875,6 +2942,11 @@ function cargarRubricasCalificaciones() {
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
+        
         // Actualizar URL sin recargar
         const url = new URL(window.location);
         url.searchParams.set('seccion', 'calificaciones');
@@ -2914,6 +2986,11 @@ function cargarDetalleEvaluacion(evaluacionId) {
         
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
+        
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
         
         // Actualizar URL sin recargar
         const url = new URL(window.location);
@@ -2961,9 +3038,13 @@ function cargarDetalleCalificacion(evaluacionId) {
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
+        
         // Actualizar URL sin recargar
         const url = new URL(window.location);
-        url.searchParams.set('seccion', 'calificaciones');
         url.searchParams.set('action', 'ver_detalle');
         url.searchParams.set('evaluacion_id', evaluacionId);
         window.history.pushState({}, '', url);
@@ -3020,6 +3101,35 @@ function cargarRubrica(evaluacionId) {
         // Actualizar contenido y mostrar sección de calificaciones
         seccionCalificaciones.innerHTML = data.html;
         seccionCalificaciones.classList.add('active');
+        
+        // Asegurar que el contenedor de criterios exista después de cargar la rúbrica
+        setTimeout(() => {
+          if (typeof crearContenedorCriterios === 'function') {
+            const criteriosContainer = document.querySelector('.criterios-list');
+            if (!criteriosContainer) {
+              console.log('🔧 Cargar rúbrica: Creando contenedor de criterios...');
+              crearContenedorCriterios();
+            }
+          }
+          
+                  // Inicializar cálculos de puntaje después de cargar el contenido
+        inicializarCalculosPuntaje();
+        
+        // Verificar si hay criterios y actualizar el estado
+        const criteriosItems = document.querySelectorAll('.criterio-item');
+        if (criteriosItems.length > 0) {
+          console.log(`🔍 Rúbrica cargada con ${criteriosItems.length} criterios`);
+          
+          // Limpiar el estado anterior para forzar la obtención de puntajes actualizados
+          console.log('🧹 Limpiando estado anterior para forzar actualización de puntajes...');
+          limpiarEstadoRubrica();
+          
+          // Forzar actualización del estado con puntajes del backend
+          setTimeout(() => {
+            obtenerPuntajesActualizadosDelBackend(evaluacionId);
+          }, 100);
+        }
+        }, 300); // Delay para asegurar que el DOM esté completamente cargado
         
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
@@ -3097,7 +3207,10 @@ function cargarEditarEvaluacion(evaluacionId) {
         // Inicializar el formulario después de cargar el contenido
         setTimeout(() => {
           inicializarFormularioEditarEvaluacion();
-        }, 100);
+          
+          // Inicializar cálculos de puntaje después de cargar el contenido
+          inicializarCalculosPuntaje();
+        }, 300);
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -3312,11 +3425,14 @@ function cargarCalificar(evaluacionId, estudianteId = null) {
         // Ejecutar cálculo de nota después de cargar el contenido
         // Esto es necesario cuando se precarga un estudiante
         setTimeout(() => {
-                  if (typeof calcularNota === 'function') {
-          calcularNota();
-        } else {
-          console.warn('Función calcularNota no está disponible');
-        }
+          if (typeof calcularNota === 'function') {
+            calcularNota();
+          } else {
+            console.warn('Función calcularNota no está disponible');
+          }
+          
+          // Inicializar cálculos de puntaje después de cargar el contenido
+          inicializarCalculosPuntaje();
         }, 500); // Aumentar el timeout para asegurar que el DOM esté completamente cargado
       } else {
         document.getElementById('loading').classList.remove('show');
@@ -3375,7 +3491,10 @@ function cargarCrearEvaluacion() {
         // Inicializar el formulario después de cargar el contenido
         setTimeout(() => {
           inicializarFormularioCrearEvaluacion();
-        }, 100);
+          
+          // Inicializar cálculos de puntaje después de cargar el contenido
+          inicializarCalculosPuntaje();
+        }, 300);
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -3436,7 +3555,10 @@ function cargarEliminarEvaluacion(evaluacionId) {
             delete form._eliminacionInicializada;
           }
           inicializarFormularioEliminacionEvaluacion();
-        }, 100);
+          
+          // Inicializar cálculos de puntaje después de cargar el contenido
+          inicializarCalculosPuntaje();
+        }, 300);
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -3466,6 +3588,10 @@ function cargarEliminarEvaluacion(evaluacionId) {
 function cargarCalificaciones() {
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
+  
+  // Limpiar el estado de la rúbrica actual antes de cambiar
+  limpiarEstadoRubrica();
+  console.log('🧹 Estado de rúbrica limpiado al volver a calificaciones principales');
   
   fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}`, {
     headers: {
@@ -3521,6 +3647,11 @@ function cargarCalificaciones() {
         
         console.log('🔍 URL actualizada después de cargar calificaciones:', url.toString());
         console.log('🔍 Parámetros de la URL:', Object.fromEntries(url.searchParams));
+        
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
       }
     })
     .catch(error => {
@@ -4176,7 +4307,11 @@ function guardarCriterio() {
       
       // Agregar el criterio dinámicamente al DOM
       if (data.criterio) {
+        console.log('📥 Datos del criterio recibidos del servidor:', data.criterio);
         agregarCriterioAlDOM(data.criterio);
+        
+        // La función agregarCriterioAlDOM ahora maneja la actualización de puntajes internamente
+        // No necesitamos llamar actualizarPuntajesMaximos aquí
       }
     } else {
       alert('Error: ' + data.error);
@@ -4190,20 +4325,173 @@ function guardarCriterio() {
 
 // ===== FUNCIONES PARA CRITERIOS DINÁMICOS =====
 
+// Función auxiliar para crear el contenedor de criterios si no existe
+function crearContenedorCriterios() {
+  console.log('🔧 Creando contenedor de criterios...');
+  
+  // Buscar específicamente el contenedor de la sección de calificaciones
+  // Primero buscar por la URL o por elementos específicos de la sección
+  let contenedorCorrecto = null;
+  
+  // Buscar por la sección de calificaciones específicamente
+  if (window.location.search.includes('seccion=calificaciones')) {
+    // Buscar en la sección de calificaciones
+    contenedorCorrecto = document.querySelector('#calificaciones .card-body, .calificaciones .card-body, [data-seccion="calificaciones"] .card-body');
+    
+    if (!contenedorCorrecto) {
+      // Buscar por el modal de agregar criterio
+      const modalAgregarCriterio = document.getElementById('modalAgregarCriterio');
+      if (modalAgregarCriterio) {
+        // Buscar el contenedor más cercano que tenga el modal
+        contenedorCorrecto = modalAgregarCriterio.closest('.card-body, .container, .row');
+      }
+    }
+    
+    if (!contenedorCorrecto) {
+      // Buscar por el botón de agregar criterio
+      const btnAgregar = document.querySelector('button[onclick="abrirModalAgregarCriterio()"]');
+      if (btnAgregar) {
+        contenedorCorrecto = btnAgregar.closest('.card-body, .container, .row');
+      }
+    }
+  }
+  
+  // Si no se encontró el contenedor específico, usar el card-body más cercano
+  if (!contenedorCorrecto) {
+    contenedorCorrecto = document.querySelector('.card-body');
+  }
+  
+  if (!contenedorCorrecto) {
+    console.error('No se encontró el contenedor correcto para crear el contenedor de criterios');
+    return null;
+  }
+  
+  console.log('🔍 Contenedor correcto encontrado:', contenedorCorrecto);
+  console.log('🔍 Clases del contenedor:', contenedorCorrecto.className);
+  
+  // Crear el contenedor de criterios
+  const criteriosContainer = document.createElement('div');
+  criteriosContainer.className = 'criterios-list';
+  criteriosContainer.style.cssText = 'border: 2px solid #007bff; padding: 15px; margin: 15px 0; background-color: #f8f9fa; min-height: 50px;';
+  
+  // Insertar el contenedor antes del botón de agregar criterio
+  const btnAgregar = contenedorCorrecto.querySelector('button[onclick="abrirModalAgregarCriterio()"]');
+  if (btnAgregar) {
+    contenedorCorrecto.insertBefore(criteriosContainer, btnAgregar);
+    console.log('✅ Contenedor de criterios creado exitosamente antes del botón');
+  } else {
+    // Si no hay botón, insertar al final del contenedor
+    contenedorCorrecto.appendChild(criteriosContainer);
+    console.log('✅ Contenedor de criterios creado al final del contenedor');
+  }
+  
+  // Agregar un mensaje inicial para hacer el contenedor visible
+  criteriosContainer.innerHTML = '<div class="text-muted text-center">Contenedor de criterios creado - Los criterios aparecerán aquí</div>';
+  
+  console.log('🔍 Contenedor creado en:', criteriosContainer.parentElement);
+  console.log('🔍 Posición en el DOM:', criteriosContainer);
+  
+  return criteriosContainer;
+}
+
 // Función para agregar un criterio dinámicamente al DOM
 function agregarCriterioAlDOM(criterio) {
   console.log('🔄 Agregando criterio al DOM:', criterio);
   
   // Buscar el contenedor de criterios
-  const criteriosContainer = document.querySelector('.criterios-list');
+  let criteriosContainer = document.querySelector('.criterios-list');
+  console.log('🔍 Contenedor de criterios encontrado:', criteriosContainer);
+  
+  // Si no existe, crearlo automáticamente
   if (!criteriosContainer) {
-    console.error('No se encontró el contenedor de criterios');
-    return;
+    console.log('⚠️ Contenedor de criterios no encontrado, creándolo automáticamente...');
+    criteriosContainer = crearContenedorCriterios();
+    
+    if (!criteriosContainer) {
+      console.error('No se pudo crear el contenedor de criterios');
+      return;
+    }
   }
   
-  // Crear el HTML del criterio
+  // Verificar que el contenedor esté en la ubicación correcta
+  if (criteriosContainer) {
+    const contenedorPadre = criteriosContainer.parentElement;
+    console.log('🔍 Contenedor padre del criterios-list:', contenedorPadre);
+    console.log('🔍 Clases del contenedor padre:', contenedorPadre?.className);
+    
+    // Si el contenedor está en el lugar equivocado, moverlo al lugar correcto
+    if (contenedorPadre && !contenedorPadre.querySelector('button[onclick="abrirModalAgregarCriterio()"]')) {
+      console.log('⚠️ Contenedor de criterios está en el lugar equivocado, moviéndolo...');
+      
+      // Buscar el contenedor correcto
+      const contenedorCorrecto = document.querySelector('button[onclick="abrirModalAgregarCriterio()"]')?.closest('.card-body, .container, .row');
+      if (contenedorCorrecto) {
+        contenedorCorrecto.appendChild(criteriosContainer);
+        console.log('✅ Contenedor de criterios movido al lugar correcto');
+      }
+    }
+  }
+  
+  // Limpiar cualquier contenedor de criterios que se haya creado en el lugar equivocado
+  const contenedoresIncorrectos = document.querySelectorAll('.criterios-list');
+  if (contenedoresIncorrectos.length > 1) {
+    console.log('⚠️ Se encontraron múltiples contenedores de criterios, limpiando...');
+    
+    // Mantener solo el primero (que debería ser el correcto)
+    for (let i = 1; i < contenedoresIncorrectos.length; i++) {
+      const contenedorIncorrecto = contenedoresIncorrectos[i];
+      console.log('🗑️ Eliminando contenedor incorrecto:', contenedorIncorrecto);
+      contenedorIncorrecto.remove();
+    }
+    
+    // Actualizar la referencia al contenedor correcto
+    criteriosContainer = document.querySelector('.criterios-list');
+  }
+  
+  // Si no hay contenedor o está en el lugar equivocado, crear uno nuevo en el lugar correcto
+  if (!criteriosContainer || !criteriosContainer.parentElement?.querySelector('button[onclick="abrirModalAgregarCriterio()"]')) {
+    console.log('🔄 Creando nuevo contenedor de criterios en el lugar correcto...');
+    criteriosContainer = crearContenedorCriterios();
+  }
+  
+  // Verificar que el contenedor sea visible
+  console.log('🔍 Contenedor de criterios:', {
+    elemento: criteriosContainer,
+    parent: criteriosContainer.parentElement,
+    visible: criteriosContainer.offsetParent !== null,
+    display: window.getComputedStyle(criteriosContainer).display,
+    visibility: window.getComputedStyle(criteriosContainer).visibility,
+    height: criteriosContainer.offsetHeight,
+    width: criteriosContainer.offsetWidth
+  });
+  
+  // Verificar también el contenedor padre (card-body)
+  const cardBody = criteriosContainer.parentElement;
+  if (cardBody) {
+    const estilosCardBody = window.getComputedStyle(cardBody);
+    console.log('🔍 Estilos del card-body padre:', {
+      display: estilosCardBody.display,
+      visibility: estilosCardBody.visibility,
+      opacity: estilosCardBody.opacity,
+      height: cardBody.offsetHeight,
+      width: cardBody.offsetWidth,
+      visible: cardBody.offsetParent !== null
+    });
+    
+    // Si el card-body está oculto, forzar su visibilidad
+    if (estilosCardBody.display === 'none' || estilosCardBody.visibility === 'hidden') {
+      cardBody.style.display = 'block';
+      cardBody.style.visibility = 'visible';
+      console.log('🔧 Visibilidad del card-body forzada');
+    }
+  }
+  
+  // Crear el HTML del criterio con estilos inline para forzar visibilidad
   const criterioHtml = `
-    <div class="criterio-item mb-3 p-3 border rounded">
+    <div class="criterio-item mb-3 p-3 border rounded" 
+         data-criterio-id="${criterio.id}" 
+         data-criterio-puntaje-maximo="${criterio.puntaje || 0}"
+         style="display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; min-height: 100px !important; background-color: white !important; border: 2px solid #28a745 !important;">
       <h6 class="mb-2">${criterio.nombre}</h6>
       <p class="text-muted small mb-2">${criterio.objetivo}</p>
       <div class="d-flex justify-content-between align-items-center mb-2">
@@ -4211,7 +4499,7 @@ function agregarCriterioAlDOM(criterio) {
         <span class="badge bg-primary">${criterio.puntaje || 0} puntos</span>
       </div>
       <div class="d-flex justify-content-between align-items-center">
-        <small class="text-muted">Puntaje máximo</small>
+        <small class="text-muted">Puntaje máximo: <strong>${criterio.puntaje || 0}</strong></small>
         <div class="btn-group btn-group-sm">
           <button class="btn btn-outline-primary btn-sm" onclick="editarCriterio(${criterio.id})">
             <i class="fas fa-edit"></i>Editar
@@ -4224,6 +4512,14 @@ function agregarCriterioAlDOM(criterio) {
     </div>
   `;
   
+  console.log('📝 HTML del criterio a insertar:', criterioHtml);
+  console.log('📊 Datos del criterio:', {
+    id: criterio.id,
+    nombre: criterio.nombre,
+    puntaje: criterio.puntaje,
+    puntajeMaximo: criterio.puntaje || 0
+  });
+  
   // Ocultar mensaje de "no hay criterios" si existe
   // Buscar específicamente dentro del contenedor de criterios
   const noCriteriosMsg = criteriosContainer.querySelector('.text-center');
@@ -4235,7 +4531,186 @@ function agregarCriterioAlDOM(criterio) {
   // Agregar el criterio al final del contenedor
   criteriosContainer.insertAdjacentHTML('beforeend', criterioHtml);
   
+  // Forzar la visibilidad del contenedor
+  criteriosContainer.style.display = 'block';
+  criteriosContainer.style.visibility = 'visible';
+  criteriosContainer.style.opacity = '1';
+  
+  // Forzar la visibilidad de todos los contenedores padres
+  let elementoPadre = criteriosContainer.parentElement;
+  while (elementoPadre && elementoPadre !== document.body) {
+    const estilos = window.getComputedStyle(elementoPadre);
+    if (estilos.display === 'none') {
+      elementoPadre.style.display = 'block';
+      console.log('🔧 Forzando display: block en:', elementoPadre.className || elementoPadre.tagName);
+    }
+    if (estilos.visibility === 'hidden') {
+      elementoPadre.style.visibility = 'visible';
+      console.log('🔧 Forzando visibility: visible en:', elementoPadre.className || elementoPadre.tagName);
+    }
+    elementoPadre = elementoPadre.parentElement;
+  }
+  
+  // Remover el mensaje inicial si existe
+  const mensajeInicial = criteriosContainer.querySelector('.text-muted.text-center');
+  if (mensajeInicial && mensajeInicial.textContent.includes('Contenedor de criterios creado')) {
+    mensajeInicial.remove();
+  }
+  
   console.log('✅ Criterio agregado al DOM exitosamente');
+  
+  // Verificar inmediatamente que el criterio esté en el contenedor
+  const criterioInmediato = criteriosContainer.querySelector(`[data-criterio-id="${criterio.id}"]`);
+  if (criterioInmediato) {
+    console.log('✅ Criterio verificado inmediatamente en el contenedor');
+    console.log('🔍 Contenedor actualizado:', criteriosContainer.innerHTML);
+    
+    // Verificar que el criterio sea visible
+    const estilosCriterio = window.getComputedStyle(criterioInmediato);
+    console.log('🔍 Estilos del criterio:', {
+      display: estilosCriterio.display,
+      visibility: estilosCriterio.visibility,
+      opacity: estilosCriterio.opacity,
+      height: criterioInmediato.offsetHeight,
+      width: criterioInmediato.offsetWidth,
+      visible: criterioInmediato.offsetParent !== null
+    });
+    
+    // Forzar la visibilidad del criterio si es necesario
+    if (estilosCriterio.display === 'none' || estilosCriterio.visibility === 'hidden') {
+      criterioInmediato.style.display = 'block';
+      criterioInmediato.style.visibility = 'visible';
+      console.log('🔧 Visibilidad del criterio forzada');
+    }
+  } else {
+    console.error('❌ El criterio no se encontró inmediatamente en el contenedor');
+  }
+  
+  // Verificar que el elemento se haya insertado correctamente
+  const criterioInsertado = criteriosContainer.querySelector(`[data-criterio-id="${criterio.id}"]`);
+  if (criterioInsertado) {
+    console.log('✅ Elemento del criterio verificado en el DOM:', criterioInsertado);
+    console.log('🔍 Atributos del criterio insertado:', {
+      'data-criterio-id': criterioInsertado.getAttribute('data-criterio-id'),
+      'data-criterio-puntaje-maximo': criterioInsertado.getAttribute('data-criterio-puntaje-maximo')
+    });
+    
+    // Verificar la posición del contenedor en la página
+    const rectContenedor = criteriosContainer.getBoundingClientRect();
+    const rectCriterio = criterioInsertado.getBoundingClientRect();
+    
+    console.log('🔍 Posición del contenedor:', {
+      top: rectContenedor.top,
+      left: rectContenedor.left,
+      width: rectContenedor.width,
+      height: rectContenedor.height,
+      visible: rectContenedor.width > 0 && rectContenedor.height > 0
+    });
+    
+    console.log('🔍 Posición del criterio:', {
+      top: rectCriterio.top,
+      left: rectCriterio.left,
+      width: rectCriterio.width,
+      height: rectCriterio.height,
+      visible: rectCriterio.width > 0 && rectCriterio.height > 0
+    });
+    
+    // Hacer scroll hacia el criterio si es necesario
+    if (rectCriterio.top < 0 || rectCriterio.bottom > window.innerHeight) {
+      criterioInsertado.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      console.log('🔧 Scroll hacia el criterio realizado');
+    }
+    
+      // Verificar que el criterio sea visible después de forzar la visibilidad
+  setTimeout(() => {
+    const rectCriterioFinal = criterioInsertado.getBoundingClientRect();
+    console.log('🔍 Posición final del criterio después de forzar visibilidad:', {
+      top: rectCriterioFinal.top,
+      left: rectCriterioFinal.left,
+      width: rectCriterioFinal.width,
+      height: rectCriterioFinal.height,
+      visible: rectCriterioFinal.width > 0 && rectCriterioFinal.height > 0
+    });
+    
+    if (rectCriterioFinal.width > 0 && rectCriterioFinal.height > 0) {
+      console.log('✅ Criterio ahora es visible en la pantalla');
+    } else {
+      console.warn('⚠️ El criterio aún no es visible, intentando forzar visibilidad adicional');
+      
+      // Verificar si hay CSS de Bootstrap o Material Kit que esté ocultando el elemento
+      const estilosComputados = window.getComputedStyle(criterioInsertado);
+      console.log('🔍 Estilos computados que podrían estar ocultando el elemento:', {
+        display: estilosComputados.display,
+        visibility: estilosComputados.visibility,
+        opacity: estilosComputados.opacity,
+        position: estilosComputados.position,
+        zIndex: estilosComputados.zIndex,
+        overflow: estilosComputados.overflow
+      });
+      
+      // Intentar forzar la visibilidad del criterio específicamente con estilos más agresivos
+      criterioInsertado.style.cssText = `
+        display: block !important; 
+        visibility: visible !important; 
+        opacity: 1 !important; 
+        position: relative !important; 
+        min-height: 100px !important; 
+        background-color: white !important; 
+        border: 2px solid #28a745 !important;
+        z-index: 9999 !important;
+        overflow: visible !important;
+      `;
+      
+      // También verificar si el contenedor padre tiene algún CSS que esté causando problemas
+      const contenedorPadre = criterioInsertado.parentElement;
+      if (contenedorPadre) {
+        contenedorPadre.style.cssText = `
+          display: block !important; 
+          visibility: visible !important; 
+          opacity: 1 !important; 
+          position: relative !important;
+          min-height: 200px !important;
+        `;
+      }
+      
+      console.log('🔧 Visibilidad forzada con estilos agresivos');
+    }
+  }, 100);
+    
+    // Esperar a que el DOM se actualice completamente antes de calcular puntajes
+    requestAnimationFrame(() => {
+      console.log('🔄 Ejecutando actualizarPuntajesMaximos después de agregar criterio...');
+      
+      // Verificar el estado del DOM antes de calcular
+      console.log('🔍 Estado del DOM antes de calcular puntajes:');
+      const criteriosEnDOM = document.querySelectorAll('.criterio-item');
+      criteriosEnDOM.forEach((item, index) => {
+        console.log(`  Criterio ${index + 1}:`, {
+          id: item.getAttribute('data-criterio-id'),
+          puntaje: item.getAttribute('data-criterio-puntaje-maximo'),
+          nombre: item.querySelector('h6')?.textContent
+        });
+      });
+      
+      const total = actualizarPuntajesMaximos();
+      console.log(`✅ Total de puntajes máximos calculado: ${total} puntos`);
+      
+      // Verificar que el total se haya calculado correctamente
+      if (total > 0) {
+        console.log('✅ Criterio agregado y puntajes calculados exitosamente');
+      } else {
+        console.warn('⚠️ El total de puntajes no se calculó correctamente');
+        // Intentar forzar la actualización después de un delay adicional
+        setTimeout(() => {
+          console.log('🔄 Intentando forzar actualización después de delay...');
+          const totalRetry = actualizarPuntajesMaximos();
+          console.log(`🔄 Total recalculado: ${totalRetry} puntos`);
+        }, 100);
+      }
+    });
+  } else {
+    console.error('❌ El criterio no se insertó correctamente en el DOM');
+  }
 }
 
 // Función para eliminar un criterio dinámicamente del DOM
@@ -4250,11 +4725,23 @@ function eliminarCriterioDelDOM(criterioId) {
       criterioElement.remove();
       console.log('✅ Criterio eliminado del DOM exitosamente');
       
+      // Actualizar los puntajes máximos después de eliminar el criterio
+      setTimeout(() => {
+        actualizarPuntajesMaximos();
+      }, 100);
+      
       // Verificar si quedan criterios
       const criteriosRestantes = document.querySelectorAll('.criterio-item');
       if (criteriosRestantes.length === 0) {
         // Mostrar mensaje de "no hay criterios"
-        const criteriosContainer = document.querySelector('.criterios-list');
+        let criteriosContainer = document.querySelector('.criterios-list');
+        
+        // Si no existe el contenedor, crearlo
+        if (!criteriosContainer) {
+          console.log('⚠️ Contenedor de criterios no encontrado al eliminar, creándolo...');
+          criteriosContainer = crearContenedorCriterios();
+        }
+        
         if (criteriosContainer) {
           const noCriteriosMsg = criteriosContainer.querySelector('.text-center');
           if (noCriteriosMsg && noCriteriosMsg.textContent.includes('No hay criterios')) {
@@ -4331,37 +4818,96 @@ function actualizarListaCriterios() {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      // Actualizar solo el contenedor de criterios
-      const criteriosContainer = document.querySelector('.criterios-list');
+      // Buscar el contenedor de criterios en diferentes contextos
+      let criteriosContainer = document.querySelector('.criterios-list');
+      let cardBody = document.querySelector('.card-body');
+      
+      if (!criteriosContainer && cardBody) {
+        // Si no hay contenedor de criterios directo, buscar dentro del card-body
+        criteriosContainer = cardBody.querySelector('.criterios-list');
+      }
+      
       if (criteriosContainer) {
+        // Actualizar el contenedor existente
         criteriosContainer.innerHTML = data.html;
         console.log('✅ Lista de criterios actualizada exitosamente');
+      } else if (cardBody) {
+        // Si no hay contenedor de criterios, crearlo automáticamente
+        console.log('⚠️ Contenedor de criterios no encontrado, creándolo automáticamente...');
+        criteriosContainer = crearContenedorCriterios();
         
-        // Restaurar los objetivos de aprendizaje si se perdieron
-        if (objetivosContainer && objetivosExistentes) {
-          objetivosContainer.innerHTML = objetivosExistentes;
-          console.log('✅ Objetivos de aprendizaje preservados en DOM');
-        }
-        
-        // Restaurar las variables globales de objetivos de aprendizaje
-        if (window.objetivosAprendizaje) {
-          window.objetivosAprendizaje = [...objetivosEnMemoria];
-          window.contadorObjetivos = contadorPreservado;
-          console.log('✅ Variables globales de objetivos restauradas:', window.objetivosAprendizaje);
+        if (criteriosContainer) {
+          // Ahora actualizar el contenedor recién creado
+          criteriosContainer.innerHTML = data.html;
+          console.log('✅ Lista de criterios actualizada en contenedor recién creado');
         } else {
-          objetivosAprendizaje = [...objetivosEnMemoria];
-          contadorObjetivos = contadorPreservado;
-          console.log('✅ Variables globales de objetivos restauradas:', objetivosAprendizaje);
+          // Si no se pudo crear, usar la lógica de fallback existente
+          // Si no hay contenedor de criterios, buscar el mensaje de "no hay criterios"
+          const noCriteriosMsg = cardBody.querySelector('.text-center.py-4');
+          const btnAgregar = cardBody.querySelector('button[onclick="abrirModalAgregarCriterio()"]');
+          
+          // Crear un div temporal para parsear el HTML
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = data.html;
+          
+          // Buscar los elementos en el HTML nuevo
+          const newCriteriosList = tempDiv.querySelector('.criterios-list');
+          const newNoCriteriosMsg = tempDiv.querySelector('.text-center.py-4');
+          const newBtnAgregar = tempDiv.querySelector('button[onclick="abrirModalAgregarCriterio()"]');
+          
+          if (newCriteriosList) {
+            // Si hay criterios en el nuevo HTML
+            if (noCriteriosMsg) {
+              // Reemplazar el mensaje con la lista
+              noCriteriosMsg.outerHTML = newCriteriosList.outerHTML;
+            } else {
+              // Insertar la lista antes del botón
+              cardBody.insertBefore(newCriteriosList, btnAgregar);
+            }
+          } else if (newNoCriteriosMsg) {
+            // Si no hay criterios en el nuevo HTML
+            if (criteriosContainer) {
+              // Reemplazar la lista con el mensaje
+              criteriosContainer.outerHTML = newNoCriteriosMsg.outerHTML;
+            } else if (noCriteriosMsg) {
+              // Actualizar el mensaje existente
+              noCriteriosMsg.outerHTML = newNoCriteriosMsg.outerHTML;
+            }
+          }
+          
+          // Actualizar o agregar el botón
+          if (btnAgregar && newBtnAgregar) {
+            btnAgregar.outerHTML = newBtnAgregar.outerHTML;
+          } else if (newBtnAgregar) {
+            cardBody.appendChild(newBtnAgregar);
+          }
+          
+          console.log('✅ Lista de criterios actualizada exitosamente');
         }
-        
-        // Actualizar los dropdowns de objetivos de aprendizaje en los modales
-        if (typeof window.actualizarDropdownsObjetivos === 'function') {
-          window.actualizarDropdownsObjetivos();
-        } else if (typeof actualizarDropdownsObjetivos === 'function') {
-          actualizarDropdownsObjetivos();
-        }
+      }
+      
+      // Restaurar los objetivos de aprendizaje si se perdieron
+      if (objetivosContainer && objetivosExistentes) {
+        objetivosContainer.innerHTML = objetivosExistentes;
+        console.log('✅ Objetivos de aprendizaje preservados en DOM');
+      }
+      
+      // Restaurar las variables globales de objetivos de aprendizaje
+      if (window.objetivosAprendizaje) {
+        window.objetivosAprendizaje = [...objetivosEnMemoria];
+        window.contadorObjetivos = contadorPreservado;
+        console.log('✅ Variables globales de objetivos restauradas:', window.objetivosAprendizaje);
       } else {
-        console.error('No se encontró el contenedor de criterios');
+        objetivosAprendizaje = [...objetivosEnMemoria];
+        contadorObjetivos = contadorPreservado;
+        console.log('✅ Variables globales de objetivos restauradas:', objetivosAprendizaje);
+      }
+      
+      // Actualizar los dropdowns de objetivos de aprendizaje en los modales
+      if (typeof window.actualizarDropdownsObjetivos === 'function') {
+        window.actualizarDropdownsObjetivos();
+      } else if (typeof actualizarDropdownsObjetivos === 'function') {
+        actualizarDropdownsObjetivos();
       }
     } else {
       console.error('Error al actualizar criterios:', data.error);
@@ -6130,6 +6676,17 @@ document.addEventListener('DOMContentLoaded', function() {
   // Inicializar mensajes cerrables
   inicializarMensajesCerrables();
   
+  // Inicializar cálculos de puntaje si estamos en la sección de calificaciones
+  inicializarCalculosPuntaje();
+  
+  // Event listener adicional para asegurar que los cálculos se ejecuten después de un reload
+  setTimeout(() => {
+    if (window.location.search.includes('seccion=calificaciones')) {
+      console.log('🔄 Página recargada en sección de calificaciones, ejecutando cálculos...');
+      inicializarCalculosPuntaje();
+    }
+  }, 1000);
+  
   // Event listener para búsqueda en tiempo real (admin)
   const buscarInput = document.getElementById('buscar-tickets');
   if (buscarInput) {
@@ -6149,8 +6706,815 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================================================
+// FUNCIONES PARA INICIALIZAR CÁLCULOS DE PUNTAJE
+// ============================================================================
+
+// Función para actualizar los puntajes máximos de los criterios
+function actualizarPuntajesMaximos() {
+  console.log('🔢 Actualizando puntajes máximos de criterios...');
+  
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    console.warn('⚠️ No se pudo determinar la evaluación, omitiendo actualización de puntajes');
+    return 0;
+  }
+  
+  console.log('🔍 Evaluación ID encontrada:', evaluacionId);
+  
+  // Buscar todos los elementos de criterio
+  let criteriosItems = document.querySelectorAll('.criterio-item');
+  console.log('📋 Criterios encontrados en el DOM:', criteriosItems.length);
+  
+  // También buscar en el contenedor específico de criterios
+  const criteriosContainer = document.querySelector('.criterios-list');
+  if (criteriosContainer) {
+    const criteriosEnContainer = criteriosContainer.querySelectorAll('.criterio-item');
+    console.log('📦 Criterios encontrados en contenedor específico:', criteriosEnContainer.length);
+    
+    // Si hay más criterios en el contenedor específico, usar esos
+    if (criteriosEnContainer.length > criteriosItems.length) {
+      criteriosItems = criteriosEnContainer;
+      console.log('🔄 Usando criterios del contenedor específico');
+    }
+  }
+  
+  if (criteriosItems.length === 0) {
+    console.log('⚠️ No se encontraron elementos de criterio en el DOM');
+    
+    // Intentar cargar desde el estado guardado
+    if (typeof cargarEstadoRubrica === 'function' && cargarEstadoRubrica(evaluacionId) && RUBRICA_STATE && RUBRICA_STATE.criterios && RUBRICA_STATE.criterios.length > 0) {
+      console.log('📂 Cargando criterios desde el estado guardado:', RUBRICA_STATE.criterios);
+      return RUBRICA_STATE.puntajeTotal;
+    }
+    
+    return 0;
+  }
+  
+  let puntajeTotal = 0;
+  const criteriosActualizados = [];
+  
+  criteriosItems.forEach((item, index) => {
+    const criterioId = item.getAttribute('data-criterio-id');
+    const puntajeMaximo = parseFloat(item.getAttribute('data-criterio-puntaje-maximo') || 0);
+    const nombre = item.querySelector('h6')?.textContent || `Criterio ${index + 1}`;
+    
+    console.log(`📊 Criterio ${index + 1}: ID=${criterioId}, Nombre="${nombre}", Puntaje=${puntajeMaximo}`);
+    console.log(`🔍 Elemento DOM:`, item);
+    console.log(`🔍 Atributo data-criterio-puntaje-maximo:`, item.getAttribute('data-criterio-puntaje-maximo'));
+    
+    puntajeTotal += puntajeMaximo;
+    
+    // Actualizar la lista de criterios para el estado
+    criteriosActualizados.push({
+      id: criterioId,
+      nombre: nombre,
+      puntaje: puntajeMaximo
+    });
+  });
+  
+  console.log(`✅ Puntaje total máximo calculado: ${puntajeTotal} puntos`);
+  console.log('📋 Criterios actualizados:', criteriosActualizados);
+  
+  // Actualizar el estado global
+  actualizarEstadoRubrica(evaluacionId, criteriosActualizados);
+  
+  // Crear o actualizar el elemento que muestra el total de puntajes máximos
+  let totalPuntajesElement = document.querySelector('.total-puntajes-maximos, .puntaje-total, [data-total-puntajes]');
+  console.log('🔍 Elemento de total existente:', totalPuntajesElement);
+  
+  if (!totalPuntajesElement) {
+    console.log('🆕 Creando nuevo elemento de total...');
+    // Si no existe, crearlo en el contenedor de criterios
+    const criteriosContainer = document.querySelector('.criterios-list');
+    console.log('📦 Contenedor de criterios:', criteriosContainer);
+    
+    if (criteriosContainer) {
+      // Crear un elemento para mostrar el total
+      const totalHtml = `
+        <div class="total-puntajes-maximos alert alert-info mt-3" data-total-puntajes="${puntajeTotal}">
+          <div class="d-flex justify-content-between align-items-center">
+            <strong>Total de Puntajes Máximos:</strong>
+            <span class="badge bg-primary fs-6">${puntajeTotal} puntos</span>
+          </div>
+        </div>
+      `;
+      
+      console.log('📝 HTML del total a insertar:', totalHtml);
+      
+      // Insertar al final del contenedor de criterios
+      criteriosContainer.insertAdjacentHTML('beforeend', totalHtml);
+      totalPuntajesElement = criteriosContainer.querySelector('.total-puntajes-maximos');
+      
+      console.log('✅ Elemento de total de puntajes creado:', totalPuntajesElement);
+    } else {
+      console.error('❌ No se pudo encontrar el contenedor de criterios');
+    }
+  } else {
+    console.log('🔄 Actualizando elemento de total existente...');
+    // Si existe, actualizarlo
+    const badge = totalPuntajesElement.querySelector('.badge');
+    if (badge) {
+      badge.textContent = `${puntajeTotal} puntos`;
+      console.log('✅ Badge actualizado:', badge.textContent);
+    }
+    totalPuntajesElement.setAttribute('data-total-puntajes', puntajeTotal);
+    console.log('✅ Atributo data-total-puntajes actualizado:', totalPuntajesElement.getAttribute('data-total-puntajes'));
+  }
+  
+  // Solo llamar a calcularNota si estamos en la vista de calificar estudiantes
+  // (donde existen los campos select de criterios)
+  const hayCamposCalificacion = document.querySelector('select[id^="id_criterio_"]') !== null ||
+                                document.querySelector('select[name^="criterio_"]') !== null;
+  
+  if (hayCamposCalificacion && typeof calcularNota === 'function') {
+    setTimeout(() => {
+      calcularNota();
+    }, 100);
+  }
+  
+  console.log('🎯 Función actualizarPuntajesMaximos completada. Total retornado:', puntajeTotal);
+  return puntajeTotal;
+}
+
+// Función para mostrar el total desde el estado guardado
+function mostrarTotalDesdeEstado(puntajeTotal) {
+  console.log('📂 Mostrando total desde estado guardado:', puntajeTotal);
+  
+  // Buscar el contenedor de criterios
+  const criteriosContainer = document.querySelector('.criterios-list');
+  if (!criteriosContainer) {
+    console.warn('⚠️ No se encontró contenedor de criterios para mostrar el total');
+    return;
+  }
+  
+  // Crear o actualizar el elemento que muestra el total
+  let totalPuntajesElement = document.querySelector('.total-puntajes-maximos, .puntaje-total, [data-total-puntajes]');
+  
+  if (!totalPuntajesElement) {
+    // Crear el elemento para mostrar el total
+    const totalHtml = `
+      <div class="total-puntajes-maximos alert alert-info mt-3" data-total-puntajes="${puntajeTotal}">
+        <div class="d-flex justify-content-between align-items-center">
+          <strong>Total de Puntajes Máximos (desde estado guardado):</strong>
+          <span class="badge bg-primary fs-6">${puntajeTotal} puntos</span>
+        </div>
+      </div>
+    `;
+    
+    // Insertar al final del contenedor de criterios
+    criteriosContainer.insertAdjacentHTML('beforeend', totalHtml);
+    totalPuntajesElement = criteriosContainer.querySelector('.total-puntajes-maximos');
+    
+    console.log('✅ Elemento de total de puntajes creado desde estado guardado');
+  } else {
+    // Actualizar el elemento existente
+    const badge = totalPuntajesElement.querySelector('.badge');
+    if (badge) {
+      badge.textContent = `${puntajeTotal} puntos`;
+    }
+    totalPuntajesElement.setAttribute('data-total-puntajes', puntajeTotal);
+    
+    console.log('✅ Elemento de total de puntajes actualizado desde estado guardado');
+  }
+}
+
+// Función de prueba para verificar el cálculo de puntajes (solo para desarrollo)
+function probarCalculoPuntajes() {
+  console.log('🧪 Probando cálculo de puntajes...');
+  
+  // Verificar elementos del DOM
+  const criteriosContainer = document.querySelector('.criterios-list');
+  console.log('📦 Contenedor de criterios:', criteriosContainer);
+  
+  const criteriosItems = document.querySelectorAll('.criterio-item');
+  console.log('📋 Elementos de criterio encontrados:', criteriosItems.length);
+  
+  criteriosItems.forEach((item, index) => {
+    const puntaje = item.getAttribute('data-criterio-puntaje-maximo');
+    const nombre = item.querySelector('h6')?.textContent || `Criterio ${index + 1}`;
+    console.log(`📊 Criterio ${index + 1}: "${nombre}" - ${puntaje} puntos`);
+  });
+  
+  // Verificar estado guardado
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  console.log('🔍 Evaluación ID:', evaluacionId);
+  
+  if (evaluacionId) {
+    const estadoCargado = cargarEstadoRubrica(evaluacionId);
+    console.log('📂 Estado cargado:', estadoCargado ? 'SÍ' : 'NO');
+    if (estadoCargado) {
+      console.log('📊 Estado actual:', RUBRICA_STATE);
+    }
+  }
+  
+  // Ejecutar la función principal
+  const total = actualizarPuntajesMaximos();
+  console.log(`🎯 Total calculado: ${total} puntos`);
+  
+  return total;
+}
+
+// Función para forzar la actualización de puntajes (útil para debugging)
+function forzarActualizacionPuntajes() {
+  console.log('🚀 Forzando actualización de puntajes...');
+  
+  // Verificar que estemos en la sección correcta
+  const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+  if (!seccionCalificaciones || !seccionCalificaciones.classList.contains('active')) {
+    console.error('❌ No estamos en la sección de calificaciones');
+    return false;
+  }
+  
+  // Verificar que haya criterios
+  const criteriosItems = document.querySelectorAll('.criterio-item');
+  if (criteriosItems.length === 0) {
+    console.error('❌ No hay criterios en el DOM');
+    return false;
+  }
+  
+  // Verificar que los criterios tengan los atributos correctos
+  let criteriosValidos = 0;
+  criteriosItems.forEach((item, index) => {
+    const puntaje = item.getAttribute('data-criterio-puntaje-maximo');
+    const id = item.getAttribute('data-criterio-id');
+    if (puntaje && id) {
+      criteriosValidos++;
+      console.log(`✅ Criterio ${index + 1}: ID=${id}, Puntaje=${puntaje}`);
+    } else {
+      console.error(`❌ Criterio ${index + 1} sin atributos válidos:`, item);
+    }
+  });
+  
+  if (criteriosValidos === 0) {
+    console.error('❌ No hay criterios válidos para calcular');
+    return false;
+  }
+  
+  console.log(`✅ ${criteriosValidos} criterios válidos encontrados, ejecutando actualización...`);
+  
+  // Ejecutar la actualización
+  const total = actualizarPuntajesMaximos();
+  console.log(`🎯 Total final: ${total} puntos`);
+  
+  return total > 0;
+}
+
+// Función para limpiar todo el estado y localStorage
+function limpiarTodoEstado() {
+  console.log('🧹 Limpiando todo el estado...');
+  
+  // Limpiar estado en memoria
+  limpiarEstadoRubrica();
+  
+  // Limpiar localStorage
+  try {
+    const keys = Object.keys(localStorage);
+    const rubricaKeys = keys.filter(key => key.startsWith('rubrica_'));
+    rubricaKeys.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`🗑️ Removido de localStorage: ${key}`);
+    });
+  } catch (error) {
+    console.warn('⚠️ Error al limpiar localStorage:', error);
+  }
+  
+  console.log('✅ Estado completamente limpiado');
+}
+
+// Hacer las funciones disponibles globalmente para pruebas
+window.probarCalculoPuntajes = probarCalculoPuntajes;
+window.forzarActualizacionPuntajes = forzarActualizacionPuntajes;
+window.limpiarTodoEstado = limpiarTodoEstado;
+window.RUBRICA_STATE = RUBRICA_STATE;
+window.debugDOMCriterios = debugDOMCriterios;
+window.obtenerPuntajesActualizadosDelBackend = obtenerPuntajesActualizadosDelBackend;
+
+// Función para inicializar los cálculos de puntaje cuando se carga la página
+function inicializarCalculosPuntaje() {
+  console.log('🔢 Inicializando cálculos de puntaje...');
+  
+  // Verificar si estamos en la sección de calificaciones
+  const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+  if (!seccionCalificaciones || !seccionCalificaciones.classList.contains('active')) {
+    console.log('⚠️ No estamos en la sección de calificaciones, omitiendo inicialización de puntajes');
+    return;
+  }
+  
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    console.log('⚠️ No se pudo determinar la evaluación, omitiendo inicialización de puntajes');
+    return;
+  }
+  
+  console.log(`✅ Evaluación ID encontrada: ${evaluacionId}, obteniendo puntajes actualizados del backend...`);
+  
+  // OPCIÓN 1: Cálculo Dinámico al Cargar la Página
+  // Hacer llamada AJAX al backend para obtener los puntajes actualizados
+  obtenerPuntajesActualizadosDelBackend(evaluacionId);
+}
+
+// Función para obtener los puntajes actualizados del backend (OPCIÓN 1)
+function obtenerPuntajesActualizadosDelBackend(evaluacionId) {
+  console.log('🔄 Obteniendo puntajes actualizados del backend para evaluación:', evaluacionId);
+  
+  // Hacer llamada AJAX al backend
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=obtener_puntajes_actualizados&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      console.log('✅ Puntajes actualizados obtenidos del backend:', data);
+      
+      // Actualizar el DOM con los puntajes correctos
+      actualizarPuntajesEnDOM(data.criterios);
+      
+      // Actualizar el estado local
+      actualizarEstadoRubrica(evaluacionId, data.criterios);
+      
+        // Mostrar el total actualizado
+  if (data.puntaje_total > 0) {
+    console.log(`✅ Total de puntajes actualizado: ${data.puntaje_total} puntos`);
+    mostrarTotalActualizado(data.puntaje_total);
+  }
+  
+  // Verificar que los criterios se estén mostrando correctamente
+  setTimeout(() => {
+    verificarVisualizacionCriterios();
+  }, 200);
+    } else {
+      console.warn('⚠️ No se pudieron obtener los puntajes del backend:', data.error);
+      // Fallback: usar el estado local
+      fallbackPuntajesLocales(evaluacionId);
+    }
+  })
+  .catch(error => {
+    console.error('❌ Error obteniendo puntajes del backend:', error);
+    // Fallback: usar el estado local
+    fallbackPuntajesLocales(evaluacionId);
+  });
+}
+
+// Función para actualizar los puntajes en el DOM con los datos del backend
+function actualizarPuntajesEnDOM(criterios) {
+  console.log('🔄 Actualizando puntajes en el DOM:', criterios);
+  
+  criterios.forEach(criterio => {
+    // Buscar el elemento del criterio en el DOM
+    const criterioElement = document.querySelector(`[data-criterio-id="${criterio.id}"]`);
+    if (criterioElement) {
+      console.log(`🔍 Actualizando criterio ${criterio.id} con puntaje: ${criterio.puntaje}`);
+      
+      // Actualizar el atributo data-criterio-puntaje-maximo
+      criterioElement.setAttribute('data-criterio-puntaje-maximo', criterio.puntaje);
+      
+      // Actualizar el badge de puntaje (buscar por clase y contenido)
+      const badges = criterioElement.querySelectorAll('.badge');
+      badges.forEach(badge => {
+        if (badge.classList.contains('bg-primary') || badge.textContent.includes('puntos')) {
+          badge.textContent = `${criterio.puntaje} puntos`;
+          console.log(`✅ Badge actualizado: ${badge.textContent}`);
+        }
+      });
+      
+      // Actualizar el texto de puntaje máximo (buscar por contexto)
+      const textosPuntaje = criterioElement.querySelectorAll('strong');
+      textosPuntaje.forEach(texto => {
+        // Verificar si este strong está en el contexto de puntaje máximo
+        const parentDiv = texto.closest('div');
+        if (parentDiv && parentDiv.textContent.includes('Puntaje máximo')) {
+          texto.textContent = criterio.puntaje;
+          console.log(`✅ Puntaje máximo actualizado: ${texto.textContent}`);
+        }
+      });
+      
+      // También actualizar cualquier otro elemento que contenga el puntaje
+      const elementosConPuntaje = criterioElement.querySelectorAll('*');
+      elementosConPuntaje.forEach(elemento => {
+        if (elemento.textContent && elemento.textContent.includes('0 puntos') && !elemento.textContent.includes('esperables')) {
+          elemento.textContent = elemento.textContent.replace('0 puntos', `${criterio.puntaje} puntos`);
+          console.log(`✅ Elemento con puntaje actualizado: ${elemento.textContent}`);
+        }
+      });
+      
+      console.log(`✅ Criterio ${criterio.id} completamente actualizado con puntaje: ${criterio.puntaje}`);
+      
+      // Verificar que la actualización se haya aplicado correctamente
+      const puntajeActualizado = criterioElement.getAttribute('data-criterio-puntaje-maximo');
+      console.log(`🔍 Verificación - Atributo data-criterio-puntaje-maximo: ${puntajeActualizado}`);
+      
+    } else {
+      console.warn(`⚠️ No se encontró el elemento del criterio ${criterio.id} en el DOM`);
+      
+      // Intentar buscar por otros selectores (método compatible)
+      const criteriosItems = document.querySelectorAll('.criterio-item');
+      let criterioAlternativo = null;
+      
+      for (const item of criteriosItems) {
+        const titulo = item.querySelector('h6');
+        if (titulo && titulo.textContent.trim() === criterio.nombre.trim()) {
+          criterioAlternativo = item;
+          break;
+        }
+      }
+      
+      if (criterioAlternativo) {
+        console.log(`🔄 Criterio encontrado por nombre alternativo: ${criterio.nombre}`);
+        // Actualizar este criterio
+        criterioAlternativo.setAttribute('data-criterio-id', criterio.id);
+        criterioAlternativo.setAttribute('data-criterio-puntaje-maximo', criterio.puntaje);
+        
+        // Actualizar el contenido visual
+        const badges = criterioAlternativo.querySelectorAll('.badge');
+        badges.forEach(badge => {
+          if (badge.classList.contains('bg-primary') || badge.textContent.includes('puntos')) {
+            badge.textContent = `${criterio.puntaje} puntos`;
+          }
+        });
+        
+        const textosPuntaje = criterioAlternativo.querySelectorAll('strong');
+        textosPuntaje.forEach(texto => {
+          const parentDiv = texto.closest('div');
+          if (parentDiv && parentDiv.textContent.includes('Puntaje máximo')) {
+            texto.textContent = criterio.puntaje;
+          }
+        });
+        
+        console.log(`✅ Criterio alternativo ${criterio.id} actualizado con puntaje: ${criterio.puntaje}`);
+      }
+    }
+  });
+  
+  // Verificar que todos los criterios se hayan actualizado correctamente
+  const criteriosActualizados = document.querySelectorAll('.criterio-item');
+  console.log(`🔍 Verificación final - Criterios en DOM: ${criteriosActualizados.length}`);
+  
+  criteriosActualizados.forEach((criterioElement, index) => {
+    const id = criterioElement.getAttribute('data-criterio-id');
+    const puntaje = criterioElement.getAttribute('data-criterio-puntaje-maximo');
+    const nombre = criterioElement.querySelector('h6')?.textContent || `Criterio ${index + 1}`;
+    
+    console.log(`  Criterio ${index + 1}: ID=${id}, Nombre="${nombre}", Puntaje=${puntaje}`);
+  });
+  
+  // Forzar la actualización visual de todos los criterios
+  forzarActualizacionVisualCriterios();
+}
+
+// Función para forzar la actualización visual de todos los criterios
+function forzarActualizacionVisualCriterios() {
+  console.log('🔄 Forzando actualización visual de todos los criterios...');
+  
+  const criteriosItems = document.querySelectorAll('.criterio-item');
+  criteriosItems.forEach((criterioElement, index) => {
+    const puntajeMaximo = criterioElement.getAttribute('data-criterio-puntaje-maximo');
+    
+    if (puntajeMaximo && puntajeMaximo !== '0') {
+      console.log(`🔧 Forzando actualización visual del criterio ${index + 1} con puntaje: ${puntajeMaximo}`);
+      
+      // Actualizar badges
+      const badges = criterioElement.querySelectorAll('.badge');
+      badges.forEach(badge => {
+        if (badge.classList.contains('bg-primary') || badge.textContent.includes('puntos')) {
+          badge.textContent = `${puntajeMaximo} puntos`;
+          badge.style.display = 'inline-block';
+          badge.style.visibility = 'visible';
+        }
+      });
+      
+      // Actualizar textos de puntaje máximo
+      const textosPuntaje = criterioElement.querySelectorAll('strong');
+      textosPuntaje.forEach(texto => {
+        const parentDiv = texto.closest('div');
+        if (parentDiv && parentDiv.textContent.includes('Puntaje máximo')) {
+          texto.textContent = puntajeMaximo;
+          texto.style.display = 'inline';
+          texto.style.visibility = 'visible';
+        }
+      });
+      
+      // Forzar visibilidad del criterio
+      criterioElement.style.display = 'block';
+      criterioElement.style.visibility = 'visible';
+      criterioElement.style.opacity = '1';
+      
+      console.log(`✅ Criterio ${index + 1} visualmente actualizado`);
+    }
+  });
+  
+  console.log('✅ Actualización visual de criterios completada');
+}
+
+// Función para verificar que los criterios se estén mostrando correctamente
+function verificarVisualizacionCriterios() {
+  console.log('🔍 Verificando visualización de criterios...');
+  
+  const criteriosItems = document.querySelectorAll('.criterio-item');
+  console.log(`📋 Total de criterios encontrados: ${criteriosItems.length}`);
+  
+  criteriosItems.forEach((criterioElement, index) => {
+    const id = criterioElement.getAttribute('data-criterio-id');
+    const puntaje = criterioElement.getAttribute('data-criterio-puntaje-maximo');
+    const nombre = criterioElement.querySelector('h6')?.textContent || `Criterio ${index + 1}`;
+    
+    // Verificar que el criterio sea visible
+    const estilos = window.getComputedStyle(criterioElement);
+    const rect = criterioElement.getBoundingClientRect();
+    
+    console.log(`🔍 Criterio ${index + 1}:`, {
+      id: id,
+      nombre: nombre,
+      puntaje: puntaje,
+      visible: estilos.display !== 'none' && estilos.visibility !== 'hidden',
+      display: estilos.display,
+      visibility: estilos.visibility,
+      opacity: estilos.opacity,
+      width: rect.width,
+      height: rect.height,
+      top: rect.top,
+      left: rect.left
+    });
+    
+    // Verificar que el puntaje se esté mostrando correctamente
+    const badge = criterioElement.querySelector('.badge.bg-primary');
+    const textoPuntaje = criterioElement.querySelector('strong');
+    
+    if (badge) {
+      console.log(`  Badge: "${badge.textContent}" (visible: ${badge.offsetParent !== null})`);
+    }
+    
+    if (textoPuntaje) {
+      console.log(`  Puntaje máximo: "${textoPuntaje.textContent}" (visible: ${textoPuntaje.offsetParent !== null})`);
+    }
+    
+    // Si el criterio no es visible, forzar su visibilidad
+    if (estilos.display === 'none' || estilos.visibility === 'hidden' || rect.width === 0 || rect.height === 0) {
+      console.log(`⚠️ Criterio ${index + 1} no es visible, forzando visibilidad...`);
+      
+      criterioElement.style.cssText = `
+        display: block !important; 
+        visibility: visible !important; 
+        opacity: 1 !important; 
+        position: relative !important; 
+        min-height: 100px !important; 
+        background-color: white !important; 
+        border: 2px solid #28a745 !important;
+        z-index: 9999 !important;
+      `;
+      
+      console.log(`✅ Visibilidad del criterio ${index + 1} forzada`);
+    }
+  });
+  
+  console.log('✅ Verificación de visualización completada');
+}
+
+// Función para hacer debug del DOM y ver qué está pasando
+function debugDOMCriterios() {
+  console.log('🐛 DEBUG: Analizando DOM de criterios...');
+  
+  const criteriosContainer = document.querySelector('.criterios-list');
+  if (criteriosContainer) {
+    console.log('📦 Contenedor de criterios encontrado:', criteriosContainer);
+    console.log('🔍 HTML del contenedor:', criteriosContainer.innerHTML);
+    console.log('🔍 Clases del contenedor:', criteriosContainer.className);
+    console.log('🔍 Estilos del contenedor:', criteriosContainer.style.cssText);
+    
+    const criteriosItems = criteriosContainer.querySelectorAll('.criterio-item');
+    console.log(`📋 Criterios en contenedor: ${criteriosItems.length}`);
+    
+    criteriosItems.forEach((criterio, index) => {
+      console.log(`🔍 Criterio ${index + 1}:`, {
+        elemento: criterio,
+        html: criterio.outerHTML,
+        clases: criterio.className,
+        estilos: criterio.style.cssText,
+        atributos: {
+          'data-criterio-id': criterio.getAttribute('data-criterio-id'),
+          'data-criterio-puntaje-maximo': criterio.getAttribute('data-criterio-puntaje-maximo')
+        }
+      });
+      
+      // Verificar elementos internos
+      const titulo = criterio.querySelector('h6');
+      const badge = criterio.querySelector('.badge.bg-primary');
+      const textoPuntaje = criterio.querySelector('strong');
+      
+      console.log(`  Título: ${titulo?.textContent || 'NO ENCONTRADO'}`);
+      console.log(`  Badge: ${badge?.textContent || 'NO ENCONTRADO'}`);
+      console.log(`  Puntaje máximo: ${textoPuntaje?.textContent || 'NO ENCONTRADO'}`);
+    });
+  } else {
+    console.log('❌ No se encontró contenedor de criterios');
+    
+    // Buscar criterios en todo el documento
+    const criteriosEnDocumento = document.querySelectorAll('.criterio-item');
+    console.log(`📋 Criterios en documento: ${criteriosEnDocumento.length}`);
+    
+    criteriosEnDocumento.forEach((criterio, index) => {
+      console.log(`🔍 Criterio ${index + 1} en documento:`, {
+        elemento: criterio,
+        parent: criterio.parentElement,
+        html: criterio.outerHTML
+      });
+    });
+  }
+  
+  console.log('🐛 DEBUG completado');
+}
+
+// Función para mostrar el total actualizado
+function mostrarTotalActualizado(puntajeTotal) {
+  console.log('🔄 Mostrando total actualizado:', puntajeTotal);
+  
+  // Buscar o crear el elemento de total
+  let totalElement = document.querySelector('.total-puntajes-maximos');
+  if (!totalElement) {
+    // Crear el elemento si no existe
+    const criteriosContainer = document.querySelector('.criterios-list');
+    if (criteriosContainer) {
+      const totalHtml = `
+        <div class="total-puntajes-maximos alert alert-info mt-3" data-total-puntajes="${puntajeTotal}">
+          <div class="d-flex justify-content-between align-items-center">
+            <strong>Total de Puntajes Máximos:</strong>
+            <span class="badge bg-primary fs-6">${puntajeTotal} puntos</span>
+          </div>
+        </div>
+      `;
+      criteriosContainer.insertAdjacentHTML('beforeend', totalHtml);
+      totalElement = criteriosContainer.querySelector('.total-puntajes-maximos');
+    }
+  } else {
+    // Actualizar el elemento existente
+    const badge = totalElement.querySelector('.badge');
+    if (badge) {
+      badge.textContent = `${puntajeTotal} puntos`;
+    }
+    totalElement.setAttribute('data-total-puntajes', puntajeTotal);
+  }
+  
+  console.log('✅ Total actualizado en el DOM');
+}
+
+// Función para mostrar el total desde el estado guardado
+function mostrarTotalDesdeEstado(puntajeTotal) {
+  console.log('🔄 Mostrando total desde estado guardado:', puntajeTotal);
+  
+  // Buscar o crear el elemento de total
+  let totalElement = document.querySelector('.total-puntajes-maximos');
+  if (!totalElement) {
+    // Crear el elemento si no existe
+    const criteriosContainer = document.querySelector('.criterios-list');
+    if (criteriosContainer) {
+      const totalHtml = `
+        <div class="total-puntajes-maximos alert alert-info mt-3" data-total-puntajes="${puntajeTotal}">
+          <div class="d-flex justify-content-between align-items-center">
+            <strong>Total de Puntajes Máximos (desde estado guardado):</strong>
+            <span class="badge bg-primary fs-6">${puntajeTotal} puntos</span>
+          </div>
+        </div>
+      `;
+      criteriosContainer.insertAdjacentHTML('beforeend', totalHtml);
+      totalElement = criteriosContainer.querySelector('.total-puntajes-maximos');
+    }
+  } else {
+    // Actualizar el elemento existente
+    const badge = totalElement.querySelector('.badge');
+    if (badge) {
+      badge.textContent = `${puntajeTotal} puntos`;
+    }
+    totalElement.setAttribute('data-total-puntajes', puntajeTotal);
+  }
+  
+  console.log('✅ Total desde estado guardado mostrado en el DOM');
+}
+
+// Función de fallback para usar puntajes locales si falla el backend
+function fallbackPuntajesLocales(evaluacionId) {
+  console.log('🔄 Usando fallback de puntajes locales para evaluación:', evaluacionId);
+  
+  // Intentar cargar el estado guardado
+  const estadoCargado = cargarEstadoRubrica(evaluacionId);
+  console.log('📂 Estado de rúbrica cargado (fallback):', estadoCargado ? 'SÍ' : 'NO');
+  
+  // Verificar si hay criterios en la página
+  const criteriosContainer = document.querySelector('.criterios-list');
+  if (!criteriosContainer) {
+    console.log('⚠️ No se encontró contenedor de criterios en fallback');
+    return;
+  }
+  
+  // Verificar si hay elementos de criterio
+  const criteriosItems = criteriosContainer.querySelectorAll('.criterio-item');
+  if (criteriosItems.length === 0) {
+    console.log('⚠️ No se encontraron criterios en el DOM (fallback)');
+    
+    // Si no hay criterios en el DOM pero hay estado guardado, mostrar el total
+    if (estadoCargado && RUBRICA_STATE.puntajeTotal > 0) {
+      console.log('📂 Mostrando total desde estado guardado (fallback):', RUBRICA_STATE.puntajeTotal);
+      mostrarTotalDesdeEstado(RUBRICA_STATE.puntajeTotal);
+    }
+    return;
+  }
+  
+  console.log(`✅ Encontrados ${criteriosItems.length} criterios en fallback, ejecutando cálculos locales...`);
+  
+  // Ejecutar cálculos locales como fallback
+  setTimeout(() => {
+    console.log('⏰ Ejecutando cálculos locales después de 500ms (fallback)...');
+    
+    // Forzar recálculo de puntajes máximos
+    const total = actualizarPuntajesMaximos();
+    console.log('📊 Total calculado en fallback:', total);
+    
+    // Solo llamar a calcularNota si estamos en la vista de calificar estudiantes
+    const hayCamposCalificacion = document.querySelector('select[id^="id_criterio_"]') !== null ||
+                                  document.querySelector('select[name^="criterio_"]') !== null;
+    
+    if (hayCamposCalificacion && typeof calcularNota === 'function') {
+      calcularNota();
+    }
+    
+    console.log('✅ Cálculos de puntaje inicializados correctamente en fallback. Total:', total);
+    
+    // Si no se calculó correctamente, intentar forzar
+    if (total === 0) {
+      console.warn('⚠️ Total no calculado correctamente en fallback, intentando forzar...');
+      setTimeout(() => {
+        forzarActualizacionPuntajes();
+      }, 1000);
+    }
+  }, 500);
+}
+
+// ============================================================================
 // FUNCIONES PARA MANEJAR EL CIERRE DE MENSAJES
 // ============================================================================
+
+// Función para manejar la recarga de la página y obtener puntajes actualizados
+function manejarRecargaPagina() {
+  console.log('🔄 Página recargada, verificando si estamos en sección de calificaciones...');
+  
+  // Verificar si estamos en la sección de calificaciones
+  const urlParams = new URLSearchParams(window.location.search);
+  const seccion = urlParams.get('seccion');
+  const action = urlParams.get('action');
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (seccion === 'calificaciones' && action === 'ver_rubrica' && evaluacionId) {
+    console.log('✅ Estamos en sección de calificaciones con rúbrica, obteniendo puntajes actualizados...');
+    
+    // Esperar a que el DOM esté completamente cargado
+    setTimeout(() => {
+      // Limpiar estado anterior
+      limpiarEstadoRubrica();
+      
+      // Obtener puntajes actualizados del backend
+      obtenerPuntajesActualizadosDelBackend(evaluacionId);
+    }, 500);
+  }
+}
+
+// Agregar event listener para cuando se carga la página
+document.addEventListener('DOMContentLoaded', manejarRecargaPagina);
+
+// Agregar event listener para navegación del navegador (botón atrás/adelante)
+window.addEventListener('popstate', function(event) {
+  console.log('🔄 Navegación del navegador detectada:', event);
+  
+  // Verificar si estamos en la sección de calificaciones
+  const urlParams = new URLSearchParams(window.location.search);
+  const seccion = urlParams.get('seccion');
+  const action = urlParams.get('action');
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (seccion === 'calificaciones' && action === 'ver_rubrica' && evaluacionId) {
+    console.log('✅ Navegación a sección de calificaciones con rúbrica, obteniendo puntajes actualizados...');
+    
+    // Esperar a que el DOM esté completamente cargado
+    setTimeout(() => {
+      // Limpiar estado anterior
+      limpiarEstadoRubrica();
+      
+      // Obtener puntajes actualizados del backend
+      obtenerPuntajesActualizadosDelBackend(evaluacionId);
+    }, 500);
+  }
+});
 
 // Función para hacer un mensaje cerrable
 function hacerMensajeCerrable(elemento) {
@@ -6822,7 +8186,6 @@ function calcularNota() {
     criterioFields = document.querySelectorAll('select[data-criterio-id]');
 
   }
-
   
   criterioFields.forEach(function(field) {
 
@@ -7866,21 +9229,13 @@ function inicializarFormularioEliminacionEvaluacion() {
       </div>
       <div class="modal-body">
         <form id="formObjetivo">
-          <div class="row">
-            <div class="col-md-6">
+                    <div class="row">
+            <div class="col-md-12">
               <div class="form-group mb-3">
                 <label for="objetivo_nombre" class="form-label required-field">Nombre del Objetivo</label>
                 <input type="text" class="form-control" id="objetivo_nombre" 
                        placeholder="Ej: Comprensión conceptual" required>
                 <small class="form-text text-muted">Nombre descriptivo y conciso del objetivo</small>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="form-group mb-3">
-                <label for="objetivo_orden" class="form-label">Orden</label>
-                <input type="number" class="form-control" id="objetivo_orden" 
-                       value="1" min="1" required>
-                <small class="form-text text-muted">Orden de aparición del objetivo</small>
               </div>
             </div>
           </div>

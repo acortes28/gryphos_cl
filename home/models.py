@@ -1031,7 +1031,6 @@ class Asignatura(models.Model):
                         rubrica=nueva_rubrica,
                         nombre=objetivo_origen.nombre,
                         descripcion=objetivo_origen.descripcion,
-                        orden=objetivo_origen.orden,
                         activo=objetivo_origen.activo
                     )
                     objetivos_mapping[objetivo_origen.id] = nuevo_objetivo
@@ -1043,7 +1042,6 @@ class Asignatura(models.Model):
                         nombre=criterio_origen.nombre,
                         objetivo=criterio_origen.objetivo,
                         puntaje=criterio_origen.puntaje,
-                        orden=criterio_origen.orden,
                         objetivo_aprendizaje=objetivos_mapping.get(criterio_origen.objetivo_aprendizaje.id) if criterio_origen.objetivo_aprendizaje else None
                     )
                     
@@ -1054,7 +1052,6 @@ class Asignatura(models.Model):
                             nivel=esperable_origen.nivel,
                             descripcion=esperable_origen.descripcion,
                             puntaje=esperable_origen.puntaje,
-                            orden=esperable_origen.orden
                         )
             
             # Copiar recursos si existen
