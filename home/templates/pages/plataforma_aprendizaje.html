@@ -1263,6 +1263,7 @@
                       </div>
                     </div>
                     {% endfor %}
+
                   </div>
                   <div class="mt-3">
                     <button class="btn btn-outline-warning btn-sm" onclick="cambiarSeccion('entregas')">
@@ -1614,8 +1615,15 @@ function eliminarObjetivo(objetivoId) {
     console.log('🔍 Response recibida para eliminar objetivo:', response);
     console.log('🔍 Response status para eliminar objetivo:', response.status);
     
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    if (response.status === 400) {
+      console.log("Paso por el 400!")
+      console.log("response", response)
+      return response.json().then(data => {
+        if (data.error && data.error.includes('criterio')) {
+          console.warn('⚠️ Objetivo de aprendizaje usado por algún criterio');
+        }
+        alert(data.error);
+      });
     }
     
     return response.text().then(text => {
@@ -1672,11 +1680,11 @@ function eliminarObjetivo(objetivoId) {
     }
   })
   .catch(error => {
+    console.log("error.message", error.message)
     console.error('❌ Error al eliminar objetivo de aprendizaje:', error);
     console.error('🔍 URL que falló:', url);
     console.error('🔍 Objetivo ID:', objetivoId);
     console.error('🔍 Evaluación ID:', evaluacionId);
-    alert('Error al eliminar objetivo de aprendizaje: ' + error.message);
   });
 }
 
@@ -3315,7 +3323,7 @@ function cargarRubrica(evaluacionId) {
         // Asegurar que el contenedor de criterios exista después de cargar la rúbrica
         setTimeout(() => {
           if (typeof crearContenedorCriterios === 'function') {
-            const criteriosContainer = document.querySelector('.criterios-list');
+            let criteriosContainer = document.querySelector('.criterios-list');
             if (!criteriosContainer) {
               console.log('🔧 Cargar rúbrica: Creando contenedor de criterios...');
               crearContenedorCriterios();
@@ -4544,7 +4552,17 @@ function guardarCriterio() {
       // Agregar el criterio dinámicamente al DOM
       if (data.criterio) {
         console.log('📥 Datos del criterio recibidos del servidor:', data.criterio);
-        agregarCriterioAlDOM(data.criterio);
+        
+        // Asegurar que el DOM esté listo antes de agregar el criterio
+        setTimeout(() => {
+          try {
+            agregarCriterioAlDOM(data.criterio);
+          } catch (error) {
+            console.error('Error al agregar criterio al DOM:', error);
+            // Fallback: recargar la página para mostrar el criterio
+            window.location.reload();
+          }
+        }, 100);
         
         // La función agregarCriterioAlDOM ahora maneja la actualización de puntajes internamente
         // No necesitamos llamar actualizarPuntajesMaximos aquí
@@ -4608,7 +4626,7 @@ function crearContenedorCriterios() {
   // Crear el contenedor de criterios
   const criteriosContainer = document.createElement('div');
   criteriosContainer.className = 'criterios-list';
-  criteriosContainer.style.cssText = 'border: 2px solid #007bff; padding: 15px; margin: 15px 0; background-color: #f8f9fa; min-height: 50px;';
+  criteriosContainer.style.cssText = 'border: 2px solid rgb(254, 254, 254); padding: 5px; margin: 5px 0; background-color: rgb(255, 255, 255); min-height: 10px;';
   
   // Insertar el contenedor antes del botón de agregar criterio
   const btnAgregar = contenedorCorrecto.querySelector('button[onclick="abrirModalAgregarCriterio()"]');
@@ -4622,7 +4640,7 @@ function crearContenedorCriterios() {
   }
   
   // Agregar un mensaje inicial para hacer el contenedor visible
-  criteriosContainer.innerHTML = '<div class="text-muted text-center">Contenedor de criterios creado - Los criterios aparecerán aquí</div>';
+  criteriosContainer.innerHTML = '<div class="text-muted text-center"></div>';
   
   console.log('🔍 Contenedor creado en:', criteriosContainer.parentElement);
   console.log('🔍 Posición en el DOM:', criteriosContainer);
@@ -4646,7 +4664,12 @@ function agregarCriterioAlDOM(criterio) {
   console.log('🔄 Agregando criterio al DOM:', criterio);
   
   // Buscar el contenedor de criterios
-  let criteriosContainer = document.querySelector('.criterios-list');
+  let criteriosContainer = null;
+  try {
+    criteriosContainer = document.querySelector('.criterios-list');
+  } catch (error) {
+    console.warn('⚠️ Error al buscar contenedor de criterios:', error);
+  }
   console.log('🔍 Contenedor de criterios encontrado:', criteriosContainer);
   
   // Si no existe, crearlo automáticamente
@@ -4738,7 +4761,7 @@ function agregarCriterioAlDOM(criterio) {
     <div class="criterio-item mb-3 p-3 border rounded" 
          data-criterio-id="${criterio.id}" 
          data-criterio-puntaje-maximo="${criterio.puntaje || 0}"
-         style="display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; min-height: 100px !important; background-color: white !important; border: 2px solid #28a745 !important;">
+         style="display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; min-height: 100px !important; background-color: white !important">
       <h6 class="mb-2">${criterio.nombre}</h6>
       <p class="text-muted small mb-2">${criterio.objetivo}</p>
       <div class="d-flex justify-content-between align-items-center mb-2">
@@ -4993,7 +5016,7 @@ function eliminarCriterioDelDOM(criterioId) {
           } else {
             // Crear mensaje si no existe
             const mensajeHtml = `
-              <div class="text-center py-4" data-mensaje="no-criterios">
+              <div id="no-criterios" class="text-center py-4">
                 <i class="fas fa-clipboard-list fa-2x text-muted mb-3"></i>
                 <p class="text-muted">No hay criterios agregados</p>
               </div>
@@ -6982,12 +7005,17 @@ document.addEventListener('DOMContentLoaded', function() {
 function actualizarPuntajesMaximos() {
   console.log('🔢 Actualizando puntajes máximos de criterios...');
   
-  // Obtener el evaluacion_id de la URL actual
-  const urlParams = new URLSearchParams(window.location.search);
-  const evaluacionId = urlParams.get('evaluacion_id');
-  
-  if (!evaluacionId) {
-    console.warn('⚠️ No se pudo determinar la evaluación, omitiendo actualización de puntajes');
+  try {
+    // Obtener el evaluacion_id de la URL actual
+    const urlParams = new URLSearchParams(window.location.search);
+    const evaluacionId = urlParams.get('evaluacion_id');
+    
+    if (!evaluacionId) {
+      console.warn('⚠️ No se pudo determinar la evaluación, omitiendo actualización de puntajes');
+      return 0;
+    }
+  } catch (error) {
+    console.error('❌ Error en actualizarPuntajesMaximos:', error);
     return 0;
   }
   
@@ -6998,7 +7026,13 @@ function actualizarPuntajesMaximos() {
   console.log('📋 Criterios encontrados en el DOM:', criteriosItems.length);
   
   // También buscar en el contenedor específico de criterios
-  const criteriosContainer = document.querySelector('.criterios-list');
+  let criteriosContainer = null;
+  try {
+    criteriosContainer = document.querySelector('.criterios-list');
+  } catch (error) {
+    console.warn('⚠️ Error al buscar contenedor de criterios:', error);
+  }
+  
   if (criteriosContainer) {
     const criteriosEnContainer = criteriosContainer.querySelectorAll('.criterio-item');
     console.log('📦 Criterios encontrados en contenedor específico:', criteriosEnContainer.length);
@@ -7057,7 +7091,12 @@ function actualizarPuntajesMaximos() {
   if (!totalPuntajesElement) {
     console.log('🆕 Creando nuevo elemento de total...');
     // Si no existe, crearlo en el contenedor de criterios
-    const criteriosContainer = document.querySelector('.criterios-list');
+    let criteriosContainer = null;
+    try {
+      criteriosContainer = document.querySelector('.criterios-list');
+    } catch (error) {
+      console.warn('⚠️ Error al buscar contenedor de criterios para total:', error);
+    }
     console.log('📦 Contenedor de criterios:', criteriosContainer);
     
     if (criteriosContainer) {
@@ -7113,7 +7152,7 @@ function mostrarTotalDesdeEstado(puntajeTotal) {
   console.log('📂 Mostrando total desde estado guardado:', puntajeTotal);
   
   // Buscar el contenedor de criterios
-  const criteriosContainer = document.querySelector('.criterios-list');
+  let criteriosContainer = document.querySelector('.criterios-list');
   if (!criteriosContainer) {
     console.warn('⚠️ No se encontró contenedor de criterios para mostrar el total');
     return;
@@ -7155,7 +7194,7 @@ function probarCalculoPuntajes() {
   console.log('🧪 Probando cálculo de puntajes...');
   
   // Verificar elementos del DOM
-  const criteriosContainer = document.querySelector('.criterios-list');
+  let criteriosContainer = document.querySelector('.criterios-list');
   console.log('📦 Contenedor de criterios:', criteriosContainer);
   
   const criteriosItems = document.querySelectorAll('.criterio-item');
@@ -8054,7 +8093,7 @@ function handleObjetivoChange(event) {
 function debugDOMCriterios() {
   console.log('🐛 DEBUG: Analizando DOM de criterios...');
   
-  const criteriosContainer = document.querySelector('.criterios-list');
+  let criteriosContainer = document.querySelector('.criterios-list');
   if (criteriosContainer) {
     console.log('📦 Contenedor de criterios encontrado:', criteriosContainer);
     console.log('🔍 HTML del contenedor:', criteriosContainer.innerHTML);
@@ -8112,7 +8151,7 @@ function mostrarTotalActualizado(puntajeTotal) {
   let totalElement = document.querySelector('.total-puntajes-maximos');
   if (!totalElement) {
     // Crear el elemento si no existe
-    const criteriosContainer = document.querySelector('.criterios-list');
+    let criteriosContainer = document.querySelector('.criterios-list');
     if (criteriosContainer) {
       const totalHtml = `
         <div class="total-puntajes-maximos alert alert-info mt-3" data-total-puntajes="${puntajeTotal}">
@@ -8145,7 +8184,7 @@ function mostrarTotalDesdeEstado(puntajeTotal) {
   let totalElement = document.querySelector('.total-puntajes-maximos');
   if (!totalElement) {
     // Crear el elemento si no existe
-    const criteriosContainer = document.querySelector('.criterios-list');
+    let criteriosContainer = document.querySelector('.criterios-list');
     if (criteriosContainer) {
       const totalHtml = `
         <div class="total-puntajes-maximos alert alert-info mt-3" data-total-puntajes="${puntajeTotal}">
@@ -8179,7 +8218,7 @@ function fallbackPuntajesLocales(evaluacionId) {
   console.log('📂 Estado de rúbrica cargado (fallback):', estadoCargado ? 'SÍ' : 'NO');
   
   // Verificar si hay criterios en la página
-  const criteriosContainer = document.querySelector('.criterios-list');
+  let criteriosContainer = document.querySelector('.criterios-list');
   if (!criteriosContainer) {
     console.log('⚠️ No se encontró contenedor de criterios en fallback');
     return;
