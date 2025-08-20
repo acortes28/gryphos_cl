@@ -1525,20 +1525,12 @@ function agregarObjetivo() {
                    placeholder="Ej: Comprensión conceptual" required>
           </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-8">
           <div class="form-group mb-2">
             <label class="form-label small">Descripción</label>
             <textarea class="form-control form-control-sm" rows="2" 
                       name="objetivos[${objetivoId}][descripcion]" 
                       placeholder="Descripción del objetivo" required></textarea>
-          </div>
-        </div>
-        <div class="col-md-2">
-          <div class="form-group mb-2">
-            <label class="form-label small">Orden</label>
-            <input type="number" class="form-control form-control-sm" 
-                   name="objetivos[${objetivoId}][orden]" 
-                   value="${contadorObjetivos}" min="1" required>
           </div>
         </div>
       </div>
@@ -1839,6 +1831,27 @@ function mostrarMensaje(mensaje, tipo = 'info') {
       }
     }, 3000);
   }
+}
+
+function mostrarMensajes(mensaje, tipo) {
+  
+  const url = `/mostrar-mensaje/${encodeURIComponent(mensaje)}/${tipo}/`;
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('🔄 Respuesta del servidor:', data);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
+
 }
 
 // Función para cargar objetivos de aprendizaje en el modal de editar criterio
@@ -4120,6 +4133,11 @@ let esperablesListEditar = [];
 
 // Funciones para el modal de criterios
 function abrirModalAgregarCriterio() {
+
+  // Limpiar el formulario
+  const form = document.getElementById('formAgregarCriterio');
+  form.reset();
+
   // Limpiar la lista de esperables
   esperablesList = [];
   actualizarListaEsperables();
@@ -4426,17 +4444,15 @@ function guardarCriterio() {
   // Validar campos requeridos
   const nombre = formData.get('nombre');
   const objetivo = formData.get('objetivo');
-  const puntaje = formData.get('puntaje');
   const objetivoAprendizaje = formData.get('objetivo_aprendizaje');
   
   console.log('🔍 Datos del formulario:', {
     nombre,
     objetivo,
-    puntaje,
     objetivoAprendizaje
   });
   
-  if (!nombre || !objetivo || !puntaje) {
+  if (!nombre || !objetivo || !objetivoAprendizaje) {
     alert('Por favor completa todos los campos obligatorios.');
     return;
   }
@@ -4444,12 +4460,6 @@ function guardarCriterio() {
   // Validar que haya al menos un esperable
   if (esperablesList.length === 0) {
     alert('Debe agregar al menos un esperable.');
-    return;
-  }
-  
-  // Validar que el puntaje sea un número válido
-  if (isNaN(puntaje) || parseFloat(puntaje) < 0) {
-    alert('El puntaje debe ser un número válido mayor o igual a 0.');
     return;
   }
   
@@ -5261,9 +5271,9 @@ function guardarCriterioEditado() {
   // Validar campos requeridos
   const nombre = formData.get('nombre');
   const objetivo = formData.get('objetivo');
-  const puntaje = formData.get('puntaje');
+  const objetivoAprendizaje = formData.get('objetivo_aprendizaje');
   
-  if (!nombre || !objetivo || !puntaje) {
+  if (!nombre || !objetivo || !objetivoAprendizaje) {
     alert('Por favor completa todos los campos obligatorios.');
     return;
   }
@@ -5271,12 +5281,6 @@ function guardarCriterioEditado() {
   // Validar que haya al menos un esperable
   if (esperablesListEditar.length === 0) {
     alert('Debe agregar al menos un esperable.');
-    return;
-  }
-  
-  // Validar que el puntaje sea un número válido
-  if (isNaN(puntaje) || parseFloat(puntaje) < 0) {
-    alert('El puntaje debe ser un número válido mayor o igual a 0.');
     return;
   }
   
@@ -5443,6 +5447,52 @@ function cerrarModalYRedirigir() {
   
   // Redirigir a la página de calificaciones
   cargarCalificaciones();
+}
+
+function guardarCambiosRubrica() {
+  console.log('🔄 Guardando cambios de la rúbrica');
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  const nombre = document.getElementById('nombre').value;
+
+  console.log('🔄 Evaluación ID:', evaluacionId);
+  console.log('🔄 Nombre:', nombre);
+
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+
+  if (!nombre) {
+    alert('Error: No se pudo determinar el nombre de la rúbrica. Por favor, ingresa un nombre.');
+    return;
+  }
+
+  const url = `/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/guardar-cambios-rubrica/${evaluacionId}/${encodeURIComponent(nombre)}/`
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Cambios guardados exitosamente');
+      cargarCalificaciones();
+    } else {
+      alert('Error al guardar los cambios de la rúbrica: ' + (data.error || 'Error desconocido'));
+      cargarCalificaciones();
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error al guardar los cambios de la rúbrica: ' + (error || 'Error desconocido'));
+    cargarCalificaciones();
+  });
 }
 
 // ============================================================================
@@ -7084,53 +7134,6 @@ function actualizarPuntajesMaximos() {
   // Actualizar el estado global
   actualizarEstadoRubrica(evaluacionId, criteriosActualizados);
   
-  // Crear o actualizar el elemento que muestra el total de puntajes máximos
-  let totalPuntajesElement = document.querySelector('.total-puntajes-maximos, .puntaje-total, [data-total-puntajes]');
-  console.log('🔍 Elemento de total existente:', totalPuntajesElement);
-  
-  if (!totalPuntajesElement) {
-    console.log('🆕 Creando nuevo elemento de total...');
-    // Si no existe, crearlo en el contenedor de criterios
-    let criteriosContainer = null;
-    try {
-      criteriosContainer = document.querySelector('.criterios-list');
-    } catch (error) {
-      console.warn('⚠️ Error al buscar contenedor de criterios para total:', error);
-    }
-    console.log('📦 Contenedor de criterios:', criteriosContainer);
-    
-    if (criteriosContainer) {
-      // Crear un elemento para mostrar el total
-      const totalHtml = `
-        <div class="total-puntajes-maximos alert alert-info mt-3" data-total-puntajes="${puntajeTotal}">
-          <div class="d-flex justify-content-between align-items-center">
-            <strong>Total de Puntajes Máximos:</strong>
-            <span class="badge bg-primary fs-6">${puntajeTotal} puntos</span>
-          </div>
-        </div>
-      `;
-      
-      console.log('📝 HTML del total a insertar:', totalHtml);
-      
-      // Insertar al final del contenedor de criterios
-      criteriosContainer.insertAdjacentHTML('beforeend', totalHtml);
-      totalPuntajesElement = criteriosContainer.querySelector('.total-puntajes-maximos');
-      
-      console.log('✅ Elemento de total de puntajes creado:', totalPuntajesElement);
-    } else {
-      console.error('❌ No se pudo encontrar el contenedor de criterios');
-    }
-  } else {
-    console.log('🔄 Actualizando elemento de total existente...');
-    // Si existe, actualizarlo
-    const badge = totalPuntajesElement.querySelector('.badge');
-    if (badge) {
-      badge.textContent = `${puntajeTotal} puntos`;
-      console.log('✅ Badge actualizado:', badge.textContent);
-    }
-    totalPuntajesElement.setAttribute('data-total-puntajes', puntajeTotal);
-    console.log('✅ Atributo data-total-puntajes actualizado:', totalPuntajesElement.getAttribute('data-total-puntajes'));
-  }
   
   // Solo llamar a calcularNota si estamos en la vista de calificar estudiantes
   // (donde existen los campos select de criterios)
@@ -7145,48 +7148,6 @@ function actualizarPuntajesMaximos() {
   
   console.log('🎯 Función actualizarPuntajesMaximos completada. Total retornado:', puntajeTotal);
   return puntajeTotal;
-}
-
-// Función para mostrar el total desde el estado guardado
-function mostrarTotalDesdeEstado(puntajeTotal) {
-  console.log('📂 Mostrando total desde estado guardado:', puntajeTotal);
-  
-  // Buscar el contenedor de criterios
-  let criteriosContainer = document.querySelector('.criterios-list');
-  if (!criteriosContainer) {
-    console.warn('⚠️ No se encontró contenedor de criterios para mostrar el total');
-    return;
-  }
-  
-  // Crear o actualizar el elemento que muestra el total
-  let totalPuntajesElement = document.querySelector('.total-puntajes-maximos, .puntaje-total, [data-total-puntajes]');
-  
-  if (!totalPuntajesElement) {
-    // Crear el elemento para mostrar el total
-    const totalHtml = `
-      <div class="total-puntajes-maximos alert alert-info mt-3" data-total-puntajes="${puntajeTotal}">
-        <div class="d-flex justify-content-between align-items-center">
-          <strong>Total de Puntajes Máximos (desde estado guardado):</strong>
-          <span class="badge bg-primary fs-6">${puntajeTotal} puntos</span>
-        </div>
-      </div>
-    `;
-    
-    // Insertar al final del contenedor de criterios
-    criteriosContainer.insertAdjacentHTML('beforeend', totalHtml);
-    totalPuntajesElement = criteriosContainer.querySelector('.total-puntajes-maximos');
-    
-    console.log('✅ Elemento de total de puntajes creado desde estado guardado');
-  } else {
-    // Actualizar el elemento existente
-    const badge = totalPuntajesElement.querySelector('.badge');
-    if (badge) {
-      badge.textContent = `${puntajeTotal} puntos`;
-    }
-    totalPuntajesElement.setAttribute('data-total-puntajes', puntajeTotal);
-    
-    console.log('✅ Elemento de total de puntajes actualizado desde estado guardado');
-  }
 }
 
 // Función de prueba para verificar el cálculo de puntajes (solo para desarrollo)
@@ -7362,7 +7323,6 @@ function obtenerPuntajesActualizadosDelBackend(evaluacionId) {
         // Mostrar el total actualizado
   if (data.puntaje_total > 0) {
     console.log(`✅ Total de puntajes actualizado: ${data.puntaje_total} puntos`);
-    mostrarTotalActualizado(data.puntaje_total);
   }
   
   // Verificar que los criterios se estén mostrando correctamente
@@ -7604,12 +7564,6 @@ function cerrarModalObjetivo() {
   if (modalObjetivo) {
     modalObjetivo.hide();
   }
-  
-  // Volver a mostrar el modal de criterio
-  setTimeout(() => {
-    const modalCriterio = new bootstrap.Modal(document.getElementById('modalAgregarCriterio'));
-    modalCriterio.show();
-  }, 500);
 }
 
 // Función para mostrar el formulario de nuevo objetivo de aprendizaje
@@ -7950,22 +7904,13 @@ function actualizarListaObjetivosVisual(objetivos) {
                    required>
           </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-8">
           <div class="form-group mb-2">
             <label class="form-label small">Descripción</label>
             <textarea class="form-control form-control-sm" rows="2" 
                       name="objetivos[${objetivo.id}][descripcion]" 
                       placeholder="Descripción del objetivo" 
                       required>${objetivo.descripcion}</textarea>
-          </div>
-        </div>
-        <div class="col-md-2">
-          <div class="form-group mb-2">
-            <label class="form-label small">Orden</label>
-            <input type="number" class="form-control form-control-sm" 
-                   name="objetivos[${objetivo.id}][orden]" 
-                   value="1" min="1" 
-                   required>
           </div>
         </div>
       </div>
@@ -7991,12 +7936,6 @@ function actualizarDropdownConObjetivos(dropdown, objetivos) {
   
   // Limpiar opciones existentes
   dropdown.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
-  
-  // Agregar opción para crear nuevo objetivo
-  const opcionNuevo = document.createElement('option');
-  opcionNuevo.value = 'nuevo';
-  opcionNuevo.textContent = '➕ Crear nuevo objetivo';
-  dropdown.appendChild(opcionNuevo);
   
   // Agregar objetivos existentes
   objetivos.forEach(objetivo => {
@@ -8143,72 +8082,6 @@ function debugDOMCriterios() {
   console.log('🐛 DEBUG completado');
 }
 
-// Función para mostrar el total actualizado
-function mostrarTotalActualizado(puntajeTotal) {
-  console.log('🔄 Mostrando total actualizado:', puntajeTotal);
-  
-  // Buscar o crear el elemento de total
-  let totalElement = document.querySelector('.total-puntajes-maximos');
-  if (!totalElement) {
-    // Crear el elemento si no existe
-    let criteriosContainer = document.querySelector('.criterios-list');
-    if (criteriosContainer) {
-      const totalHtml = `
-        <div class="total-puntajes-maximos alert alert-info mt-3" data-total-puntajes="${puntajeTotal}">
-          <div class="d-flex justify-content-between align-items-center">
-            <strong>Total de Puntajes Máximos:</strong>
-            <span class="badge bg-primary fs-6">${puntajeTotal} puntos</span>
-          </div>
-        </div>
-      `;
-      criteriosContainer.insertAdjacentHTML('beforeend', totalHtml);
-      totalElement = criteriosContainer.querySelector('.total-puntajes-maximos');
-    }
-  } else {
-    // Actualizar el elemento existente
-    const badge = totalElement.querySelector('.badge');
-    if (badge) {
-      badge.textContent = `${puntajeTotal} puntos`;
-    }
-    totalElement.setAttribute('data-total-puntajes', puntajeTotal);
-  }
-  
-  console.log('✅ Total actualizado en el DOM');
-}
-
-// Función para mostrar el total desde el estado guardado
-function mostrarTotalDesdeEstado(puntajeTotal) {
-  console.log('🔄 Mostrando total desde estado guardado:', puntajeTotal);
-  
-  // Buscar o crear el elemento de total
-  let totalElement = document.querySelector('.total-puntajes-maximos');
-  if (!totalElement) {
-    // Crear el elemento si no existe
-    let criteriosContainer = document.querySelector('.criterios-list');
-    if (criteriosContainer) {
-      const totalHtml = `
-        <div class="total-puntajes-maximos alert alert-info mt-3" data-total-puntajes="${puntajeTotal}">
-          <div class="d-flex justify-content-between align-items-center">
-            <strong>Total de Puntajes Máximos (desde estado guardado):</strong>
-            <span class="badge bg-primary fs-6">${puntajeTotal} puntos</span>
-          </div>
-        </div>
-      `;
-      criteriosContainer.insertAdjacentHTML('beforeend', totalHtml);
-      totalElement = criteriosContainer.querySelector('.total-puntajes-maximos');
-    }
-  } else {
-    // Actualizar el elemento existente
-    const badge = totalElement.querySelector('.badge');
-    if (badge) {
-      badge.textContent = `${puntajeTotal} puntos`;
-    }
-    totalElement.setAttribute('data-total-puntajes', puntajeTotal);
-  }
-  
-  console.log('✅ Total desde estado guardado mostrado en el DOM');
-}
-
 // Función de fallback para usar puntajes locales si falla el backend
 function fallbackPuntajesLocales(evaluacionId) {
   console.log('🔄 Usando fallback de puntajes locales para evaluación:', evaluacionId);
@@ -8232,7 +8105,6 @@ function fallbackPuntajesLocales(evaluacionId) {
     // Si no hay criterios en el DOM pero hay estado guardado, mostrar el total
     if (estadoCargado && RUBRICA_STATE.puntajeTotal > 0) {
       console.log('📂 Mostrando total desde estado guardado (fallback):', RUBRICA_STATE.puntajeTotal);
-      mostrarTotalDesdeEstado(RUBRICA_STATE.puntajeTotal);
     }
     return;
   }
@@ -10039,7 +9911,7 @@ function inicializarFormularioEliminacionEvaluacion() {
             <div class="col-md-12">
               <div class="form-group mb-3">
                 <label for="objetivo_nombre" class="form-label required-field">Nombre del Objetivo</label>
-                <input type="text" class="form-control" id="objetivo_nombre" 
+                <input type="text" class="form-control" id="objetivo_nombre" autocomplete="off"
                        placeholder="Ej: Comprensión conceptual" required>
                 <small class="form-text text-muted">Nombre descriptivo y conciso del objetivo</small>
               </div>

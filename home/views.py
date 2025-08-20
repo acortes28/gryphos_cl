@@ -459,6 +459,19 @@ def portal_cliente(request):
         logger.error(f"Traceback completo: {traceback.format_exc()}")
         raise
 
+def mostrar_mensaje(request, mensaje, tipo='info'):
+    """
+    Función para mostrar un mensaje en la página
+    """
+    if tipo == 'success':
+        messages.success(request, mensaje)
+    elif tipo == 'info':
+        messages.info(request, mensaje)
+    elif tipo == 'warning':
+        messages.warning(request, mensaje)
+    elif tipo == 'error':
+        messages.error(request, mensaje)
+    return render(request, 'pages/plataforma_calificaciones_content.html', {'mensaje': mensaje, 'tipo': tipo})
 
 def debug_session(request):
     """
@@ -4702,24 +4715,12 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
         # Obtener datos del formulario
         nombre = request.POST.get('nombre')
         objetivo = request.POST.get('objetivo')
-        puntaje = request.POST.get('puntaje')
         objetivo_aprendizaje_id = request.POST.get('objetivo_aprendizaje')
         esperables_data = request.POST.getlist('esperables[]')
         
-        logger.info(f"Datos recibidos - Nombre: {nombre}, Objetivo: {objetivo}, Puntaje: {puntaje}, Objetivo Aprendizaje ID: {objetivo_aprendizaje_id}, Esperables: {len(esperables_data)}")
-        
-        if not nombre or not objetivo or not puntaje:
+        if not nombre or not objetivo:
             logger.error("Campos obligatorios faltantes")
-            return JsonResponse({'error': 'Nombre, objetivo y puntaje son campos obligatorios'}, status=400)
-        
-        try:
-            puntaje_decimal = float(puntaje)
-            if puntaje_decimal < 0:
-                logger.error(f"Puntaje negativo: {puntaje_decimal}")
-                return JsonResponse({'error': 'El puntaje debe ser un número positivo'}, status=400)
-        except ValueError:
-            logger.error(f"Puntaje inválido: {puntaje}")
-            return JsonResponse({'error': 'El puntaje debe ser un número válido'}, status=400)
+            return JsonResponse({'error': 'Nombre y objetivo son campos obligatorios'}, status=400)
         
         # Obtener el objetivo de aprendizaje si se especificó
         objetivo_aprendizaje = None
@@ -4876,7 +4877,6 @@ def obtener_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
             'id': criterio.id,
             'nombre': str(criterio.nombre),
             'objetivo': str(criterio.objetivo),
-            'puntaje': float(puntaje_total),
             'objetivo_aprendizaje_id': criterio.objetivo_aprendizaje.id if criterio.objetivo_aprendizaje else None,
             'objetivo_aprendizaje_nombre': str(criterio.objetivo_aprendizaje.nombre) if criterio.objetivo_aprendizaje else None,
             'esperables': [
@@ -4967,24 +4967,12 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
         # Obtener datos del formulario
         nombre = request.POST.get('nombre')
         objetivo = request.POST.get('objetivo')
-        puntaje = request.POST.get('puntaje')
         objetivo_aprendizaje_id = request.POST.get('objetivo_aprendizaje')
         esperables_data = request.POST.getlist('esperables[]')
         
-        logger.info(f"Datos recibidos - Nombre: {nombre}, Objetivo: {objetivo}, Puntaje: {puntaje}, Objetivo Aprendizaje ID: {objetivo_aprendizaje_id}, Esperables: {len(esperables_data)}")
-        
-        if not nombre or not objetivo or not puntaje:
+        if not nombre or not objetivo or not objetivo_aprendizaje_id:
             logger.error("Campos obligatorios faltantes")
-            return JsonResponse({'error': 'Nombre, objetivo y puntaje son campos obligatorios'}, status=400)
-        
-        try:
-            puntaje_decimal = float(puntaje)
-            if puntaje_decimal < 0:
-                logger.error(f"Puntaje negativo: {puntaje_decimal}")
-                return JsonResponse({'error': 'El puntaje debe ser un número positivo'}, status=400)
-        except ValueError:
-            logger.error(f"Puntaje inválido: {puntaje}")
-            return JsonResponse({'error': 'El puntaje debe ser un número válido'}, status=400)
+            return JsonResponse({'error': 'Nombre, objetivo y objetivo de aprendizaje son campos obligatorios'}, status=400)
         
         # Obtener el objetivo de aprendizaje si se especificó
         objetivo_aprendizaje = None
@@ -5000,7 +4988,6 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
         # Actualizar el criterio
         criterio.nombre = nombre
         criterio.objetivo = objetivo
-        criterio.puntaje = puntaje_decimal
         criterio.objetivo_aprendizaje = objetivo_aprendizaje
         criterio.save()
         
@@ -5092,6 +5079,37 @@ def eliminar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
     criterio.delete()
     
     return JsonResponse({'success': True})
+
+@login_required
+def guardar_cambios_rubrica(request, curso_id, evaluacion_id, nombre):
+    """
+    Vista AJAX para guardar los cambios de la rúbrica
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        curso = get_object_or_404(Curso, id=curso_id)
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+        rubrica = get_object_or_404(Rubrica, evaluacion=evaluacion)
+
+        # Verificar permisos
+        if not request.user.is_staff and evaluacion.creado_por != request.user:
+            return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+
+        # Actualizar el nombre de la rúbrica
+        rubrica.nombre = nombre
+
+        # Guardar los cambios
+        rubrica.save()
+        return JsonResponse({'success': True, 'message': 'Cambios guardados exitosamente'})
+
+
+    except Exception as e:
+        logger.error(f"Error inesperado en guardar_cambios_rubrica: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return JsonResponse({'error': 'Error interno del servidor. Por favor, intenta nuevamente.'}, status=500)
+
 
 @login_required
 def reasignar_ticket(request):
@@ -6845,10 +6863,6 @@ def plataforma_calificaciones_spa(request, curso_id):
         return redirect('user_space')
     
     else:
-        # Si no hay acción específica o la acción no es reconocida, cargar la vista por defecto
-        logger.debug(f"DEBUG: No hay acción específica o acción no reconocida: {action}")
-        logger.debug(f"DEBUG: Cargando vista por defecto de calificaciones")
-        
         # Cargar vista por defecto de calificaciones
         evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('-fecha_creacion')
         
