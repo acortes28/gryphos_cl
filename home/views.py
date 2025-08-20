@@ -10,7 +10,7 @@ from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket, Asignatura, Recurso
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket, Asignatura, Recurso, ObjetivoAprendizaje
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -40,6 +40,13 @@ import io
 logger = logging.getLogger(__name__)
 
 User = get_user_model()  # Obtener el modelo de usuario personalizado
+
+def get_plataforma_calificaciones_url(curso_id):
+    """
+    Función auxiliar para generar la URL correcta de calificaciones
+    que apunte a la plataforma principal con seccion=calificaciones
+    """
+    return reverse('plataforma_aprendizaje', kwargs={'curso_id': curso_id}) + '?seccion=calificaciones'
 
 def generate_registration_link(request):
     if request.user.is_superuser:
@@ -452,6 +459,19 @@ def portal_cliente(request):
         logger.error(f"Traceback completo: {traceback.format_exc()}")
         raise
 
+def mostrar_mensaje(request, mensaje, tipo='info'):
+    """
+    Función para mostrar un mensaje en la página
+    """
+    if tipo == 'success':
+        messages.success(request, mensaje)
+    elif tipo == 'info':
+        messages.info(request, mensaje)
+    elif tipo == 'warning':
+        messages.warning(request, mensaje)
+    elif tipo == 'error':
+        messages.error(request, mensaje)
+    return render(request, 'pages/plataforma_calificaciones_content.html', {'mensaje': mensaje, 'tipo': tipo})
 
 def debug_session(request):
     """
@@ -1228,10 +1248,151 @@ def plataforma_aprendizaje(request, curso_id):
         action = request.GET.get('action')
         post_id = request.GET.get('post_id')
         
+        # Obtener datos según el tipo de usuario
+        if request.user.is_staff:
+            # Datos para staff/admin - estadísticas generales del curso
+            total_estudiantes = curso.usuarios.filter(is_staff=False).count()
+            total_evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).count()
+            total_recursos = Recurso.objects.filter(evaluacion__curso=curso, activo=True).count()
+            total_entregas_pendientes = Entrega.objects.filter(
+                evaluacion__curso=curso,
+                estado='pendiente'
+            ).count()
+            
+            # Evaluaciones recientes para administrar
+            evaluaciones_recientes = Evaluacion.objects.filter(curso=curso, activa=True).order_by('-fecha_creacion')[:5]
+            
+            # Entregas recientes para revisar
+            entregas_recientes = Entrega.objects.filter(
+                evaluacion__curso=curso
+            ).order_by('-fecha_entrega')[:5]
+            
+            # Recursos recientes
+            recursos_recientes = Recurso.objects.filter(
+                evaluacion__curso=curso,
+                activo=True
+            ).order_by('-fecha_creacion')[:5]
+            
+            # Variables para estudiantes (vacías para staff)
+            ultima_calificacion = None
+            ultimo_recurso = None
+            entregas_pendientes = []
+            calificaciones_recientes = []
+            
+        else:
+            # Datos para estudiantes regulares
+            # Última calificación del usuario
+            ultima_calificacion = None
+            try:
+                ultima_calificacion = Calificacion.objects.filter(
+                    evaluacion__curso=curso,
+                    estudiante=request.user,
+                    nota__isnull=False
+                ).order_by('-fecha_calificacion').first()
+            except:
+                pass
+            
+            # Último recurso subido
+            ultimo_recurso = None
+            try:
+                ultimo_recurso = Recurso.objects.filter(
+                    evaluacion__curso=curso,
+                    activo=True
+                ).order_by('-fecha_creacion').first()
+            except:
+                pass
+            
+            # Entregas pendientes del usuario (evaluaciones activas sin entrega)
+            entregas_pendientes = []
+            try:
+                # Obtener evaluaciones activas del curso que han comenzado y no han vencido
+                evaluaciones_activas = Evaluacion.objects.filter(
+                    curso=curso,
+                    activa=True
+                ).filter(
+                    fecha_inicio__lte=timezone.now().date()  # Solo evaluaciones que ya han comenzado
+                ).exclude(
+                    fecha_fin__lt=timezone.now().date()  # Excluir evaluaciones vencidas
+                ).order_by('fecha_fin')  # Ordenar por fecha de fin más cercana
+                
+                # Para cada evaluación activa, verificar si el usuario tiene una entrega
+                for evaluacion in evaluaciones_activas:
+                    entrega_existente = Entrega.objects.filter(
+                        evaluacion=evaluacion,
+                        estudiante=request.user
+                    ).first()
+                    
+                    # Solo agregar si no tiene entrega O si tiene una entrega con estado 'pendiente'
+                    if not entrega_existente:
+                        # No tiene entrega, agregar a la lista
+                        class EntregaPendiente:
+                            def __init__(self, evaluacion):
+                                self.evaluacion = evaluacion
+                                self.estado = 'pendiente'
+                        
+                        entregas_pendientes.append(EntregaPendiente(evaluacion))
+                    elif entrega_existente.estado == 'pendiente':
+                        # Tiene entrega pero está pendiente, agregar a la lista
+                        class EntregaPendiente:
+                            def __init__(self, evaluacion):
+                                self.evaluacion = evaluacion
+                                self.estado = 'pendiente'
+                        
+                        entregas_pendientes.append(EntregaPendiente(evaluacion))
+                    
+                    # Limitar a 5 entregas pendientes
+                    if len(entregas_pendientes) >= 5:
+                        break
+            except Exception as e:
+                print(f"Error obteniendo entregas pendientes: {e}")
+                pass
+            
+            # Obtener calificaciones recientes para mostrar en el dashboard
+            calificaciones_recientes = []
+            try:
+                calificaciones_recientes = Calificacion.objects.filter(
+                    evaluacion__curso=curso,
+                    estudiante=request.user,
+                    nota__isnull=False
+                ).order_by('-fecha_calificacion')[:5]  # Últimas 5 calificaciones
+            except Exception as e:
+                print(f"Error obteniendo calificaciones recientes: {e}")
+                pass
+            
+            # Obtener recursos recientes para mostrar en el dashboard
+            recursos_recientes = []
+            try:
+                recursos_recientes = Recurso.objects.filter(
+                    evaluacion__curso=curso,
+                    activo=True
+                ).order_by('-fecha_creacion')[:5]  # Últimos 5 recursos
+            except Exception as e:
+                print(f"Error obteniendo recursos recientes: {e}")
+                pass
+            
+            # Variables para staff (vacías para estudiantes)
+            total_estudiantes = 0
+            total_evaluaciones = 0
+            total_recursos = 0
+            total_entregas_pendientes = 0
+            evaluaciones_recientes = []
+            entregas_recientes = []
+        
         # Definir el contexto base
         context = {
             'curso': curso,
             'seccion_activa': seccion_activa,
+            'ultima_calificacion': ultima_calificacion,
+            'ultimo_recurso': ultimo_recurso,
+            'entregas_pendientes': entregas_pendientes,
+            'calificaciones_recientes': calificaciones_recientes,
+            'recursos_recientes': recursos_recientes,
+            'total_estudiantes': total_estudiantes,
+            'total_evaluaciones': total_evaluaciones,
+            'total_recursos': total_recursos,
+            'total_entregas_pendientes': total_entregas_pendientes,
+            'evaluaciones_recientes': evaluaciones_recientes,
+            'entregas_recientes': entregas_recientes,
         }
         
         # Si hay una acción específica, manejar según el tipo
@@ -2340,7 +2501,7 @@ def crear_evaluacion(request, curso_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para crear evaluaciones.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     if request.method == 'POST':
         form = EvaluacionForm(request.POST, curso=curso)
@@ -2545,7 +2706,7 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para calificar estudiantes.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Obtener estudiantes del curso que tienen entregas para esta evaluación (no staff/admin)
     estudiantes_con_entregas = User.objects.filter(
@@ -2562,7 +2723,7 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
     # Si no hay estudiantes con entregas, mostrar mensaje
     if not estudiantes_con_entregas.exists():
         messages.warning(request, f'No hay estudiantes con entregas para la evaluación "{evaluacion.nombre}". Solo se pueden calificar estudiantes que hayan entregado su trabajo.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     if request.method == 'POST':
         form = CalificacionForm(request.POST, curso=curso, evaluacion=evaluacion, estudiantes_con_entregas=estudiantes_disponibles_para_calificar)
@@ -2578,7 +2739,7 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
             # Verificar que la evaluación tenga una rúbrica
             if not hasattr(evaluacion, 'rubrica') or not evaluacion.rubrica:
                 messages.error(request, f'La evaluación "{evaluacion.nombre}" no tiene una rúbrica asociada. Debes crear una rúbrica antes de calificar.')
-                return redirect('plataforma_calificaciones', curso_id=curso_id)
+                return redirect(get_plataforma_calificaciones_url(curso_id))
             
             calificacion = form.save(commit=False)
             calificacion.evaluacion = evaluacion
@@ -2712,7 +2873,7 @@ def calificar_estudiante(request, curso_id, evaluacion_id):
                     
                     messages.success(request, f'Calificación registrada para {calificacion.estudiante.get_full_name()}.')
                 
-                return redirect('plataforma_calificaciones', curso_id=curso_id)
+                return redirect(get_plataforma_calificaciones_url(curso_id))
                 
             except Exception as e:
                 messages.error(request, f'Error al guardar la calificación: {str(e)}')
@@ -2786,12 +2947,12 @@ def ver_calificacion_detalle(request, curso_id, calificacion_id):
     # Verificar que el usuario tenga acceso a esta calificación
     if not request.user.is_staff and calificacion.estudiante != request.user:
         messages.error(request, 'No tienes acceso a esta calificación.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Verificar que la calificación pertenezca al curso
     if calificacion.evaluacion.curso != curso:
         messages.error(request, 'La calificación no pertenece a este curso.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Obtener la rúbrica asociada a la evaluación si existe
     rubrica = None
@@ -2821,14 +2982,14 @@ def ver_calificacion_detalle(request, curso_id, calificacion_id):
                         puntaje_obtenido = puntaje_criterio.puntaje_obtenido
                         
                         # Buscar coincidencia exacta primero
-                        for esperable in criterio.esperables.all():
+                        for esperable in criterio.get_esperables_ordenados():
                             if esperable.puntaje == puntaje_obtenido:
                                 esperable_correcto = esperable
                                 break
                         
                         # Si no hay coincidencia exacta, buscar el esperable más cercano
                         if esperable_correcto is None:
-                            esperables_ordenados = list(criterio.esperables.all().order_by('puntaje'))
+                            esperables_ordenados = list(criterio.get_esperables_ordenados())
                             for i, esperable in enumerate(esperables_ordenados):
                                 if esperable.puntaje >= puntaje_obtenido:
                                     esperable_correcto = esperable
@@ -2882,7 +3043,7 @@ def estadisticas_curso(request, curso_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para ver estadísticas del curso.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Obtener todas las calificaciones del curso
     calificaciones = Calificacion.objects.filter(evaluacion__curso=curso, nota__isnull=False)
@@ -2952,7 +3113,7 @@ def exportar_calificaciones_excel(request, curso_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para exportar calificaciones.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Obtener todas las calificaciones del curso con información relacionada
     calificaciones = Calificacion.objects.filter(
@@ -3143,8 +3304,8 @@ def exportar_calificaciones_excel(request, curso_id):
                         # Información de la rúbrica
                         ws_detalle.cell(row=row_detalle, column=6, value=rubrica.id)
                         ws_detalle.cell(row=row_detalle, column=7, value=rubrica.nombre)
-                        ws_detalle.cell(row=row_detalle, column=8, value=rubrica.objetivo)
-                        ws_detalle.cell(row=row_detalle, column=9, value=rubrica.aprendizaje_esperado)
+                        ws_detalle.cell(row=row_detalle, column=8, value='')
+                        ws_detalle.cell(row=row_detalle, column=9, value='')
                         
                         # Información del criterio
                         ws_detalle.cell(row=row_detalle, column=10, value=criterio.id)
@@ -3189,8 +3350,8 @@ def exportar_calificaciones_excel(request, curso_id):
                         # Información de la rúbrica
                         ws_detalle.cell(row=row_detalle, column=6, value=rubrica.id)
                         ws_detalle.cell(row=row_detalle, column=7, value=rubrica.nombre)
-                        ws_detalle.cell(row=row_detalle, column=8, value=rubrica.objetivo)
-                        ws_detalle.cell(row=row_detalle, column=9, value=rubrica.aprendizaje_esperado)
+                        ws_detalle.cell(row=row_detalle, column=8, value='')
+                        ws_detalle.cell(row=row_detalle, column=9, value='')
                         
                         # Información del criterio
                         ws_detalle.cell(row=row_detalle, column=10, value=criterio.id)
@@ -3256,7 +3417,7 @@ def eliminar_evaluacion(request, curso_id, evaluacion_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para eliminar evaluaciones.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Verificar si la evaluación tiene calificaciones
     tiene_calificaciones = evaluacion.calificaciones.exists()
@@ -3267,7 +3428,7 @@ def eliminar_evaluacion(request, curso_id, evaluacion_id):
             nombre_evaluacion = evaluacion.nombre
             evaluacion.delete()
             messages.success(request, f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.')
-            return redirect('plataforma_calificaciones', curso_id=curso_id)
+            return redirect(get_plataforma_calificaciones_url(curso_id))
         
         # Si tiene calificaciones, verificar confirmación
         confirmacion = request.POST.get('confirmacion', '').strip()
@@ -3285,7 +3446,7 @@ def eliminar_evaluacion(request, curso_id, evaluacion_id):
         nombre_evaluacion = evaluacion.nombre
         evaluacion.delete()
         messages.success(request, f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Si es GET, mostrar página de confirmación
     context = {
@@ -3307,7 +3468,7 @@ def editar_evaluacion(request, curso_id, evaluacion_id):
     # Verificar permisos
     if not request.user.is_staff:
         messages.error(request, 'No tienes permisos para editar evaluaciones.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     if request.method == 'POST':
         form = EvaluacionForm(request.POST, instance=evaluacion, curso=curso)
@@ -3317,7 +3478,7 @@ def editar_evaluacion(request, curso_id, evaluacion_id):
             evaluacion.curso = curso
             evaluacion.save()
             messages.success(request, f'Evaluación "{evaluacion.nombre}" actualizada exitosamente.')
-            return redirect('plataforma_calificaciones', curso_id=curso_id)
+            return redirect(get_plataforma_calificaciones_url(curso_id))
     else:
         form = EvaluacionForm(instance=evaluacion, curso=curso)
     
@@ -3359,12 +3520,12 @@ def editar_calificacion(request):
         # Verificar que la calificación pertenezca a la evaluación correcta
         if calificacion.evaluacion != evaluacion:
             messages.error(request, 'La calificación no pertenece a esta evaluación.')
-            return redirect('plataforma_calificaciones', curso_id=evaluacion.curso.id)
+            return redirect(get_plataforma_calificaciones_url(evaluacion.curso.id))
         
         # Verificar que el estudiante esté inscrito en el curso
         if estudiante not in evaluacion.curso.usuarios.all():
             messages.error(request, 'El estudiante no está inscrito en este curso.')
-            return redirect('plataforma_calificaciones', curso_id=evaluacion.curso.id)
+            return redirect(get_plataforma_calificaciones_url(evaluacion.curso.id))
         
         # Validar la nota
         try:
@@ -3457,7 +3618,7 @@ def editar_calificacion(request):
         
     except Exception as e:
         messages.error(request, f'Error al actualizar la calificación: {str(e)}')
-        return redirect('plataforma_calificaciones', curso_id=evaluacion.curso.id)
+        return redirect(get_plataforma_calificaciones_url(evaluacion.curso.id))
 
 @login_required
 def limpiar_retroalimentaciones(request):
@@ -3543,8 +3704,16 @@ def plataforma_entregas_ajax(request, curso_id):
             entrega = form.save(commit=False)
             entrega.evaluacion = evaluacion
             entrega.estudiante = user
+            
+            # Verificar si la entrega es tardía
+            from django.utils import timezone
+            if evaluacion.fecha_fin and timezone.now().date() > evaluacion.fecha_fin:
+                entrega.estado = 'tardio'
+            else:
+                entrega.estado = 'entregado'
+            
             entrega.save()
-            logger.debug("DEBUG: Entrega guardada exitosamente")
+            logger.debug(f"DEBUG: Entrega guardada exitosamente con estado: {entrega.estado}")
             messages.success(request, 'Entrega subida correctamente.')
         else:
             logger.debug("DEBUG: Formulario inválido")
@@ -4313,7 +4482,7 @@ def crear_rubrica(request, curso_id, evaluacion_id):
     # Verificar que el usuario tenga permisos (staff o creador de la evaluación)
     if not request.user.is_staff and evaluacion.creado_por != request.user:
         messages.error(request, 'No tienes permisos para crear rúbricas para esta evaluación.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Verificar si ya existe una rúbrica para esta evaluación
     if hasattr(evaluacion, 'rubrica'):
@@ -4323,20 +4492,40 @@ def crear_rubrica(request, curso_id, evaluacion_id):
     if request.method == 'POST':
         # Procesar el formulario de creación de rúbrica
         nombre = request.POST.get('nombre')
-        descripcion = request.POST.get('descripcion')
-        objetivo = request.POST.get('objetivo')
-        aprendizaje_esperado = request.POST.get('aprendizaje_esperado')
         
-        if nombre and objetivo and aprendizaje_esperado:
+        if nombre:
             # Crear la rúbrica
             rubrica = Rubrica.objects.create(
                 evaluacion=evaluacion,
                 nombre=nombre,
-                descripcion=descripcion,
-                objetivo=objetivo,
-                aprendizaje_esperado=aprendizaje_esperado,
                 creado_por=request.user
             )
+            
+            # Procesar objetivos de aprendizaje si existen
+            objetivos_data = {}
+            for key, value in request.POST.items():
+                if key.startswith('objetivos[') and ']' in key:
+                    # Extraer el índice y el campo del nombre del campo
+                    # Ejemplo: objetivos[1][nombre] -> índice=1, campo=nombre
+                    import re
+                    match = re.match(r'objetivos\[(\d+)\]\[(\w+)\]', key)
+                    if match:
+                        index = match.group(1)
+                        field = match.group(2)
+                        if index not in objetivos_data:
+                            objetivos_data[index] = {}
+                        objetivos_data[index][field] = value
+            
+            # Crear los objetivos de aprendizaje
+            for index, data in objetivos_data.items():
+                if data.get('nombre') and data.get('descripcion'):
+                    ObjetivoAprendizaje.objects.create(
+                        rubrica=rubrica,
+                        nombre=data['nombre'],
+                        descripcion=data['descripcion'],
+                        orden=data.get('orden', 1),
+                        activo=True
+                    )
             
             messages.success(request, 'Rúbrica creada exitosamente. Ahora puedes agregar criterios.')
             return redirect('editar_rubrica', curso_id=curso_id, evaluacion_id=evaluacion_id)
@@ -4364,14 +4553,14 @@ def editar_rubrica(request, curso_id, evaluacion_id):
     # Verificar que el usuario tenga permisos
     if not request.user.is_staff and evaluacion.creado_por != request.user:
         messages.error(request, 'No tienes permisos para editar rúbricas para esta evaluación.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Obtener la rúbrica
     try:
         rubrica = evaluacion.rubrica
     except Rubrica.DoesNotExist:
         messages.error(request, 'No se encontró una rúbrica para esta evaluación.')
-        return redirect('plataforma_calificaciones', curso_id=curso_id)
+        return redirect(get_plataforma_calificaciones_url(curso_id))
     
     # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
     from datetime import date
@@ -4386,16 +4575,57 @@ def editar_rubrica(request, curso_id, evaluacion_id):
     if request.method == 'POST' and puede_editar:
         # Procesar actualización de la rúbrica
         nombre = request.POST.get('nombre')
-        descripcion = request.POST.get('descripcion')
-        objetivo = request.POST.get('objetivo')
-        aprendizaje_esperado = request.POST.get('aprendizaje_esperado')
         
-        if nombre and objetivo and aprendizaje_esperado:
+        if nombre:
             rubrica.nombre = nombre
-            rubrica.descripcion = descripcion
-            rubrica.objetivo = objetivo
-            rubrica.aprendizaje_esperado = aprendizaje_esperado
             rubrica.save()
+            
+            # Procesar objetivos de aprendizaje
+            objetivos_data = {}
+            for key, value in request.POST.items():
+                if key.startswith('objetivos[') and ']' in key:
+                    # Extraer el índice y el campo del nombre del campo
+                    import re
+                    match = re.match(r'objetivos\[(\w+)\]\[(\w+)\]', key)
+                    if match:
+                        index = match.group(1)
+                        field = match.group(2)
+                        if index not in objetivos_data:
+                            objetivos_data[index] = {}
+                        objetivos_data[index][field] = value
+            
+            # Actualizar o crear objetivos de aprendizaje
+            for index, data in objetivos_data.items():
+                if data.get('nombre') and data.get('descripcion'):
+                    # Si el índice empieza con 'nuevo_', es un objetivo nuevo
+                    if index.startswith('nuevo_'):
+                        ObjetivoAprendizaje.objects.create(
+                            rubrica=rubrica,
+                            nombre=data['nombre'],
+                            descripcion=data['descripcion'],
+                            orden=data.get('orden', 1),
+                            activo=True
+                        )
+                    else:
+                        # Es un objetivo existente, actualizarlo
+                        try:
+                            objetivo = ObjetivoAprendizaje.objects.get(
+                                id=index, 
+                                rubrica=rubrica
+                            )
+                            objetivo.nombre = data['nombre']
+                            objetivo.descripcion = data['descripcion']
+                            objetivo.orden = data.get('orden', 1)
+                            objetivo.save()
+                        except ObjetivoAprendizaje.DoesNotExist:
+                            # Si no existe, crear uno nuevo
+                            ObjetivoAprendizaje.objects.create(
+                                rubrica=rubrica,
+                                nombre=data['nombre'],
+                                descripcion=data['descripcion'],
+                                orden=data.get('orden', 1),
+                                activo=True
+                            )
             
             # Verificar si es una petición AJAX
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -4478,39 +4708,78 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
             # Crear una rúbrica automáticamente si no existe
             rubrica = Rubrica.objects.create(
                 evaluacion=evaluacion,
-                nombre=f"Rúbrica de {evaluacion.nombre}",
-                descripcion=f"Rúbrica automáticamente generada para la evaluación '{evaluacion.nombre}'"
+                nombre=f"Rúbrica de {evaluacion.nombre}"
             )
             logger.info(f"Rúbrica creada con ID: {rubrica.id}")
         
         # Obtener datos del formulario
         nombre = request.POST.get('nombre')
         objetivo = request.POST.get('objetivo')
-        puntaje = request.POST.get('puntaje')
+        objetivo_aprendizaje_id = request.POST.get('objetivo_aprendizaje')
         esperables_data = request.POST.getlist('esperables[]')
         
-        logger.info(f"Datos recibidos - Nombre: {nombre}, Objetivo: {objetivo}, Puntaje: {puntaje}, Esperables: {len(esperables_data)}")
-        
-        if not nombre or not objetivo or not puntaje:
+        if not nombre or not objetivo:
             logger.error("Campos obligatorios faltantes")
-            return JsonResponse({'error': 'Nombre, objetivo y puntaje son campos obligatorios'}, status=400)
+            return JsonResponse({'error': 'Nombre y objetivo son campos obligatorios'}, status=400)
         
-        try:
-            puntaje_decimal = float(puntaje)
-            if puntaje_decimal < 0:
-                logger.error(f"Puntaje negativo: {puntaje_decimal}")
-                return JsonResponse({'error': 'El puntaje debe ser un número positivo'}, status=400)
-        except ValueError:
-            logger.error(f"Puntaje inválido: {puntaje}")
-            return JsonResponse({'error': 'El puntaje debe ser un número válido'}, status=400)
+        # Obtener el objetivo de aprendizaje si se especificó
+        objetivo_aprendizaje = None
+        
+        # Verificar si hay un objetivo temporal (nuevo objetivo)
+        objetivo_aprendizaje_temp = request.POST.get('objetivo_aprendizaje_temp')
+        if objetivo_aprendizaje_temp:
+            try:
+                objetivo_temp_data = json.loads(objetivo_aprendizaje_temp)
+                logger.info(f"Procesando objetivo temporal: {objetivo_temp_data}")
+                
+                # Crear el objetivo de aprendizaje en la base de datos
+                objetivo_aprendizaje = ObjetivoAprendizaje.objects.create(
+                    rubrica=rubrica,
+                    nombre=objetivo_temp_data.get('nombre', ''),
+                    descripcion=objetivo_temp_data.get('descripcion', ''),
+                    activo=True
+                )
+                logger.info(f"Objetivo de aprendizaje temporal creado: {objetivo_aprendizaje.nombre} (ID: {objetivo_aprendizaje.id})")
+                
+            except (json.JSONDecodeError, KeyError) as e:
+                logger.error(f"Error procesando objetivo temporal: {str(e)}")
+                logger.error(f"Datos del objetivo temporal: {objetivo_aprendizaje_temp}")
+            except Exception as e:
+                logger.error(f"Error inesperado al crear objetivo temporal: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+        
+        # Si no hay objetivo temporal, verificar si hay un objetivo existente seleccionado
+        elif objetivo_aprendizaje_id:
+            logger.info(f"Procesando objetivo de aprendizaje existente con ID: '{objetivo_aprendizaje_id}'")
+            logger.info(f"Tipo de ID: {type(objetivo_aprendizaje_id)}")
+            logger.info(f"ID limpio: '{objetivo_aprendizaje_id.strip() if objetivo_aprendizaje_id else 'None'}'")
+            
+            try:
+                # Limpiar el ID si es necesario
+                id_limpio = objetivo_aprendizaje_id.strip() if objetivo_aprendizaje_id else None
+                if id_limpio:
+                    objetivo_aprendizaje = ObjetivoAprendizaje.objects.get(
+                        id=id_limpio, 
+                        rubrica=rubrica
+                    )
+                    logger.info(f"Objetivo de aprendizaje existente encontrado: {objetivo_aprendizaje.nombre} (ID: {objetivo_aprendizaje.id})")
+                else:
+                    logger.info("ID de objetivo de aprendizaje está vacío o es None")
+            except ObjetivoAprendizaje.DoesNotExist:
+                logger.error(f"Objetivo de aprendizaje con ID '{objetivo_aprendizaje_id}' no encontrado en la rúbrica {rubrica.id}")
+                logger.error(f"Objetivos disponibles en la rúbrica: {list(rubrica.objetivos_aprendizaje.values_list('id', 'nombre'))}")
+            except Exception as e:
+                logger.error(f"Error inesperado al buscar objetivo de aprendizaje: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+        else:
+            logger.info("No se especificó objetivo de aprendizaje")
         
         # Crear el criterio
         criterio = CriterioRubrica.objects.create(
             rubrica=rubrica,
             nombre=nombre,
             objetivo=objetivo,
-            puntaje=puntaje_decimal,
-            orden=rubrica.criterios.count() + 1
+            objetivo_aprendizaje=objetivo_aprendizaje
         )
         
         logger.info(f"Criterio creado con ID: {criterio.id}")
@@ -4535,8 +4804,7 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
                         criterio=criterio,
                         nivel=esperable_obj.get('nivel', f"Nivel {i+1}"),
                         descripcion=esperable_obj.get('descripcion', ''),
-                        puntaje=esperable_obj.get('puntaje', 0),
-                        orden=i+1
+                        puntaje=esperable_obj.get('puntaje', 0)
                     )
                     esperables_creados += 1
                     logger.info(f"Esperable {i} creado exitosamente")
@@ -4548,30 +4816,32 @@ def agregar_criterio_rubrica(request, curso_id, evaluacion_id):
                         criterio=criterio,
                         nivel=f"Nivel {i+1}",
                         descripcion=esperable_data.strip(),
-                        puntaje=0,
-                        orden=i+1
+                        puntaje=0
                     )
                     esperables_creados += 1
         
         logger.info(f"Esperables creados: {esperables_creados}")
         
-        # Recalcular el puntaje total del criterio basado en los esperables
+        # Calcular el puntaje total basado en los esperables
         puntaje_total = criterio.esperables.aggregate(total=Max('puntaje'))['total'] or 0
-        criterio.puntaje = puntaje_total
-        criterio.save()
         
-        logger.info(f"Criterio {criterio.id} guardado exitosamente con puntaje total: {puntaje_total}")
+        logger.info(f"Criterio {criterio.id} creado exitosamente con puntaje total: {puntaje_total}")
         
         response_data = {
             'success': True,
-            'criterio_id': criterio.id,
-            'criterio_nombre': str(criterio.nombre),
-            'criterio_objetivo': str(criterio.objetivo),
-            'criterio_puntaje': float(criterio.puntaje),
-            'esperables_count': criterio.esperables.count()
+            'criterio': {
+                'id': criterio.id,
+                'nombre': str(criterio.nombre),
+                'objetivo': str(criterio.objetivo),
+                'puntaje': float(puntaje_total),
+                'esperables_count': criterio.esperables.count()
+            },
+            'objetivo_aprendizaje_id': criterio.objetivo_aprendizaje.id if criterio.objetivo_aprendizaje else None,
+            'objetivo_aprendizaje_nombre': str(criterio.objetivo_aprendizaje.nombre) if criterio.objetivo_aprendizaje else None
         }
         
         logger.info(f"Respuesta exitosa: {response_data}")
+        logger.info(f"Objetivo de aprendizaje en respuesta: ID={response_data['objetivo_aprendizaje_id']}, Nombre={response_data['objetivo_aprendizaje_nombre']}")
         return JsonResponse(response_data, safe=True)
         
     except Exception as e:
@@ -4598,13 +4868,17 @@ def obtener_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
     # Obtener los esperables del criterio
     esperables = list(criterio.esperables.values('nivel', 'descripcion', 'puntaje'))
     
+    # Calcular el puntaje total basado en los esperables
+    puntaje_total = criterio.esperables.aggregate(total=Max('puntaje'))['total'] or 0
+    
     return JsonResponse({
         'success': True,
         'criterio': {
             'id': criterio.id,
             'nombre': str(criterio.nombre),
             'objetivo': str(criterio.objetivo),
-            'puntaje': float(criterio.puntaje),
+            'objetivo_aprendizaje_id': criterio.objetivo_aprendizaje.id if criterio.objetivo_aprendizaje else None,
+            'objetivo_aprendizaje_nombre': str(criterio.objetivo_aprendizaje.nombre) if criterio.objetivo_aprendizaje else None,
             'esperables': [
                 {
                     'nivel': str(e['nivel']),
@@ -4614,6 +4888,51 @@ def obtener_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
             ]
         }
     }, safe=True)
+
+@login_required
+def obtener_criterios_rubrica(request, curso_id, evaluacion_id):
+    """
+    Vista AJAX para obtener todos los criterios de una rúbrica en formato HTML
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        curso = get_object_or_404(Curso, id=curso_id)
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+        
+        # Verificar permisos
+        if not request.user.is_staff and evaluacion.creado_por != request.user:
+            return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+        
+        # Obtener la rúbrica
+        try:
+            rubrica = evaluacion.rubrica
+        except Rubrica.DoesNotExist:
+            return JsonResponse({'error': 'No se encontró una rúbrica para esta evaluación'}, status=404)
+        
+        # Verificar si la evaluación ya comenzó (no se puede editar después de la fecha de inicio)
+        from datetime import date
+        hoy = date.today()
+        puede_editar = True
+        if evaluacion.fecha_inicio and hoy >= evaluacion.fecha_inicio:
+            puede_editar = False
+        
+        # Renderizar el HTML de los criterios
+        html = render_to_string('pages/editar_rubrica_criterios_list.html', {
+            'rubrica': rubrica,
+            'puede_editar': puede_editar,
+            'request': request
+        })
+        
+        return JsonResponse({
+            'success': True,
+            'html': html
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al obtener criterios de rúbrica: {str(e)}")
+        return JsonResponse({'error': 'Error interno del servidor'}, status=500)
 
 @login_required
 def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
@@ -4648,28 +4967,28 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
         # Obtener datos del formulario
         nombre = request.POST.get('nombre')
         objetivo = request.POST.get('objetivo')
-        puntaje = request.POST.get('puntaje')
+        objetivo_aprendizaje_id = request.POST.get('objetivo_aprendizaje')
         esperables_data = request.POST.getlist('esperables[]')
         
-        logger.info(f"Datos recibidos - Nombre: {nombre}, Objetivo: {objetivo}, Puntaje: {puntaje}, Esperables: {len(esperables_data)}")
-        
-        if not nombre or not objetivo or not puntaje:
+        if not nombre or not objetivo or not objetivo_aprendizaje_id:
             logger.error("Campos obligatorios faltantes")
-            return JsonResponse({'error': 'Nombre, objetivo y puntaje son campos obligatorios'}, status=400)
+            return JsonResponse({'error': 'Nombre, objetivo y objetivo de aprendizaje son campos obligatorios'}, status=400)
         
-        try:
-            puntaje_decimal = float(puntaje)
-            if puntaje_decimal < 0:
-                logger.error(f"Puntaje negativo: {puntaje_decimal}")
-                return JsonResponse({'error': 'El puntaje debe ser un número positivo'}, status=400)
-        except ValueError:
-            logger.error(f"Puntaje inválido: {puntaje}")
-            return JsonResponse({'error': 'El puntaje debe ser un número válido'}, status=400)
+        # Obtener el objetivo de aprendizaje si se especificó
+        objetivo_aprendizaje = None
+        if objetivo_aprendizaje_id:
+            try:
+                objetivo_aprendizaje = ObjetivoAprendizaje.objects.get(
+                    id=objetivo_aprendizaje_id, 
+                    rubrica=criterio.rubrica
+                )
+            except ObjetivoAprendizaje.DoesNotExist:
+                logger.warning(f"Objetivo de aprendizaje {objetivo_aprendizaje_id} no encontrado")
         
         # Actualizar el criterio
         criterio.nombre = nombre
         criterio.objetivo = objetivo
-        criterio.puntaje = puntaje_decimal
+        criterio.objetivo_aprendizaje = objetivo_aprendizaje
         criterio.save()
         
         logger.info(f"Criterio actualizado con ID: {criterio.id}")
@@ -4689,8 +5008,7 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
                         criterio=criterio,
                         nivel=esperable_obj.get('nivel', f"Nivel {i+1}"),
                         descripcion=esperable_obj.get('descripcion', ''),
-                        puntaje=esperable_obj.get('puntaje', 0),
-                        orden=i+1
+                        puntaje=esperable_obj.get('puntaje', 0)
                     )
                     esperables_creados += 1
                 except (json.JSONDecodeError, TypeError) as e:
@@ -4700,8 +5018,7 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
                         criterio=criterio,
                         nivel=f"Nivel {i+1}",
                         descripcion=esperable_data.strip(),
-                        puntaje=0,
-                        orden=i+1
+                        puntaje=0
                     )
                     esperables_creados += 1
         
@@ -4716,11 +5033,15 @@ def editar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
         
         response_data = {
             'success': True,
-            'criterio_id': criterio.id,
-            'criterio_nombre': str(criterio.nombre),
-            'criterio_objetivo': str(criterio.objetivo),
-            'criterio_puntaje': float(criterio.puntaje),
-            'esperables_count': criterio.esperables.count()
+            'criterio': {
+                'id': criterio.id,
+                'nombre': str(criterio.nombre),
+                'objetivo': str(criterio.objetivo),
+                'puntaje': float(criterio.puntaje),
+                'esperables_count': criterio.esperables.count()
+            },
+            'objetivo_aprendizaje_id': criterio.objetivo_aprendizaje.id if criterio.objetivo_aprendizaje else None,
+            'objetivo_aprendizaje_nombre': str(criterio.objetivo_aprendizaje.nombre) if criterio.objetivo_aprendizaje else None
         }
         
         logger.info(f"Respuesta exitosa: {response_data}")
@@ -4758,6 +5079,37 @@ def eliminar_criterio_rubrica(request, curso_id, evaluacion_id, criterio_id):
     criterio.delete()
     
     return JsonResponse({'success': True})
+
+@login_required
+def guardar_cambios_rubrica(request, curso_id, evaluacion_id, nombre):
+    """
+    Vista AJAX para guardar los cambios de la rúbrica
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        curso = get_object_or_404(Curso, id=curso_id)
+        evaluacion = get_object_or_404(Evaluacion, id=evaluacion_id, curso=curso)
+        rubrica = get_object_or_404(Rubrica, evaluacion=evaluacion)
+
+        # Verificar permisos
+        if not request.user.is_staff and evaluacion.creado_por != request.user:
+            return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+
+        # Actualizar el nombre de la rúbrica
+        rubrica.nombre = nombre
+
+        # Guardar los cambios
+        rubrica.save()
+        return JsonResponse({'success': True, 'message': 'Cambios guardados exitosamente'})
+
+
+    except Exception as e:
+        logger.error(f"Error inesperado en guardar_cambios_rubrica: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return JsonResponse({'error': 'Error interno del servidor. Por favor, intenta nuevamente.'}, status=500)
+
 
 @login_required
 def reasignar_ticket(request):
@@ -5438,24 +5790,43 @@ def plataforma_calificaciones_ajax(request, curso_id):
         if curso not in request.user.cursos.all():
             return JsonResponse({'error': 'No tienes acceso a este curso'}, status=403)
         
-        # Verificar si es una acción específica
-        action = request.GET.get('action')
+        # Verificar si es una acción específica (GET o POST)
+        action = request.GET.get('action') or request.POST.get('action')
+        
+        logger.debug(f"DEBUG: Action recibida: {action}")
+        logger.debug(f"DEBUG: Método HTTP: {request.method}")
+        logger.debug(f"DEBUG: GET params: {dict(request.GET)}")
+        logger.debug(f"DEBUG: POST params: {dict(request.POST)}")
         
         if action == 'ver_rubricas':
             # Cargar vista de rúbricas para todos los usuarios
-            evaluaciones_con_rubricas = []
-            evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
+            # evaluaciones_con_rubricas = []
+            # evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
             
-            for evaluacion in evaluaciones:
-                try:
-                    rubrica = evaluacion.rubrica
-                    if rubrica and rubrica.activa:
-                        evaluaciones_con_rubricas.append({
-                            'evaluacion': evaluacion,
-                            'rubrica': rubrica
-                        })
-                except:
-                    continue
+            # for evaluacion in evaluaciones:
+            #     try:
+            #         rubrica = evaluacion.rubrica
+            #         if rubrica and rubrica.activa:
+            #             evaluaciones_con_rubricas.append({
+            #                 'evaluacion': evaluacion,
+            #                 'rubrica': rubrica
+            #             })
+            #     except:
+            #         continue
+
+
+            rubricas = Rubrica.objects.filter(
+                evaluacion__curso=curso,
+                evaluacion__activa=True,
+                activa=True
+            ).select_related('evaluacion').order_by('evaluacion__fecha_inicio')
+
+            evaluaciones_con_rubricas = []
+            for rubrica in rubricas:
+                evaluaciones_con_rubricas.append({
+                    'evaluacion': rubrica.evaluacion,
+                    'rubrica': rubrica
+                })
             
             context = {
                 'curso': curso,
@@ -5663,6 +6034,80 @@ def plataforma_calificaciones_ajax(request, curso_id):
                 logger.debug(f"Traceback: {traceback.format_exc()}")
                 return JsonResponse({'error': f'Error al cargar la vista de editar evaluación: {str(e)}'}, status=500)
         
+        elif action == 'ver_editar_criterio':
+            # Cargar vista de editar criterio con datos precargados
+            criterio_id = request.POST.get('criterio_id')
+            evaluacion_id = request.POST.get('evaluacion_id')
+            
+            if not criterio_id or not evaluacion_id:
+                return JsonResponse({'error': 'ID de criterio y evaluación requeridos'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                criterio = CriterioRubrica.objects.get(
+                    id=criterio_id,
+                    rubrica__evaluacion=evaluacion
+                )
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para editar este criterio'}, status=403)
+                
+                # Obtener todos los objetivos de aprendizaje de la rúbrica
+                objetivos_aprendizaje = criterio.rubrica.objetivos_aprendizaje.filter(activo=True).order_by('nombre')
+                
+                # Obtener los esperables del criterio
+                esperables = criterio.esperables.all().order_by('nivel')
+                
+                # Calcular el puntaje total basado en los esperables
+                puntaje_total = criterio.esperables.aggregate(total=Max('puntaje'))['total'] or 0
+                
+                context = {
+                    'criterio': criterio,
+                    'objetivos_aprendizaje': objetivos_aprendizaje,
+                    'esperables': esperables,
+                    'puntaje_total': puntaje_total,
+                    'puede_editar': True,
+                    'curso': curso,
+                    'evaluacion': evaluacion
+                }
+                
+                # Renderizar el HTML del modal de edición
+                html = render_to_string('pages/plataforma_calificaciones_editar_criterio_content.html', context, request=request)
+                
+                # Incluir datos adicionales en la respuesta
+                response_data = {
+                    'html': html,
+                    'criterio_data': {
+                        'id': criterio.id,
+                        'nombre': criterio.nombre,
+                        'objetivo': criterio.objetivo,
+                        'puntaje': float(puntaje_total),
+                        'objetivo_aprendizaje_id': criterio.objetivo_aprendizaje.id if criterio.objetivo_aprendizaje else None,
+                        'objetivo_aprendizaje_nombre': criterio.objetivo_aprendizaje.nombre if criterio.objetivo_aprendizaje else None,
+                        'esperables': [
+                            {
+                                'nivel': str(e.nivel),
+                                'descripcion': str(e.descripcion),
+                                'puntaje': float(e.puntaje)
+                            } for e in esperables
+                        ]
+                    }
+                }
+                
+                logger.info(f"Modal de editar criterio cargado: criterio_id={criterio_id}, evaluacion_id={evaluacion_id}")
+                return JsonResponse(response_data)
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except CriterioRubrica.DoesNotExist:
+                return JsonResponse({'error': 'Criterio no encontrado'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.error(f"Error al cargar modal de editar criterio: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+        
         elif action == 'ver_rubrica':
             # Cargar vista de rúbrica específica
             evaluacion_id = request.GET.get('evaluacion_id')
@@ -5686,25 +6131,38 @@ def plataforma_calificaciones_ajax(request, curso_id):
                     puede_editar = False
                     mensaje_restriccion = f'La evaluación comenzó el {evaluacion.fecha_inicio.strftime("%d/%m/%Y")}. La rúbrica no se puede editar después de esta fecha.'
                 
-                # Obtener la rúbrica (si existe)
+                # Obtener la rúbrica (si existe) o crearla automáticamente
                 rubrica = None
                 try:
                     rubrica = evaluacion.rubrica
                 except Rubrica.DoesNotExist:
-                    # Si no existe rúbrica, mostrar mensaje informativo
-                    context = {
-                        'curso': curso,
-                        'evaluacion': evaluacion,
-                        'rubrica': None,
-                        'user': request.user,
-                        'puede_editar': puede_editar,
-                        'mensaje_restriccion': mensaje_restriccion,
-                        'mostrar_rubrica': True,
-                        'sin_rubrica': True,
-                    }
-                    
-                    html = render_to_string('pages/plataforma_calificaciones_rubrica_content.html', context, request=request)
-                    return JsonResponse({'html': html})
+                    # Si no existe rúbrica, crearla automáticamente
+                    if puede_editar:
+                        try:
+                            rubrica = Rubrica.objects.create(
+                                evaluacion=evaluacion,
+                                nombre=f"Rúbrica de {evaluacion.nombre}",
+                                creado_por=request.user
+                            )
+                            logger.info(f"Rúbrica creada automáticamente para evaluación {evaluacion.id}: {rubrica.id}")
+                        except Exception as e:
+                            logger.error(f"Error al crear rúbrica automáticamente: {str(e)}")
+                            return JsonResponse({'error': 'Error al crear la rúbrica automáticamente'}, status=500)
+                    else:
+                        # Si no se puede editar, mostrar mensaje informativo
+                        context = {
+                            'curso': curso,
+                            'evaluacion': evaluacion,
+                            'rubrica': None,
+                            'user': request.user,
+                            'puede_editar': puede_editar,
+                            'mensaje_restriccion': mensaje_restriccion,
+                            'mostrar_rubrica': True,
+                            'sin_rubrica': True,
+                        }
+                        
+                        html = render_to_string('pages/plataforma_calificaciones_rubrica_content.html', context, request=request)
+                        return JsonResponse({'html': html})
                 
                 # Si existe la rúbrica, mostrar normalmente
                 context = {
@@ -5726,6 +6184,257 @@ def plataforma_calificaciones_ajax(request, curso_id):
             except Exception as e:
                 logger.debug(f"Error al cargar rúbrica: {str(e)}")
                 return JsonResponse({'error': 'Error al cargar la rúbrica'}, status=500)
+        
+        elif action == 'obtener_puntajes_actualizados':
+            # Obtener puntajes actualizados de los criterios de una evaluación
+            evaluacion_id = request.GET.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para ver esta evaluación'}, status=403)
+                
+                # Obtener la rúbrica y criterios
+                rubrica = None
+                try:
+                    rubrica = evaluacion.rubrica
+                except Rubrica.DoesNotExist:
+                    return JsonResponse({'error': 'No se encontró rúbrica para esta evaluación'}, status=404)
+                
+                # Obtener criterios con puntajes actualizados
+                criterios = []
+                puntaje_total = 0
+                
+                for criterio in rubrica.criterios.all():
+                    # Calcular el puntaje máximo del criterio (máximo de los esperables)
+                    puntaje_maximo = criterio.esperables.aggregate(total=Max('puntaje'))['total'] or 0
+                    
+                    criterios.append({
+                        'id': criterio.id,
+                        'nombre': str(criterio.nombre),
+                        'objetivo': str(criterio.objetivo),
+                        'puntaje': float(puntaje_maximo),
+                        'esperables_count': criterio.esperables.count()
+                    })
+                    
+                    puntaje_total += puntaje_maximo
+                
+                response_data = {
+                    'success': True,
+                    'criterios': criterios,
+                    'puntaje_total': float(puntaje_total),
+                    'evaluacion_id': evaluacion_id
+                }
+                
+                logger.info(f"Puntajes actualizados obtenidos para evaluación {evaluacion_id}: {puntaje_total} puntos total")
+                return JsonResponse(response_data, safe=True)
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.error(f"Error al obtener puntajes actualizados: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+        
+        elif action == 'obtener_objetivos_aprendizaje':
+            logger.debug(f"DEBUG: Ejecutando obtener_objetivos_aprendizaje")
+            logger.debug(f"DEBUG: GET data: {dict(request.GET)}")
+            logger.debug(f"DEBUG: POST data: {dict(request.POST)}")
+            
+            # Obtener objetivos de aprendizaje de una rúbrica
+            evaluacion_id = request.POST.get('evaluacion_id')
+            if not evaluacion_id:
+                return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para ver esta evaluación'}, status=403)
+                
+                # Obtener la rúbrica
+                rubrica = None
+                try:
+                    rubrica = evaluacion.rubrica
+                except Rubrica.DoesNotExist:
+                    # Si no hay rúbrica, devolver lista vacía
+                    return JsonResponse({
+                        'success': True,
+                        'objetivos': [],
+                        'evaluacion_id': evaluacion_id
+                    }, safe=True)
+                
+                # Obtener objetivos de aprendizaje activos
+                objetivos = rubrica.objetivos_aprendizaje.filter(activo=True).order_by('nombre')
+                
+                objetivos_data = []
+                for objetivo in objetivos:
+                    objetivos_data.append({
+                        'id': objetivo.id,
+                        'nombre': str(objetivo.nombre),
+                        'descripcion': str(objetivo.descripcion),
+                        'criterios_count': objetivo.get_criterios_count()
+                    })
+                
+                response_data = {
+                    'success': True,
+                    'objetivos': objetivos_data,
+                    'evaluacion_id': evaluacion_id
+                }
+                
+                logger.info(f"Objetivos de aprendizaje obtenidos para evaluación {evaluacion_id}: {len(objetivos_data)} objetivos")
+                return JsonResponse(response_data, safe=True)
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.error(f"Error al obtener objetivos de aprendizaje: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({'error': 'Error interno del servidor'}, status=500)
+        
+        elif action == 'guardar_objetivo_aprendizaje':
+            logger.debug(f"DEBUG: Ejecutando guardar_objetivo_aprendizaje")
+            logger.debug(f"DEBUG: POST data: {dict(request.POST)}")
+            
+            # Guardar un nuevo objetivo de aprendizaje
+            evaluacion_id = request.POST.get('evaluacion_id')
+            nombre = request.POST.get('nombre')
+            descripcion = request.POST.get('descripcion')
+            
+            logger.debug(f"DEBUG: evaluacion_id={evaluacion_id}, nombre={nombre}, descripcion={descripcion}")
+            
+            if not evaluacion_id or not nombre or not descripcion:
+                return JsonResponse({'error': 'Todos los campos son obligatorios'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+                
+                # Obtener o crear la rúbrica
+                rubrica = None
+                try:
+                    rubrica = evaluacion.rubrica
+                    logger.debug(f"DEBUG: Rúbrica existente encontrada con ID: {rubrica.id}")
+                except Rubrica.DoesNotExist:
+                    # Crear una rúbrica automáticamente si no existe
+                    logger.debug(f"DEBUG: Creando nueva rúbrica para evaluación {evaluacion.id}")
+                    rubrica = Rubrica.objects.create(
+                        evaluacion=evaluacion,
+                        nombre=f"Rúbrica de {evaluacion.nombre}"
+                    )
+                    logger.info(f"Rúbrica creada con ID: {rubrica.id}")
+                
+                # Verificar si ya existe un objetivo con el mismo nombre en esta rúbrica
+                if ObjetivoAprendizaje.objects.filter(rubrica=rubrica, nombre=nombre).exists():
+                    return JsonResponse({
+                        'error': f'Ya existe un objetivo de aprendizaje con el nombre "{nombre}" en esta rúbrica'
+                    }, status=400)
+                
+                # Crear el objetivo de aprendizaje
+                logger.debug(f"DEBUG: Creando objetivo de aprendizaje: rubrica_id={rubrica.id}, nombre={nombre}")
+                objetivo = ObjetivoAprendizaje.objects.create(
+                    rubrica=rubrica,
+                    nombre=nombre,
+                    descripcion=descripcion,
+                    activo=True
+                )
+                
+                logger.info(f"Objetivo de aprendizaje creado: {objetivo.nombre} (ID: {objetivo.id})")
+                
+                response_data = {
+                    'success': True,
+                    'objetivo': {
+                        'id': objetivo.id,
+                        'nombre': str(objetivo.nombre),
+                        'descripcion': str(objetivo.descripcion)
+                    },
+                    'evaluacion_id': evaluacion_id
+                }
+                
+                return JsonResponse(response_data, safe=True)
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.error(f"Error al guardar objetivo de aprendizaje: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({
+                    'error': 'Error interno del servidor',
+                    'details': str(e)
+                }, status=500)
+        
+        elif action == 'eliminar_objetivo_aprendizaje':
+            logger.debug(f"DEBUG: Ejecutando eliminar_objetivo_aprendizaje")
+            logger.debug(f"DEBUG: POST data: {dict(request.POST)}")
+            
+            # Eliminar un objetivo de aprendizaje
+            objetivo_id = request.POST.get('objetivo_id')
+            evaluacion_id = request.POST.get('evaluacion_id')
+            
+            logger.debug(f"DEBUG: objetivo_id={objetivo_id}, evaluacion_id={evaluacion_id}")
+            
+            if not objetivo_id or not evaluacion_id:
+                return JsonResponse({'error': 'ID de objetivo y evaluación son obligatorios'}, status=400)
+            
+            try:
+                evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso, activa=True)
+                
+                # Verificar que el usuario tenga permisos
+                if not request.user.is_staff and evaluacion.creado_por != request.user:
+                    return JsonResponse({'error': 'No tienes permisos para realizar esta acción'}, status=403)
+                
+                # Obtener el objetivo de aprendizaje
+                try:
+                    objetivo = ObjetivoAprendizaje.objects.get(
+                        id=objetivo_id,
+                        rubrica__evaluacion=evaluacion
+                    )
+                except ObjetivoAprendizaje.DoesNotExist:
+                    return JsonResponse({'error': 'Objetivo de aprendizaje no encontrado'}, status=404)
+                
+                # Verificar si el objetivo está siendo usado por algún criterio
+                criterios_que_usan_objetivo = objetivo.criterios.count()
+                if criterios_que_usan_objetivo > 0:
+                    return JsonResponse({
+                        'error': f'No se puede eliminar el objetivo porque está siendo usado por {criterios_que_usan_objetivo} criterio(s)'
+                    }, status=400)
+                
+                # Eliminar el objetivo (soft delete - marcar como inactivo)
+                objetivo = ObjetivoAprendizaje.objects.get(
+                        id=objetivo_id,
+                        rubrica__evaluacion=evaluacion
+                    ).delete()
+
+                logger.info(f"Objetivo de aprendizaje eliminado correctamente")
+                
+                response_data = {
+                    'success': True,
+                    'message': f'Objetivo de aprendizaje eliminado correctamente'
+                }
+                
+                return JsonResponse(response_data, safe=True)
+                
+            except Evaluacion.DoesNotExist:
+                return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
+            except Exception as e:
+                import traceback
+                logger.error(f"Error al eliminar objetivo de aprendizaje: {str(e)}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                return JsonResponse({
+                    'error': 'Error interno del servidor',
+                    'details': str(e)
+                }, status=500)
         
         elif action == 'crear_evaluacion':
             # Cargar formulario de crear evaluación
@@ -5961,14 +6670,14 @@ def plataforma_calificaciones_ajax(request, curso_id):
                                     puntaje_obtenido = puntaje_criterio.puntaje_obtenido
                                     
                                     # Buscar coincidencia exacta primero
-                                    for esperable in criterio.esperables.all():
+                                    for esperable in criterio.get_esperables_ordenados():
                                         if esperable.puntaje == puntaje_obtenido:
                                             esperable_correcto = esperable
                                             break
                                     
                                     # Si no hay coincidencia exacta, buscar el esperable más cercano
                                     if esperable_correcto is None:
-                                        esperables_ordenados = list(criterio.esperables.all().order_by('puntaje'))
+                                        esperables_ordenados = list(criterio.get_esperables_ordenados())
                                         for i, esperable in enumerate(esperables_ordenados):
                                             if esperable.puntaje >= puntaje_obtenido:
                                                 esperable_correcto = esperable
@@ -6167,6 +6876,20 @@ def plataforma_calificaciones_spa(request, curso_id):
         messages.error(request, 'No tienes acceso a este curso.')
         return redirect('user_space')
     
+    else:
+        # Cargar vista por defecto de calificaciones
+        evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('-fecha_creacion')
+        
+        context = {
+            'curso': curso,
+            'evaluaciones': evaluaciones,
+            'user': request.user,
+        }
+        
+        html = render_to_string('pages/plataforma_calificaciones_content.html', context, request=request)
+        return JsonResponse({'html': html})
+    
+    # Si llegamos aquí, cargar la vista SPA por defecto
     context = {
         'curso': curso,
         'user': request.user,
@@ -6233,29 +6956,54 @@ def eliminar_evaluacion_ajax(request, curso_id):
     """
     Vista AJAX para eliminar evaluaciones
     """
+    import time
+    timestamp = time.time()
+    request_id = f"{timestamp}_{request.user.username}_{curso_id}"
+    
+    logger.debug(f"🔍 eliminar_evaluacion_ajax INICIADA - Request ID: {request_id}")
+    logger.debug(f"🔍 eliminar_evaluacion_ajax INICIADA - curso_id: {curso_id}, usuario: {request.user.username}, método: {request.method}")
+    logger.debug(f"🔍 Request GET params: {dict(request.GET)}")
+    logger.debug(f"🔍 Request POST params: {dict(request.POST)}")
+    logger.debug(f"🔍 Request headers: {dict(request.headers)}")
+    logger.debug(f"🔍 Request META: {dict(request.META)}")
+    
     if request.method != 'POST':
+        logger.debug(f"🔍 Método no permitido: {request.method}")
         return JsonResponse({'error': 'Método no permitido'}, status=405)
     
     try:
+        logger.debug(f"🔍 [Request ID: {request_id}] Buscando curso con id: {curso_id}")
         curso = Curso.objects.get(id=curso_id, activo=True)
+        logger.debug(f"🔍 [Request ID: {request_id}] Curso encontrado: {curso.nombre}")
+        
         evaluacion_id = request.GET.get('evaluacion_id')
+        logger.debug(f"🔍 [Request ID: {request_id}] Evaluacion ID obtenido: {evaluacion_id}")
         
         if not evaluacion_id:
+            logger.debug(f"🔍 [Request ID: {request_id}] Error: ID de evaluación requerido")
             return JsonResponse({'error': 'ID de evaluación requerido'}, status=400)
         
+        logger.debug(f"🔍 [Request ID: {request_id}] Buscando evaluación con id: {evaluacion_id}")
         evaluacion = Evaluacion.objects.get(id=evaluacion_id, curso=curso)
+        logger.debug(f"🔍 [Request ID: {request_id}] Evaluación encontrada: {evaluacion.nombre}")
         
         # Verificar permisos
+        logger.debug(f"🔍 [Request ID: {request_id}] Verificando permisos - usuario es staff: {request.user.is_staff}")
         if not request.user.is_staff:
+            logger.debug(f"🔍 [Request ID: {request_id}] Error: Usuario no tiene permisos para eliminar evaluaciones")
             return JsonResponse({'error': 'No tienes permisos para eliminar evaluaciones'}, status=403)
         
         # Verificar si la evaluación tiene calificaciones
         tiene_calificaciones = evaluacion.calificaciones.exists()
+        logger.debug(f"🔍 [Request ID: {request_id}] Evaluación tiene calificaciones: {tiene_calificaciones}")
         
         # Si no tiene calificaciones, eliminar directamente
         if not tiene_calificaciones:
+            logger.debug(f"🔍 [Request ID: {request_id}] Evaluación sin calificaciones - eliminando directamente")
             nombre_evaluacion = evaluacion.nombre
             evaluacion.delete()
+            logger.debug(f"🔍 [Request ID: {request_id}] Evaluación eliminada exitosamente: {nombre_evaluacion}")
+            logger.debug(f"🔍 [Request ID: {request_id}] ENVIANDO JsonResponse de éxito (sin calificaciones)")
             return JsonResponse({
                 'success': True,
                 'message': f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.'
@@ -6263,25 +7011,36 @@ def eliminar_evaluacion_ajax(request, curso_id):
         
         # Si tiene calificaciones, verificar confirmación
         confirmacion = request.POST.get('confirmacion', '').strip()
+        logger.debug(f"🔍 [Request ID: {request_id}] Confirmación recibida: '{confirmacion}'")
         if confirmacion != 'ELIMINAR':
+            logger.debug(f"🔍 [Request ID: {request_id}] Confirmación incorrecta: '{confirmacion}' != 'ELIMINAR'")
             return JsonResponse({
                 'success': False,
                 'error': 'Debes escribir "ELIMINAR" para confirmar la eliminación.'
             })
         
         # Eliminar la evaluación y todas sus calificaciones asociadas
+        logger.debug(f"🔍 [Request ID: {request_id}] Confirmación correcta - eliminando evaluación con calificaciones")
         nombre_evaluacion = evaluacion.nombre
         evaluacion.delete()
-        return JsonResponse({
+        logger.debug(f"🔍 [Request ID: {request_id}] Evaluación con calificaciones eliminada exitosamente: {nombre_evaluacion}")
+        logger.debug(f"🔍 [Request ID: {request_id}] ENVIANDO JsonResponse de éxito (con calificaciones)")
+        response = JsonResponse({
             'success': True,
             'message': f'Evaluación "{nombre_evaluacion}" eliminada exitosamente.'
         })
+        logger.debug(f"🔍 [Request ID: {request_id}] JsonResponse creado, enviando respuesta")
+        return response
         
     except Curso.DoesNotExist:
+        logger.debug(f"🔍 [Request ID: {request_id}] Error: Curso no encontrado con id: {curso_id}")
         return JsonResponse({'error': 'Curso no encontrado'}, status=404)
     except Evaluacion.DoesNotExist:
+        logger.debug(f"🔍 [Request ID: {request_id}] Error: Evaluación no encontrada con id: {evaluacion_id}")
         return JsonResponse({'error': 'Evaluación no encontrada'}, status=404)
     except Exception as e:
+        logger.debug(f"🔍 [Request ID: {request_id}] Error inesperado al eliminar evaluación: {str(e)}")
+        logger.debug(f"🔍 [Request ID: {request_id}] Traceback: {traceback.format_exc()}")
         return JsonResponse({'error': f'Error al eliminar la evaluación: {str(e)}'}, status=500)
 
 @login_required
@@ -6325,7 +7084,7 @@ def crear_evaluacion_ajax(request, curso_id):
                     return JsonResponse({
                         'success': True,
                         'message': f'Evaluación "{evaluacion.nombre}" creada exitosamente.',
-                        'redirect_url': reverse('plataforma_calificaciones', kwargs={'curso_id': curso_id})
+                        'redirect_url': reverse('plataforma_aprendizaje', kwargs={'curso_id': curso_id}) + '?seccion=calificaciones'
                     })
                 else:
                     # Formulario con errores - retornar errores en formato JSON
@@ -6759,7 +7518,6 @@ def asignatura_create(request):
         codigo = request.POST.get('codigo')
         descripcion = request.POST.get('descripcion')
         area_conocimiento = request.POST.get('area_conocimiento')
-        creditos = request.POST.get('creditos')
         
         if nombre and codigo:
             # Verificar que el código no exista
@@ -6771,7 +7529,6 @@ def asignatura_create(request):
                     codigo=codigo,
                     descripcion=descripcion,
                     area_conocimiento=area_conocimiento,
-                    creditos=creditos if creditos else None,
                     creado_por=request.user
                 )
                 messages.success(request, f'Asignatura "{asignatura.nombre}" creada exitosamente.')
@@ -6802,7 +7559,6 @@ def asignatura_edit(request, asignatura_id):
         codigo = request.POST.get('codigo')
         descripcion = request.POST.get('descripcion')
         area_conocimiento = request.POST.get('area_conocimiento')
-        creditos = request.POST.get('creditos')
         activa = request.POST.get('activa') == 'on'
         
         if nombre and codigo:
@@ -6814,7 +7570,6 @@ def asignatura_edit(request, asignatura_id):
                 asignatura.codigo = codigo
                 asignatura.descripcion = descripcion
                 asignatura.area_conocimiento = area_conocimiento
-                asignatura.creditos = creditos if creditos else None
                 asignatura.activa = activa
                 asignatura.save()
                 

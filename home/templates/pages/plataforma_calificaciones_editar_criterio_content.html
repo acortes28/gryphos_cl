@@ -1,0 +1,47 @@
+<form id="formEditarCriterio">
+  <input type="hidden" id="criterio_id_editar" name="criterio_id" value="{{ criterio.id }}">
+  
+  <div class="form-group mb-3">
+    <label for="criterio_nombre_editar" class="form-label required-field">Nombre del Criterio</label>
+    <input type="text" class="form-control" id="criterio_nombre_editar" name="nombre" 
+           value="{{ criterio.nombre }}" required>
+  </div>
+  
+  <div class="form-group mb-3">
+    <label for="criterio_objetivo_editar" class="form-label required-field">Objetivo del Criterio</label>
+    <textarea class="form-control" id="criterio_objetivo_editar" name="objetivo" 
+              rows="3" required>{{ criterio.objetivo }}</textarea>
+  </div>
+  
+  <div class="form-group mb-3">
+    <label for="criterio_objetivo_aprendizaje_editar" class="form-label required-field">Objetivo de Aprendizaje</label>
+    <select class="form-control" id="criterio_objetivo_aprendizaje_editar" name="objetivo_aprendizaje">
+      <option value="">-- Seleccionar Objetivo de Aprendizaje --</option>
+      {% for objetivo in objetivos_aprendizaje %}
+        <option value="{{ objetivo.id }}" 
+                {% if criterio.objetivo_aprendizaje and criterio.objetivo_aprendizaje.id == objetivo.id %}selected{% endif %}>
+          {{ objetivo.nombre }}
+        </option>
+      {% endfor %}
+    </select>
+    <small class="form-text text-muted">Opcional: Asocia este criterio a un objetivo de aprendizaje específico</small>
+  </div>
+  
+  <div class="form-group mb-3">
+    <label class="form-label required-field">Listado de Esperables</label>
+    <div id="esperables-container-editar">
+      <!-- Los esperables se cargarán dinámicamente -->
+    </div>
+    <button type="button" class="btn btn-outline-primary btn-sm" onclick="abrirModalAgregarEsperableEditar()">
+      <i class="fas fa-plus me-1"></i>Agregar Esperable
+    </button>
+    <div class="form-group mb-3">
+        <small class="form-text text-muted">
+        <i class="fas fa-info-circle me-1"></i>
+        Los esperables se guardarán cuando hagas clic en "Guardar Cambios" y se ordenarán automáticamente de mayor a menor puntaje
+        </small>
+    </div>
+  </div>
+</form>
+
+

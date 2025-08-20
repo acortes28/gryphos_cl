@@ -32,19 +32,7 @@
               <small class="form-text text-muted">Descripción adicional de la rúbrica (opcional)</small>
             </div>
             
-            <div class="form-group">
-              <label for="objetivo" class="form-label required-field">Objetivo</label>
-              <textarea class="form-control" id="objetivo" name="objetivo" rows="4" required
-                        placeholder="¿Cuál es el objetivo principal de esta rúbrica?"></textarea>
-              <small class="form-text text-muted">Define claramente el propósito de esta rúbrica</small>
-            </div>
-            
-            <div class="form-group">
-              <label for="aprendizaje_esperado" class="form-label required-field">Aprendizaje Esperado</label>
-              <textarea class="form-control" id="aprendizaje_esperado" name="aprendizaje_esperado" rows="4" required
-                        placeholder="¿Qué se espera que el estudiante aprenda o demuestre?"></textarea>
-              <small class="form-text text-muted">Describe los aprendizajes que se evaluarán</small>
-            </div>
+
             
             <div class="d-flex justify-content-between">
               <a href="{% url 'plataforma_calificaciones' curso.id %}" class="btn btn-secondary">
@@ -54,6 +42,37 @@
                 <i class="fas fa-save me-1"></i>Crear Rúbrica
               </button>
             </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Card separada para Objetivos de Aprendizaje -->
+<div class="row justify-content-center mt-4">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-bullseye me-2"></i>Objetivos de Aprendizaje
+        </h5>
+      </div>
+      <div class="card-body">
+        <div id="objetivos-container">
+          <!-- Los objetivos se agregarán dinámicamente aquí -->
+        </div>
+                          <button type="button" class="btn btn-outline-primary btn-sm" onclick="abrirModalObjetivo()">
+                    <i class="fas fa-plus me-1"></i>Agregar Objetivo de Aprendizaje
+                  </button>
+        <small class="form-text text-muted">
+          <i class="fas fa-info-circle me-1"></i>
+          Los objetivos de aprendizaje se pueden asociar a los criterios de evaluación que crees después
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
           </form>
         </div>
       </div>
@@ -205,6 +224,45 @@ document.addEventListener('DOMContentLoaded', function() {
     content: " *";
     color: #dc3545;
   }
+  
+  /* Estilos para la card de objetivos de aprendizaje */
+  .objetivo-item {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6 !important;
+    transition: all 0.3s ease;
+  }
+  
+  .objetivo-item:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd !important;
+  }
+  
+  .objetivo-item .form-control-sm {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+  
+  .objetivo-item .btn-sm {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  
+  /* Estilos para el select de objetivos en el modal */
+  .form-select {
+    border-radius: 8px;
+    border: 2px solid #d1d5db;
+    padding: 12px 16px;
+    transition: all 0.3s ease;
+    background-color: #ffffff;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  
+  .form-select:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    outline: none;
+  }
 </style>
 
 <script>
@@ -216,6 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
   form.addEventListener('submit', function(e) {
     let isValid = true;
     
+    // Validar campos requeridos
     requiredFields.forEach(field => {
       if (!field.value.trim()) {
         field.classList.add('is-invalid');
@@ -225,9 +284,43 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
     
+    // Validar que al menos se haya agregado un objetivo de aprendizaje
+    const objetivos = obtenerObjetivosAprendizaje();
+    if (objetivos.length === 0) {
+      alert('Debes agregar al menos un objetivo de aprendizaje antes de crear la rúbrica.');
+      isValid = false;
+    }
+    
     if (!isValid) {
       e.preventDefault();
-      alert('Por favor completa todos los campos obligatorios.');
+      if (objetivos.length === 0) {
+        alert('Por favor completa todos los campos obligatorios y agrega al menos un objetivo de aprendizaje.');
+      } else {
+        alert('Por favor completa todos los campos obligatorios.');
+      }
+    } else {
+      // Agregar los objetivos de aprendizaje al formulario antes de enviarlo
+      objetivos.forEach((objetivo, index) => {
+        // Crear campos ocultos para cada objetivo
+        const nombreField = document.createElement('input');
+        nombreField.type = 'hidden';
+        nombreField.name = `objetivos[${index + 1}][nombre]`;
+        nombreField.value = objetivo.nombre;
+        
+        const descripcionField = document.createElement('input');
+        descripcionField.type = 'hidden';
+        descripcionField.name = `objetivos[${index + 1}][descripcion]`;
+        descripcionField.value = objetivo.descripcion;
+        
+        const ordenField = document.createElement('input');
+        ordenField.type = 'hidden';
+        ordenField.name = `objetivos[${index + 1}][orden]`;
+        ordenField.value = objetivo.orden;
+        
+        form.appendChild(nombreField);
+        form.appendChild(descripcionField);
+        form.appendChild(ordenField);
+      });
     }
   });
   

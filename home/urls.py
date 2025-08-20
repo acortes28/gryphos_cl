@@ -17,6 +17,9 @@ urlpatterns = [
     path('test-auth/', views.test_auth, name='test_auth'),
     path('test-registration/', views.test_registration_form, name='test_registration'),
 
+    # Mensaje URLs
+    path('mostrar-mensaje/<str:mensaje>/<str:tipo>/', views.mostrar_mensaje, name='mostrar_mensaje'),
+
     # Authentication
     path('generate-registration-link/', views.generate_registration_link, name='generate-registration-link'),
     path('accounts/register/', views.registration, name='sign-up'),
@@ -73,8 +76,10 @@ urlpatterns = [
     path('curso/<int:curso_id>/calificaciones/crear-rubrica/<int:evaluacion_id>/', views.crear_rubrica, name='crear_rubrica'),
     path('curso/<int:curso_id>/calificaciones/editar-rubrica/<int:evaluacion_id>/', views.editar_rubrica, name='editar_rubrica'),
     path('curso/<int:curso_id>/calificaciones/obtener-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.obtener_criterio_rubrica, name='obtener_criterio_rubrica'),
+    path('curso/<int:curso_id>/calificaciones/obtener-criterios-rubrica/<int:evaluacion_id>/', views.obtener_criterios_rubrica, name='obtener_criterios_rubrica'),
     path('curso/<int:curso_id>/calificaciones/editar-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.editar_criterio_rubrica, name='editar_criterio_rubrica'),
     path('curso/<int:curso_id>/calificaciones/eliminar-criterio/<int:evaluacion_id>/<int:criterio_id>/', views.eliminar_criterio_rubrica, name='eliminar_criterio_rubrica'),
+    path('curso/<int:curso_id>/calificaciones/guardar-cambios-rubrica/<int:evaluacion_id>/<str:nombre>/', views.guardar_cambios_rubrica, name='guardar_cambios_rubrica'),
     
     path('cursos/', views.cursos_list, name='cursos_list'),
     path('cursos/<int:curso_id>/', views.curso_detail_public, name='curso_detail_public'),

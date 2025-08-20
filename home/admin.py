@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django import forms
 from .models import CustomUser
-from .models import Curso, BlogPost, Videollamada, InscripcionCurso, Rubrica, CriterioRubrica, Esperable, Asignatura
+from .models import Curso, BlogPost, Videollamada, InscripcionCurso, Rubrica, CriterioRubrica, Esperable, Asignatura, ObjetivoAprendizaje
 
 class CustomUserAdmin(BaseUserAdmin):
     form = UserChangeForm
@@ -50,13 +50,13 @@ class VideollamadaInline(admin.TabularInline):
         return formset
 
 class CursoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'asignatura', 'docente_nombre', 'precio', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
+    list_display = ('nombre','codigo' ,'asignatura', 'docente_nombre', 'precio', 'fecha_inicio', 'fecha_fin', 'activo', 'modalidad', 'nivel')
     list_filter = ('activo', 'modalidad', 'nivel', 'fecha_inicio', 'asignatura')
     search_fields = ('nombre', 'docente_nombre', 'descripcion', 'asignatura__nombre')
     inlines = [VideollamadaInline]
     fieldsets = (
         ('Información Básica', {
-            'fields': ('nombre', 'descripcion', 'activo', 'asignatura')
+            'fields': ('nombre', 'codigo', 'descripcion', 'activo', 'asignatura')
         }),
         ('Fechas', {
             'fields': ('fecha_inicio', 'fecha_fin', 'dias_plazo_pago')
@@ -95,13 +95,13 @@ class VideollamadaAdmin(admin.ModelAdmin):
 class CursoInline(admin.TabularInline):
     model = Curso
     extra = 0
-    fields = ('nombre', 'docente_nombre', 'activo', 'fecha_inicio', 'fecha_fin')
-    readonly_fields = ('nombre', 'docente_nombre', 'activo', 'fecha_inicio', 'fecha_fin')
+    fields = ('nombre', 'codigo', 'docente_nombre', 'activo', 'fecha_inicio', 'fecha_fin')
+    readonly_fields = ('nombre', 'codigo', 'docente_nombre', 'activo', 'fecha_inicio', 'fecha_fin')
     can_delete = False
     max_num = 0
 
 class AsignaturaAdmin(admin.ModelAdmin):
-    list_display = ('codigo', 'nombre', 'area_conocimiento', 'creditos', 'activa', 'get_cursos_count', 'get_evaluaciones_count', 'creado_por')
+    list_display = ('codigo', 'nombre', 'area_conocimiento', 'activa', 'get_cursos_count', 'get_evaluaciones_count', 'creado_por')
     list_filter = ('activa', 'area_conocimiento', 'fecha_creacion', 'creado_por')
     search_fields = ('nombre', 'codigo', 'descripcion', 'area_conocimiento')
     readonly_fields = ('fecha_creacion', 'fecha_modificacion')
@@ -113,7 +113,7 @@ class AsignaturaAdmin(admin.ModelAdmin):
             'fields': ('codigo', 'nombre', 'descripcion', 'activa')
         }),
         ('Detalles Académicos', {
-            'fields': ('area_conocimiento', 'creditos')
+            'fields': ('area_conocimiento',)
         }),
         ('Información del Sistema', {
             'fields': ('creado_por', 'fecha_creacion', 'fecha_modificacion'),
@@ -310,34 +310,43 @@ admin.site.register(ClasificacionTicket, ClasificacionTicketAdmin)
 admin.site.register(SubclasificacionTicket, SubclasificacionTicketAdmin)
 
 # Configuraciones para modelos de rúbricas
+class ObjetivoAprendizajeInline(admin.TabularInline):
+    model = ObjetivoAprendizaje
+    extra = 1
+    fields = ('nombre', 'descripcion', 'activo')
+
 class EsperableInline(admin.TabularInline):
     model = Esperable
     extra = 1
-    fields = ('nivel', 'descripcion', 'puntaje', 'orden')
+    fields = ('nivel', 'descripcion', 'puntaje')
 
 class CriterioRubricaAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'rubrica', 'puntaje', 'orden')
-    list_filter = ('rubrica', 'orden')
-    search_fields = ('nombre', 'objetivo', 'rubrica__nombre')
-    ordering = ('rubrica', 'orden')
-    inlines = [EsperableInline]
+    list_display = ('nombre', 'rubrica', 'objetivo_aprendizaje')
+    list_filter = ('rubrica', 'objetivo_aprendizaje')
+    search_fields = ('nombre', 'objetivo', 'rubrica__nombre', 'objetivo_aprendizaje__nombre')
+    ordering = ('rubrica',)
+    inlines = [EsperableInline] 
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('rubrica', 'nombre', 'objetivo', 'puntaje', 'orden')
+            'fields': ('rubrica', 'nombre', 'objetivo', 'puntaje')
+        }),
+        ('Objetivo de Aprendizaje', {
+            'fields': ('objetivo_aprendizaje',)
         }),
     )
 
 class RubricaAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'evaluacion', 'creado_por', 'fecha_creacion', 'activa')
     list_filter = ('activa', 'fecha_creacion', 'evaluacion__curso')
-    search_fields = ('nombre', 'descripcion', 'evaluacion__nombre')
+    search_fields = ('nombre', 'evaluacion__nombre')
     readonly_fields = ('fecha_creacion', 'fecha_modificacion')
     ordering = ('-fecha_creacion',)
+    inlines = [ObjetivoAprendizajeInline]
     
     fieldsets = (
         ('Información Básica', {
-            'fields': ('evaluacion', 'nombre', 'descripcion', 'objetivo', 'aprendizaje_esperado')
+            'fields': ('evaluacion', 'nombre')
         }),
         ('Estado', {
             'fields': ('activa', 'creado_por')
@@ -348,5 +357,23 @@ class RubricaAdmin(admin.ModelAdmin):
         }),
     )
 
+class ObjetivoAprendizajeAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'rubrica', 'activo', 'fecha_creacion')
+    list_filter = ('activo', 'rubrica__evaluacion__curso')
+    search_fields = ('nombre', 'descripcion', 'rubrica__nombre')
+    ordering = ('rubrica',)
+    
+    fieldsets = (
+        ('Información Básica', {
+            'fields': ('rubrica', 'nombre', 'descripcion', 'activo')
+        }),
+        ('Fechas', {
+            'fields': ('fecha_creacion', 'fecha_modificacion'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ('fecha_creacion', 'fecha_modificacion')
+
 admin.site.register(Rubrica, RubricaAdmin)
 admin.site.register(CriterioRubrica, CriterioRubricaAdmin)
+admin.site.register(ObjetivoAprendizaje, ObjetivoAprendizajeAdmin)

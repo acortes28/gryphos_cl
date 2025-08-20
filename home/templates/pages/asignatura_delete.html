@@ -43,7 +43,6 @@
                             <li><strong>Código:</strong> {{ asignatura.codigo }}</li>
                             <li><strong>Nombre:</strong> {{ asignatura.nombre }}</li>
                             <li><strong>Área de Conocimiento:</strong> {{ asignatura.area_conocimiento|default:"No especificada" }}</li>
-                            <li><strong>Créditos:</strong> {{ asignatura.creditos|default:"No especificados" }}</li>
                             <li><strong>Cursos asociados:</strong> {{ asignatura.get_cursos_count }}</li>
                             <li><strong>Evaluaciones totales:</strong> {{ asignatura.get_evaluaciones_count }}</li>
                         </ul>

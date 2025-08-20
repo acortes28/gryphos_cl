@@ -74,7 +74,7 @@
     <div class="modal-dialog modal-xl rubrica-modal">
       <div class="modal-content">
         <div class="modal-header bg-gradient-primary text-white">
-          <h5 class="modal-title" id="rubricaModalLabel{{ evaluacion_data.evaluacion.id }}">
+          <h5 class="modal-title text-white" id="rubricaModalLabel{{ evaluacion_data.evaluacion.id }}">
             <i class="fas fa-list-check me-2"></i>{{ evaluacion_data.rubrica.nombre }}
           </h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -88,23 +88,7 @@
               </h6>
             </div>
             <div class="card-body">
-              {% if evaluacion_data.rubrica.descripcion %}
-                <div class="mb-3">
-                  <strong>Descripción:</strong>
-                  <p class="mb-0 text-muted">{{ evaluacion_data.rubrica.descripcion }}</p>
-                </div>
-              {% endif %}
-              
-              <div class="row">
-                <div class="col-md-6">
-                  <strong>Objetivo:</strong>
-                  <p class="mb-0 text-muted">{{ evaluacion_data.rubrica.objetivo }}</p>
-                </div>
-                <div class="col-md-6">
-                  <strong>Aprendizaje Esperado:</strong>
-                  <p class="mb-0 text-muted">{{ evaluacion_data.rubrica.aprendizaje_esperado }}</p>
-                </div>
-              </div>
+
               
               <div class="mt-3">
                 <span class="badge bg-info">

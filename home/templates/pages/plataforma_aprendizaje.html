@@ -2,6 +2,8 @@
 {% load static %}
 {% load custom_filters %}
 
+
+
 {% csrf_token %}
 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 {% block title %} {{ curso.nombre }} - Plataforma de Aprendizaje {% endblock title %}
@@ -12,6 +14,10 @@
 {% endblock header %}
 
 {% block content %}
+
+{% block footer %}
+<!-- Ocultar el footer en la plataforma de aprendizaje -->
+{% endblock footer %}
 
 <!-- Contenedor principal con clase para estilos específicos de la plataforma -->
 <div class="plataforma-aprendizaje">
@@ -682,7 +688,7 @@
   }
   
   .alert-info .btn-close {
-    color: #0c5460;
+    color:rgb(255, 255, 255);
   }
   
   /* Estilos para mensajes pequeños */
@@ -706,6 +712,186 @@
       font-size: 1.1rem;
     }
   }
+  
+  /* Estilos específicos para la sección de inicio */
+  .avatar-lg {
+    width: 60px !important;
+    height: 60px !important;
+    font-size: 1.5rem !important;
+  }
+  
+  .card-header {
+    border-bottom: none !important;
+  }
+  
+  .card-header.bg-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+  }
+  
+  .card-header.bg-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%) !important;
+  }
+  
+  .card-header.bg-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important;
+  }
+  
+  .card-header.bg-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+  }
+  
+  /* Estilos para el panel de administración */
+  .card.bg-primary,
+  .card.bg-success,
+  .card.bg-info,
+  .card.bg-warning {
+    border: none !important;
+    transition: all 0.3s ease;
+  }
+  
+  .card.bg-primary:hover,
+  .card.bg-success:hover,
+  .card.bg-info:hover,
+  .card.bg-warning:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2) !important;
+  }
+  
+  /* Estilos para botones de acceso directo */
+  .d-grid.gap-2 .btn {
+    transition: all 0.3s ease;
+  }
+  
+  .d-grid.gap-2 .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  .list-group-item {
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  .list-group-item:hover {
+    background: rgba(0,0,0,0.02) !important;
+  }
+  
+  /* Animaciones para las tarjetas */
+  .card {
+    transition: all 0.3s ease;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+  }
+  
+  /* Estilos para el estado vacío */
+  .bg-light {
+    background-color: #f8f9fa !important;
+  }
+  
+  .card.border-0 {
+    border: none !important;
+  }
+  
+  /* Estilos para badges y elementos adicionales */
+  .badge.fs-6 {
+    font-size: 1rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+  
+  .list-group-item:hover {
+    background: rgba(0,0,0,0.02) !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Estilos para iconos en recursos */
+  .fa-2x {
+    font-size: 1.5rem !important;
+  }
+  
+  /* Mejorar espaciado en listas */
+  .list-group-item {
+    margin-bottom: 0.5rem !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Estilos responsivos para la sección de inicio */
+  @media (max-width: 768px) {
+    .avatar-lg {
+      width: 50px !important;
+      height: 50px !important;
+      font-size: 1.2rem !important;
+    }
+    
+    .card-body {
+      padding: 1rem !important;
+    }
+    
+    .btn-sm {
+      font-size: 0.8rem !important;
+      padding: 0.375rem 0.75rem !important;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .col-md-6 {
+      margin-bottom: 1rem !important;
+    }
+    
+    .card {
+      margin-bottom: 1rem !important;
+    }
+  }
+  
+  /* Estilos para el modal de objetivos */
+  .modal-content {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+  
+  .modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    border-bottom: none;
+  }
+  
+  .modal-header .btn-close {
+    filter: invert(1);
+  }
+  
+  .modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 20px 25px;
+  }
+  
+  /* Estilos para campos requeridos */
+  .required-field::after {
+    content: " *";
+    color: #dc3545;
+    font-weight: bold;
+  }
+  
+  /* Estilos para mensajes de alerta */
+  .alert {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+  }
+  
+  .alert-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+  }
+  
+  .alert-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+    color: white;
+  }
 </style>
 
 <!-- Overlay para móviles -->
@@ -714,11 +900,11 @@
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <h5 class="mb-0">
+    <h5 class="mb-0 text-white">
       <i class="fas fa-graduation-cap me-2"></i>
       {{ curso.nombre }}
     </h5>
-    <small class="text-white-50">Plataforma de Aprendizaje</small>
+    <small class="text-white-50">Gryphos Training</small>
   </div>
   
   <nav class="sidebar-nav">
@@ -822,10 +1008,279 @@
     
     <!-- Secciones de contenido -->
     <div id="seccion-inicio" class="section-content active">
-      <h4>Bienvenido a tu curso</h4>
-      <p>Esta es la sección de inicio de tu plataforma de aprendizaje.</p>
-      
-      <!-- Contenido de la sección Inicio -->
+      {% if user.is_staff %}
+        <!-- Vista para Staff/Admin -->
+        <div class="row">
+          <div class="col-12">
+            <h4 class="mb-4">
+              <i class="fas fa-tachometer-alt me-2"></i>Panel de Administración
+            </h4>
+          </div>
+        </div>
+        
+        <!-- Estadísticas del curso -->
+        <div class="row mb-4">
+          <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-primary text-white shadow-sm">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0 text-white">{{ total_estudiantes }}</h4>
+                    <p class="mb-0">Estudiantes</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="fas fa-users fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-success text-white shadow-sm">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0 text-white">{{ total_evaluaciones }}</h4>
+                    <p class="mb-0">Evaluaciones</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="fas fa-clipboard-check fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-info text-white shadow-sm">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0 text-white">{{ total_recursos }}</h4>
+                    <p class="mb-0">Recursos</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="fas fa-book fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card bg-warning text-white shadow-sm">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <h4 class="mb-0 text-white">{{ total_entregas_pendientes }}</h4>
+                    <p class="mb-0">Entregas Pendientes</p>
+                  </div>
+                  <div class="align-self-center">
+                    <i class="fas fa-clock fa-2x"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Información reciente -->
+        <div class="row">
+          <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+              <div class="card-header bg-success text-white">
+                <h6 class="mb-0 text-white">
+                  <i class="fas fa-upload me-2"></i>Entregas Pendientes
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if entregas_recientes %}
+                  <div class="list-group list-group-flush">
+                    {% for entrega in entregas_recientes %}
+                    <div class="list-group-item border-0 px-0 py-2">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                          <h6 class="mb-1 small">{{ entrega.evaluacion.nombre }}</h6>
+                          <small class="text-muted">{{ entrega.estudiante.get_full_name|default:entrega.estudiante.username }}</small>
+                        </div>
+                        <div class="text-end">
+                          <span class="badge bg-{{ entrega.estado|yesno:'success,warning' }}">{{ entrega.estado|title }}</span>
+                          <small class="text-muted d-block">{{ entrega.fecha_entrega|date:"d/m/Y" }}</small>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="text-center py-3">
+                    <p class="text-muted">No hay entregas recientes</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm">
+              <div class="card-header bg-info text-white">
+                <h6 class="mb-0 text-white">
+                  <i class="fas fa-book me-2"></i>Recursos Recientes
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if recursos_recientes %}
+                  <div class="list-group list-group-flush">
+                    {% for recurso in recursos_recientes %}
+                    <div class="list-group-item border-0 px-0 py-2">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                          <h6 class="mb-1 small">{{ recurso.nombre }}</h6>
+                          <small class="text-muted">{{ recurso.get_tipo_display_name }}</small>
+                        </div>
+                        <div class="text-end">
+                          <i class="fas {{ recurso.get_icono_tipo }} text-info"></i>
+                          <small class="text-muted d-block">{{ recurso.fecha_creacion|date:"d/m/Y" }}</small>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="text-center py-3">
+                    <p class="text-muted">No hay recursos recientes</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+      {% else %}
+        <!-- Vista para Estudiantes -->
+        <div class="row">
+          <div class="col-12">
+            <h4 class="mb-4">
+              <i class="fas fa-home me-2"></i>Bienvenido a tu curso
+            </h4>
+          </div>
+        </div>
+        
+        <!-- Resumen de información principal -->
+        <div class="row mb-4">
+          <!-- Última Calificación -->
+          {% if ultima_calificacion %}
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header bg-success text-white">
+                <h6 class="mb-0 text-white">
+                  <i class="fas fa-chart-line me-2"></i>Última Calificación
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="flex-shrink-0">
+                    <div class="avatar avatar-lg bg-success rounded-circle d-flex align-items-center justify-content-center">
+                      <span class="text-white fw-bold">{{ ultima_calificacion.nota }}</span>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-1">{{ ultima_calificacion.evaluacion.nombre }}</h6>
+                    <p class="text-muted small mb-0">{{ ultima_calificacion.evaluacion.get_tipo_display }}</p>
+                    <small class="text-muted">{{ ultima_calificacion.fecha_calificacion|date:"d/m/Y" }}</small>
+                  </div>
+                </div>
+                {% if ultima_calificacion.retroalimentacion %}
+                  <p class="text-muted small mb-0">
+                    <strong>Retroalimentación:</strong> {{ ultima_calificacion.retroalimentacion|truncatewords:15 }}
+                  </p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
+          <!-- Último Recurso -->
+          {% if ultimo_recurso %}
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header bg-info text-white">
+                <h6 class="mb-0 text-white">
+                  <i class="fas fa-book me-2"></i>Último Recurso
+                </h6>
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="flex-shrink-0">
+                    <div class="avatar avatar-lg bg-info rounded-circle d-flex align-items-center justify-content-center">
+                      <i class="fas fa-file-alt text-white"></i>
+                    </div>
+                  </div>
+                  <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-1">{{ ultimo_recurso.nombre }}</h6>
+                    <p class="text-muted small mb-0">{{ ultimo_recurso.get_tipo_display_name }}</p>
+                    <small class="text-muted">{{ ultimo_recurso.fecha_creacion|date:"d/m/Y" }}</small>
+                  </div>
+                </div>
+                {% if ultimo_recurso.descripcion %}
+                  <p class="text-muted small mb-0">
+                    {{ ultimo_recurso.descripcion|truncatewords:15 }}
+                  </p>
+                {% endif %}
+                <div class="mt-3">
+                  <span class="badge bg-secondary">{{ ultimo_recurso.evaluacion.nombre }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
+          <!-- Entregas Recientes -->
+          <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+              <div class="card-header bg-warning text-white">
+                <h6 class="mb-0 text-white">
+                  <i class="fas fa-clock me-2"></i>Entregas Pendientes
+                </h6>
+              </div>
+              <div class="card-body">
+                {% if entregas_pendientes %}
+                  <div class="list-group list-group-flush">
+                    {% for entrega in entregas_pendientes %}
+                    <div class="list-group-item border-0 px-0 py-2">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                          <h6 class="mb-1 small">{{ entrega.evaluacion.nombre }}</h6>
+                          <small class="text-muted">{{ entrega.evaluacion.get_tipo_display }}</small>
+                        </div>
+                        <div class="text-end">
+                          {% if entrega.evaluacion.fecha_fin %}
+                            <small class="text-danger">
+                              <i class="fas fa-calendar me-1"></i>{{ entrega.evaluacion.fecha_fin|date:"d/m/Y" }}
+                            </small>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+
+                  </div>
+                  <div class="mt-3">
+                    <button class="btn btn-outline-warning btn-sm" onclick="cambiarSeccion('entregas')">
+                      <i class="fas fa-upload me-1"></i>Ver todas las entregas
+                    </button>
+                  </div>
+                {% else %}
+                  <div class="text-center py-4">
+                    <i class="fas fa-check-circle fa-2x text-success mb-3"></i>
+                    <p class="text-muted">No tienes entregas pendientes</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
     </div>
     
     <!-- Bloque para contenido personalizado -->
@@ -902,6 +1357,672 @@ const PLATAFORMA_CONFIG = {
   }
 };
 
+// Función de debug para verificar URLs
+function debugURLs() {
+  console.log('🔍 DEBUG: Verificando URLs de la plataforma...');
+  console.log('🔍 PLATAFORMA_CONFIG.cursoId:', PLATAFORMA_CONFIG.cursoId);
+  console.log('🔍 URL de calificaciones AJAX:', `{% url 'plataforma_calificaciones_ajax' curso.id %}`);
+  console.log('🔍 URL actual:', window.location.href);
+  console.log('🔍 Parámetros de URL:', Object.fromEntries(new URLSearchParams(window.location.search)));
+}
+
+// Función de debug para verificar elementos del DOM
+function debugDOM() {
+  console.log('🔍 DEBUG: Verificando elementos del DOM...');
+  
+  // Verificar modal de objetivo
+  const modalObjetivo = document.getElementById('modalObjetivo');
+  console.log('🔍 Modal objetivo encontrado:', modalObjetivo ? 'SÍ' : 'NO');
+  
+  // Verificar formulario de objetivo
+  const formObjetivo = document.getElementById('formObjetivo');
+  console.log('🔍 Formulario objetivo encontrado:', formObjetivo ? 'SÍ' : 'NO');
+  
+  // Verificar campos del formulario
+  const campoNombre = document.getElementById('objetivo_nombre');
+  const campoDescripcion = document.getElementById('objetivo_descripcion');
+  console.log('🔍 Campo nombre encontrado:', campoNombre ? 'SÍ' : 'NO');
+  console.log('🔍 Campo descripción encontrado:', campoDescripcion ? 'SÍ' : 'NO');
+  
+  // Verificar CSRF token
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+  console.log('🔍 CSRF token encontrado:', csrfToken ? 'SÍ' : 'NO');
+  
+  // Verificar modal de criterio
+  const modalCriterio = document.getElementById('modalAgregarCriterio');
+  console.log('🔍 Modal criterio encontrado:', modalCriterio ? 'SÍ' : 'NO');
+}
+
+// ===== SISTEMA DE GESTIÓN DE ESTADO DE RÚBRICA =====
+
+// Estado global de la rúbrica actual
+const RUBRICA_STATE = {
+  evaluacionId: null,
+  criterios: [],
+  puntajeTotal: 0,
+  ultimaActualizacion: null
+};
+
+// Función para guardar el estado de la rúbrica en localStorage
+function guardarEstadoRubrica() {
+  try {
+    const estadoSerializado = JSON.stringify(RUBRICA_STATE);
+    localStorage.setItem(`rubrica_${RUBRICA_STATE.evaluacionId}`, estadoSerializado);
+    console.log('💾 Estado de rúbrica guardado en localStorage:', RUBRICA_STATE);
+  } catch (error) {
+    console.warn('⚠️ No se pudo guardar el estado en localStorage:', error);
+  }
+}
+
+// Función para cargar el estado de la rúbrica desde localStorage
+function cargarEstadoRubrica(evaluacionId) {
+  try {
+    const estadoSerializado = localStorage.getItem(`rubrica_${evaluacionId}`);
+    if (estadoSerializado) {
+      const estadoCargado = JSON.parse(estadoSerializado);
+      Object.assign(RUBRICA_STATE, estadoCargado);
+      console.log('📂 Estado de rúbrica cargado desde localStorage:', RUBRICA_STATE);
+      return true;
+    }
+  } catch (error) {
+    console.warn('⚠️ No se pudo cargar el estado desde localStorage:', error);
+  }
+  return false;
+}
+
+// Función para limpiar el estado de la rúbrica
+function limpiarEstadoRubrica() {
+  RUBRICA_STATE.evaluacionId = null;
+  RUBRICA_STATE.criterios = [];
+  RUBRICA_STATE.puntajeTotal = 0;
+  RUBRICA_STATE.ultimaActualizacion = null;
+  console.log('🧹 Estado de rúbrica limpiado');
+}
+
+// Función para actualizar el estado de la rúbrica
+function actualizarEstadoRubrica(evaluacionId, criterios) {
+  RUBRICA_STATE.evaluacionId = evaluacionId;
+  RUBRICA_STATE.criterios = criterios || [];
+  RUBRICA_STATE.puntajeTotal = calcularPuntajeTotalCriterios(criterios);
+  RUBRICA_STATE.ultimaActualizacion = new Date().toISOString();
+  
+  guardarEstadoRubrica();
+  console.log('🔄 Estado de rúbrica actualizado:', RUBRICA_STATE);
+}
+
+// Función para calcular el puntaje total de los criterios
+function calcularPuntajeTotalCriterios(criterios) {
+  if (!Array.isArray(criterios)) return 0;
+  return criterios.reduce((total, criterio) => {
+    const puntaje = parseFloat(criterio.puntaje) || 0;
+    return total + puntaje;
+  }, 0);
+}
+
+// ===== FUNCIONES PARA OBJETIVOS DE APRENDIZAJE =====
+
+// Variables globales para objetivos de aprendizaje
+let objetivosAprendizaje = [];
+let contadorObjetivos = 0;
+
+// Función para agregar un nuevo objetivo de aprendizaje
+function agregarObjetivo() {
+  contadorObjetivos++;
+  const objetivoId = `nuevo_${contadorObjetivos}`;
+  
+  const objetivoHtml = `
+    <div class="objetivo-item mb-3 p-3 border rounded" id="objetivo_${objetivoId}">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group mb-2">
+            <label class="form-label small">Nombre del Objetivo</label>
+            <input type="text" class="form-control form-control-sm" 
+                   name="objetivos[${objetivoId}][nombre]" 
+                   placeholder="Ej: Comprensión conceptual" required>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="form-group mb-2">
+            <label class="form-label small">Descripción</label>
+            <textarea class="form-control form-control-sm" rows="2" 
+                      name="objetivos[${objetivoId}][descripcion]" 
+                      placeholder="Descripción del objetivo" required></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="text-end">
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarObjetivo('${objetivoId}')">
+          <i class="fas fa-trash me-1"></i>Eliminar
+        </button>
+      </div>
+    </div>
+  `;
+  
+  const container = document.getElementById('objetivos-container');
+  if (container) {
+    container.insertAdjacentHTML('beforeend', objetivoHtml);
+    objetivosAprendizaje.push(objetivoId);
+    
+    // Ocultar mensaje de "no hay objetivos" si existe
+    const noObjetivosMsg = container.querySelector('.text-center');
+    if (noObjetivosMsg) {
+      noObjetivosMsg.style.display = 'none';
+    }
+  }
+}
+
+// Función para eliminar un objetivo de aprendizaje
+function eliminarObjetivo(objetivoId) {
+  console.log('🔄 Eliminando objetivo de aprendizaje:', objetivoId);
+  
+  // Obtener el ID de la evaluación desde la URL o del contexto
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    console.error('❌ No se pudo obtener el ID de la evaluación');
+    alert('Error: No se pudo obtener el ID de la evaluación');
+    return;
+  }
+  
+  // Confirmar eliminación
+  if (!confirm('¿Estás seguro de que quieres eliminar este objetivo de aprendizaje?')) {
+    return;
+  }
+  
+  // Construir la URL para eliminar objetivo usando la URL de Django
+  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+  const formData = new FormData();
+  formData.append('action', 'eliminar_objetivo_aprendizaje');
+  formData.append('objetivo_id', objetivoId);
+  formData.append('evaluacion_id', evaluacionId);
+  
+  // Verificar CSRF token
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  console.log('🔍 CSRF Token encontrado para eliminar objetivo:', csrfToken ? 'SÍ' : 'NO');
+  if (csrfToken) {
+    console.log('🔍 CSRF Token valor para eliminar objetivo:', csrfToken.substring(0, 10) + '...');
+  }
+  
+  console.log('🔍 URL construida para eliminar objetivo:', url);
+  console.log('🔍 Datos a enviar para eliminar objetivo:', {
+    action: 'eliminar_objetivo_aprendizaje',
+    objetivo_id: objetivoId,
+    evaluacion_id: evaluacionId
+  });
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: formData
+  })
+  .then(response => {
+    console.log('🔍 Response recibida para eliminar objetivo:', response);
+    console.log('🔍 Response status para eliminar objetivo:', response.status);
+    
+    if (response.status === 400) {
+      console.log("Paso por el 400!")
+      console.log("response", response)
+      return response.json().then(data => {
+        if (data.error && data.error.includes('criterio')) {
+          console.warn('⚠️ Objetivo de aprendizaje usado por algún criterio');
+        }
+        alert(data.error);
+      });
+    }
+    
+    return response.text().then(text => {
+      console.log('🔍 Response text para eliminar objetivo:', text);
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('❌ Error parseando JSON para eliminar objetivo:', e);
+        console.error('❌ Texto que no se pudo parsear para eliminar objetivo:', text);
+        throw new Error('Respuesta del servidor no es JSON válido para eliminar objetivo: ' + text);
+      }
+    });
+  })
+  .then(data => {
+    console.log('🔍 Data parseada para eliminar objetivo:', data);
+    console.log('🔍 Tipo de data para eliminar objetivo:', typeof data);
+    console.log('🔍 Data.success para eliminar objetivo:', data.success);
+    
+    if (data.success) {
+      console.log('✅ Objetivo de aprendizaje eliminado exitosamente');
+      
+      // Eliminar el elemento del DOM
+      const objetivoElement = document.getElementById(`objetivo_${objetivoId}`);
+      if (objetivoElement) {
+        objetivoElement.remove();
+      }
+      
+      // Remover de la lista de objetivos
+      const index = objetivosAprendizaje.indexOf(objetivoId);
+      if (index > -1) {
+        objetivosAprendizaje.splice(index, 1);
+      }
+      
+      // Mostrar mensaje de "no hay objetivos" si no quedan
+      if (objetivosAprendizaje.length === 0) {
+        const container = document.getElementById('objetivos-container');
+        if (container) {
+          const noObjetivosMsg = container.querySelector('.text-center');
+          if (noObjetivosMsg) {
+            noObjetivosMsg.style.display = 'block';
+          }
+        }
+      }
+      
+      // Recargar objetivos desde la base de datos y actualizar dropdowns
+      cargarObjetivosAprendizaje();
+      
+      // Mostrar mensaje de éxito
+      alert(data.message || 'Objetivo de aprendizaje eliminado correctamente');
+      
+    } else {
+      console.warn('⚠️ Error al eliminar objetivo:', data.error);
+      alert('Error al eliminar objetivo: ' + (data.error || 'Error desconocido'));
+    }
+  })
+  .catch(error => {
+    console.log("error.message", error.message)
+    console.error('❌ Error al eliminar objetivo de aprendizaje:', error);
+    console.error('🔍 URL que falló:', url);
+    console.error('🔍 Objetivo ID:', objetivoId);
+    console.error('🔍 Evaluación ID:', evaluacionId);
+  });
+}
+
+// Función para obtener los objetivos de aprendizaje del formulario
+function obtenerObjetivosAprendizaje() {
+  const objetivos = [];
+  
+  // Obtener TODOS los objetivos que estén en el DOM (tanto existentes como nuevos)
+  const todosLosObjetivos = document.querySelectorAll('.objetivo-item');
+  todosLosObjetivos.forEach(objetivo => {
+    const objetivoId = objetivo.id.replace('objetivo_', '');
+    const nombre = objetivo.querySelector('input[name*="[nombre]"]').value;
+    const descripcion = objetivo.querySelector('textarea[name*="[descripcion]"]').value;
+    const orden = objetivo.querySelector('input[name*="[orden]"]').value;
+    
+    if (nombre && descripcion) {
+      objetivos.push({
+        id: objetivoId,
+        nombre: nombre,
+        descripcion: descripcion,
+        orden: parseInt(orden) || 1,
+        esExistente: !objetivoId.startsWith('nuevo_')
+      });
+    }
+  });
+  
+  // Ordenar por orden numérico
+  objetivos.sort((a, b) => a.orden - b.orden);
+  
+  return objetivos;
+}
+
+// Función para inicializar objetivos existentes (para editar rúbrica)
+function inicializarObjetivosExistentes() {
+  const objetivosExistentes = document.querySelectorAll('.objetivo-item');
+  objetivosExistentes.forEach(objetivo => {
+    const objetivoId = objetivo.id.replace('objetivo_', '');
+    if (!objetivosAprendizaje.includes(objetivoId)) {
+      objetivosAprendizaje.push(objetivoId);
+    }
+  });
+  contadorObjetivos = objetivosAprendizaje.length;
+}
+
+// ===== FUNCIONES DEL MODAL DE OBJETIVOS =====
+
+// Función para abrir el modal de objetivo
+function abrirModalObjetivo() {
+  // Limpiar el formulario
+  document.getElementById('formObjetivo').reset();
+  
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(document.getElementById('modalObjetivo'));
+  modal.show();
+}
+
+// Función para cerrar el modal de objetivo
+function cerrarModalObjetivo() {
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalObjetivo'));
+  if (modal) {
+    modal.hide();
+  }
+}
+
+// Función para guardar el objetivo desde el modal
+function guardarObjetivo() {
+  const nombre = document.getElementById('objetivo_nombre').value.trim();
+  const descripcion = document.getElementById('objetivo_descripcion').value.trim();
+  
+  // Validar campos
+  if (!nombre || !descripcion) {
+    alert('Por favor completa todos los campos obligatorios.');
+    return;
+  }
+  
+  // Crear el objetivo en memoria
+  contadorObjetivos++;
+  const objetivoId = `nuevo_${contadorObjetivos}`;
+  
+  // Agregar a la lista en memoria
+  objetivosAprendizaje.push(objetivoId);
+  
+  // Crear el elemento HTML en el contenedor
+  const objetivoHtml = `
+    <div class="objetivo-item mb-3 p-3 border rounded" id="objetivo_${objetivoId}">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group mb-2">
+            <label class="form-label small">Nombre del Objetivo</label>
+            <input type="text" class="form-control form-control-sm" 
+                   name="objetivos[${objetivoId}][nombre]" 
+                   value="${nombre}" readonly>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="form-group mb-2">
+            <label class="form-label small">Descripción</label>
+            <textarea class="form-control form-control-sm" rows="2" 
+                      name="objetivos[${objetivoId}][descripcion]" 
+                      readonly>${descripcion}</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="text-end">
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarObjetivo('${objetivoId}')">
+          <i class="fas fa-trash me-1"></i>Eliminar
+        </button>
+      </div>
+    </div>
+  `;
+  
+  const container = document.getElementById('objetivos-container');
+  if (container) {
+    container.insertAdjacentHTML('beforeend', objetivoHtml);
+    
+    // Ocultar mensaje de "no hay objetivos" si existe
+    const noObjetivosMsg = container.querySelector('.text-center');
+    if (noObjetivosMsg) {
+      noObjetivosMsg.style.display = 'none';
+    }
+  }
+  
+  // Cerrar el modal
+  cerrarModalObjetivo();
+  
+  // Actualizar todos los dropdowns de objetivos de aprendizaje
+  actualizarDropdownsObjetivos();
+  
+  // Mostrar mensaje de éxito
+  mostrarMensaje('Objetivo de aprendizaje agregado exitosamente', 'success');
+}
+
+// Función para mostrar mensajes
+function mostrarMensaje(mensaje, tipo = 'info') {
+  // Crear elemento de mensaje
+  const mensajeElement = document.createElement('div');
+  mensajeElement.className = `alert alert-${tipo === 'success' ? 'success' : 'info'} alert-dismissible fade show`;
+  mensajeElement.innerHTML = `
+    ${mensaje}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  `;
+  
+  // Insertar al inicio del contenedor principal
+  const container = document.querySelector('.plataforma-aprendizaje');
+  if (container) {
+    container.insertBefore(mensajeElement, container.firstChild);
+    
+    // Auto-ocultar después de 3 segundos
+    setTimeout(() => {
+      if (mensajeElement.parentNode) {
+        mensajeElement.remove();
+      }
+    }, 3000);
+  }
+}
+
+function mostrarMensajes(mensaje, tipo) {
+  
+  const url = `/mostrar-mensaje/${encodeURIComponent(mensaje)}/${tipo}/`;
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('🔄 Respuesta del servidor:', data);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
+
+}
+
+// Función para cargar objetivos de aprendizaje en el modal de editar criterio
+function cargarObjetivosAprendizajeParaModal() {
+  console.log('🔄 Cargando objetivos de aprendizaje para el modal...');
+  
+  return new Promise((resolve, reject) => {
+    // Obtener el evaluacion_id de la URL actual
+    const urlParams = new URLSearchParams(window.location.search);
+    const evaluacionId = urlParams.get('evaluacion_id');
+    
+    if (!evaluacionId) {
+      console.warn('⚠️ No se pudo determinar la evaluación para cargar objetivos');
+      reject('No se pudo determinar la evaluación');
+      return;
+    }
+    
+    // Construir la URL para obtener objetivos usando la URL de Django
+    const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+    const formData = new FormData();
+    formData.append('action', 'obtener_objetivos_aprendizaje');
+    formData.append('evaluacion_id', evaluacionId);
+    
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      },
+      body: formData
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        console.log(`✅ Objetivos de aprendizaje cargados para modal: ${data.objetivos.length} objetivos`);
+        
+        // Actualizar el dropdown del modal
+        const objetivoSelect = document.getElementById('criterio_objetivo_aprendizaje_editar');
+        if (objetivoSelect) {
+          // Limpiar opciones existentes
+          objetivoSelect.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
+          
+          // Agregar nuevas opciones
+          data.objetivos.forEach(objetivo => {
+            const option = document.createElement('option');
+            option.value = objetivo.id;
+            option.textContent = objetivo.nombre;
+            objetivoSelect.appendChild(option);
+          });
+          
+          console.log('✅ Dropdown de objetivos actualizado en el modal');
+        }
+        
+        resolve();
+      } else {
+        console.warn('⚠️ Error al cargar objetivos para modal:', data.error);
+        reject(data.error);
+      }
+    })
+    .catch(error => {
+      console.error('❌ Error al cargar objetivos de aprendizaje para modal:', error);
+      reject(error);
+    });
+  });
+}
+
+// Función para actualizar todos los dropdowns de objetivos de aprendizaje
+function actualizarDropdownsObjetivos() {
+  console.log('🔄 Actualizando dropdowns de objetivos de aprendizaje...');
+  
+  // Obtener objetivos de aprendizaje del formulario (objetivos en memoria)
+  const objetivos = obtenerObjetivosAprendizaje();
+  
+  // Lista de IDs de dropdowns que deben ser actualizados
+  const dropdownIds = [
+    'objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje_editar'
+  ];
+  
+  dropdownIds.forEach(dropdownId => {
+    const dropdown = document.getElementById(dropdownId);
+    if (dropdown) {
+      console.log(`✅ Actualizando dropdown: ${dropdownId}`);
+      actualizarDropdownObjetivo(dropdown);
+    } else {
+      console.log(`⚠️ Dropdown no encontrado: ${dropdownId}`);
+    }
+  });
+  
+  // Buscar otros dropdowns que puedan existir
+  const otrosDropdowns = document.querySelectorAll('select[name*="objetivo_aprendizaje"]');
+  otrosDropdowns.forEach(dropdown => {
+    if (!dropdownIds.includes(dropdown.id)) {
+      console.log(`✅ Actualizando dropdown adicional: ${dropdown.id}`);
+      actualizarDropdownObjetivo(dropdown);
+    }
+  });
+  
+  console.log('✅ Dropdowns actualizados correctamente');
+}
+
+// Función auxiliar para obtener un objetivo por ID
+function obtenerObjetivoPorId(objetivoId) {
+  const objetivos = obtenerObjetivosAprendizaje();
+  return objetivos.find(objetivo => objetivo.id === objetivoId);
+}
+
+// Función auxiliar para actualizar un dropdown específico
+function actualizarDropdownObjetivo(selectElement) {
+  if (!selectElement) return;
+  
+  console.log(`🔄 Actualizando dropdown: ${selectElement.id}`);
+  
+  // Guardar la selección actual
+  const valorSeleccionado = selectElement.value;
+  
+  // Limpiar opciones existentes (mantener la primera opción por defecto)
+  selectElement.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
+  
+  // Obtener objetivos de aprendizaje
+  const objetivos = obtenerObjetivosAprendizaje();
+  console.log(`📋 Objetivos encontrados: ${objetivos.length}`, objetivos);
+  
+  // Agregar opciones para cada objetivo
+  objetivos.forEach(objetivo => {
+    const option = document.createElement('option');
+    
+    // Para objetivos nuevos en memoria, usar un ID temporal que se pueda identificar
+    if (objetivo.id.startsWith('nuevo_')) {
+      // Crear un ID temporal único que se pueda enviar al backend
+      const tempId = `temp_${objetivo.id}_${Date.now()}`;
+      option.value = tempId;
+      // Guardar el ID real como atributo de datos
+      option.setAttribute('data-real-id', objetivo.id);
+      option.setAttribute('data-temp-id', tempId);
+    } else {
+      option.value = objetivo.id;
+    }
+    
+    option.textContent = objetivo.nombre;
+    
+    // Marcar como seleccionado si era el valor anterior
+    if (objetivo.id === valorSeleccionado || option.value === valorSeleccionado) {
+      option.selected = true;
+    }
+    
+    selectElement.appendChild(option);
+    console.log(`➕ Agregada opción: ${objetivo.nombre} (ID: ${objetivo.id}, Valor: ${option.value})`);
+  });
+  
+  console.log(`✅ Dropdown ${selectElement.id} actualizado con ${objetivos.length} opciones`);
+}
+
+// Hacer las funciones globales para que puedan ser accedidas desde otros scripts
+window.obtenerObjetivosAprendizaje = obtenerObjetivosAprendizaje;
+window.agregarObjetivo = agregarObjetivo;
+window.eliminarObjetivo = eliminarObjetivo;
+window.inicializarObjetivosExistentes = inicializarObjetivosExistentes;
+window.abrirModalObjetivo = abrirModalObjetivo;
+window.cerrarModalObjetivo = cerrarModalObjetivo;
+window.guardarObjetivo = guardarObjetivo;
+window.mostrarMensaje = mostrarMensaje;
+window.actualizarDropdownsObjetivos = actualizarDropdownsObjetivos;
+window.actualizarDropdownObjetivo = actualizarDropdownObjetivo;
+window.actualizarListaObjetivosVisual = actualizarListaObjetivosVisual;
+window.cargarObjetivosAprendizajeParaModal = cargarObjetivosAprendizajeParaModal;
+window.mostrarFormularioNuevoObjetivo = mostrarFormularioNuevoObjetivo;
+window.actualizarDropdownsObjetivosConDatos = actualizarDropdownsObjetivosConDatos;
+window.actualizarDropdownConObjetivos = actualizarDropdownConObjetivos;
+window.agregarEventListenersObjetivos = agregarEventListenersObjetivos;
+window.handleObjetivoChange = handleObjetivoChange;
+window.agregarEventListenersModales = agregarEventListenersModales;
+window.handleModalShown = handleModalShown;
+window.debugURLs = debugURLs;
+window.debugDOM = debugDOM;
+
+
+// Función para limpiar parámetros de acción de la URL
+function limpiarParametrosAccion() {
+  const url = new URL(window.location);
+  // Eliminar parámetros relacionados con acciones
+  url.searchParams.delete('action');
+  url.searchParams.delete('evaluacion_id');
+  url.searchParams.delete('ticket_id');
+  url.searchParams.delete('recurso_id');
+  url.searchParams.delete('entrega_id');
+  url.searchParams.delete('post_id');
+  url.searchParams.delete('comentario_id');
+  return url;
+}
+
+// Función para limpiar parámetros Y path de la URL
+function limpiarParametrosYPath(seccion) {
+  const url = limpiarParametrosAccion();
+  
+  // LIMPIAR EL PATH: Si la URL actual tiene /calificaciones/, volver a /plataforma/
+  if (url.pathname.includes('/calificaciones/')) {
+    const cursoMatch = url.pathname.match(/\/curso\/(\d+)\/plataforma/);
+    if (cursoMatch) {
+      url.pathname = `/curso/${cursoMatch[1]}/plataforma/`;
+    }
+  }
+  
+  url.searchParams.set('seccion', seccion);
+  return url;
+}
+
+
+
 // Función para toggle del sidebar en móvil
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
@@ -941,6 +2062,11 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
+
+
+
+
+
 // Función para cambiar sección
 function cambiarSeccion(seccion) {
   // Mostrar loading
@@ -963,18 +2089,28 @@ function cambiarSeccion(seccion) {
   const config = PLATAFORMA_CONFIG.secciones[seccion];
   const titleElement = document.getElementById('section-title');
   titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
+
+  // Limpiar parámetros de acción cuando se navega a una sección diferente
+  // Esto evita que se mantenga el contenido de subsecciones anteriores
+  const urlParams = new URLSearchParams(window.location.search);
+  const seccionActual = urlParams.get('seccion');
+  const action = urlParams.get('action');
   
-
-
+  // Si estamos navegando a una sección diferente y hay parámetros de acción, limpiarlos
+  if (seccion !== seccionActual && action) {
+    // Limpiar parámetros inmediatamente para evitar que se mantengan en la nueva sección
+    const url = limpiarParametrosYPath(seccion);
+    window.history.pushState({}, '', url);
+  }
+  
   // Si es la sección del foro, cargar contenido dinámicamente
   if (seccion === 'inicio') {
     // Mostrar sección de inicio (contenido estático)
     document.getElementById('seccion-inicio').classList.add('active');
     document.getElementById('loading').classList.remove('show');
     
-    // Actualizar URL sin recargar
-    const url = new URL(window.location);
-    url.searchParams.set('seccion', 'inicio');
+    // Actualizar URL sin recargar y limpiar parámetros de acción
+    const url = limpiarParametrosYPath('inicio');
     window.history.pushState({}, '', url);
     return; // Salir temprano para evitar procesamiento adicional
   } else if (seccion === 'foro') {
@@ -1012,9 +2148,8 @@ function cambiarSeccion(seccion) {
           placeholder.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
         }
         
-        // Actualizar URL sin recargar
-        const url = new URL(window.location);
-        url.searchParams.set('seccion', 'recursos');
+        // Actualizar URL sin recargar y limpiar parámetros de acción
+        const url = limpiarParametrosYPath('recursos');
         window.history.pushState({}, '', url);
       })
       .catch(error => {
@@ -1022,19 +2157,29 @@ function cambiarSeccion(seccion) {
         placeholder.innerHTML = `<div class="alert alert-danger">Error al cargar los recursos: ${error.message}</div>`;
       });
   } else if (seccion === 'calificaciones') {
+    console.log('🔍 Navegando a sección calificaciones');
     // Verificar si hay parámetros específicos en la URL
     const urlParams = new URLSearchParams(window.location.search);
     const action = urlParams.get('action');
     const evaluacionId = urlParams.get('evaluacion_id');
     
+    console.log('🔍 Parámetros actuales de la URL:', { action, evaluacionId, seccion: urlParams.get('seccion') });
+    
     let url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
 
-    // Si hay una acción específica, agregarla a la URL
-    if (action) {
+    // Solo mantener parámetros si estamos navegando dentro de la misma sección
+    // y si la sección actual es calificaciones
+    const seccionActual = urlParams.get('seccion');
+    if (action && seccionActual === 'calificaciones') {
       url += `?action=${action}`;
       if (evaluacionId) {
         url += `&evaluacion_id=${evaluacionId}`;
       }
+    } else {
+      // Si venimos de otra sección o no hay sección actual, cargar calificaciones principales
+      // sin parámetros específicos y limpiar completamente la URL
+      const cleanUrl = limpiarParametrosYPath('calificaciones');
+      window.history.pushState({}, '', cleanUrl);
     }
 
 
@@ -1046,30 +2191,52 @@ function cambiarSeccion(seccion) {
       }
     })
       .then(response => response.json())
-          .then(data => {
-      const seccionCalificaciones = document.getElementById('seccion-calificaciones');
-      
-      // Ocultar todas las secciones primero
-      document.querySelectorAll('.section-content').forEach(el => {
-        el.classList.remove('active');
-      });
-      
-      // Actualizar contenido y mostrar sección de calificaciones
-      seccionCalificaciones.innerHTML = data.html;
-      seccionCalificaciones.classList.add('active');
-      document.getElementById('loading').classList.remove('show');
+      .then(data => {
+        const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+        
+        // Ocultar todas las secciones primero
+        document.querySelectorAll('.section-content').forEach(el => {
+          el.classList.remove('active');
+        });
+        
+        // Actualizar contenido y mostrar sección de calificaciones
+        seccionCalificaciones.innerHTML = data.html;
+        seccionCalificaciones.classList.add('active');
+        document.getElementById('loading').classList.remove('show');
+        
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
         
         // Actualizar URL sin recargar
         const url = new URL(window.location);
+        
+        // LIMPIAR EL PATH: Si la URL actual tiene /calificaciones/, volver a /plataforma/
+        if (url.pathname.includes('/calificaciones/')) {
+          const cursoMatch = url.pathname.match(/\/curso\/(\d+)\/plataforma/);
+          if (cursoMatch) {
+            url.pathname = `/curso/${cursoMatch[1]}/plataforma/`;
+          }
+        }
+        
         url.searchParams.set('seccion', 'calificaciones');
-        // Mantener los parámetros específicos si existen
-        if (action) {
+        // Mantener los parámetros específicos solo si estamos navegando dentro de la misma sección
+        if (action && seccionActual === 'calificaciones') {
           url.searchParams.set('action', action);
           if (evaluacionId) {
             url.searchParams.set('evaluacion_id', evaluacionId);
           }
+        } else {
+          // Si no hay acción específica o venimos de otra sección, limpiar TODOS los parámetros
+          // Esto es crucial para evitar que se acumulen parámetros de rúbricas anteriores
+          url = limpiarParametrosAccion();
+          url.searchParams.set('seccion', 'calificaciones');
         }
         window.history.pushState({}, '', url);
+        
+        console.log('🔍 URL actualizada en cambiarSeccion calificaciones:', url.toString());
+        console.log('🔍 Parámetros finales:', Object.fromEntries(url.searchParams));
       })
       .catch(error => {
         console.error('Error cargando calificaciones:', error);
@@ -1104,6 +2271,15 @@ function cambiarSeccion(seccion) {
         document.getElementById('loading').classList.remove('show');
         // Actualizar URL sin recargar
         const url = new URL(window.location);
+        
+        // LIMPIAR EL PATH: Si la URL actual tiene /calificaciones/, volver a /plataforma/
+        if (url.pathname.includes('/calificaciones/')) {
+          const cursoMatch = url.pathname.match(/\/curso\/(\d+)\/plataforma/);
+          if (cursoMatch) {
+            url.pathname = `/curso/${cursoMatch[1]}/plataforma/`;
+          }
+        }
+        
         url.searchParams.set('seccion', 'soporte');
         // Mantener los parámetros específicos si existen
         if (action) {
@@ -1111,8 +2287,17 @@ function cambiarSeccion(seccion) {
           if (ticketId) {
             url.searchParams.set('ticket_id', ticketId);
           }
+        } else {
+          // Si no hay acción específica, limpiar parámetros
+          url.searchParams.delete('action');
+          url.searchParams.delete('ticket_id');
         }
         window.history.pushState({}, '', url);
+      })
+      .catch(error => {
+        console.error('Error cargando soporte:', error);
+        document.getElementById('loading').classList.remove('show');
+        document.getElementById('seccion-soporte').innerHTML = `<div class="alert alert-danger">Error al cargar el soporte: ${error.message}</div>`;
       });
   } else if (seccion === 'entregas') {
     // Limpiar mensajes anteriores
@@ -1132,9 +2317,8 @@ function cambiarSeccion(seccion) {
         document.getElementById('tabla-entregas-placeholder').innerHTML = data.html;
         document.getElementById('seccion-entregas').classList.add('active');
         document.getElementById('loading').classList.remove('show');
-        // Actualizar URL sin recargar
-        const url = new URL(window.location);
-        url.searchParams.set('seccion', 'entregas');
+        // Actualizar URL sin recargar y limpiar parámetros de acción
+        const url = limpiarParametrosYPath('entregas');
         window.history.pushState({}, '', url);
         // Inicializar el formulario de subida si existe
         inicializarFormularioEntrega();
@@ -1142,6 +2326,11 @@ function cambiarSeccion(seccion) {
         inicializarEvaluacionesColapsables();
         // Inicializar el modal de reemplazo
         inicializarModalReemplazo();
+      })
+      .catch(error => {
+        console.error('Error cargando entregas:', error);
+        document.getElementById('loading').classList.remove('show');
+        document.getElementById('tabla-entregas-placeholder').innerHTML = `<div class="alert alert-danger">Error al cargar las entregas: ${error.message}</div>`;
       });
   } else {
     // Simular carga para otras secciones
@@ -1152,14 +2341,8 @@ function cambiarSeccion(seccion) {
       // Ocultar loading
       document.getElementById('loading').classList.remove('show');
       
-      // Actualizar URL sin recargar
-      const url = new URL(window.location);
-      url.searchParams.set('seccion', seccion);
-      // Limpiar parámetros específicos del foro si no estamos en la sección foro
-      if (seccion !== 'foro') {
-        url.searchParams.delete('action');
-        url.searchParams.delete('post_id');
-      }
+      // Actualizar URL sin recargar y limpiar parámetros de acción
+      const url = limpiarParametrosYPath(seccion);
       window.history.pushState({}, '', url);
     }, 300);
   }
@@ -1210,9 +2393,8 @@ function cargarForoContenido() {
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
-        // Actualizar URL sin recargar
-        const url = new URL(window.location);
-        url.searchParams.set('seccion', 'foro');
+        // Actualizar URL sin recargar y limpiar parámetros de acción
+        const url = limpiarParametrosYPath('foro');
         window.history.pushState({}, '', url);
       })
       .catch(error => {
@@ -1364,6 +2546,10 @@ function cargarForoFiltrado(category) {
             allCategoriesBtn.classList.add('active');
           }
         }
+        
+        // Actualizar URL sin recargar y limpiar parámetros de acción
+        const url = limpiarParametrosYPath('foro');
+        window.history.pushState({}, '', url);
       }
     })
     .catch(error => {
@@ -1457,8 +2643,8 @@ document.addEventListener('DOMContentLoaded', function() {
     cambiarSeccion(seccionActiva);
   }
   
-  // Iniciar observer para detectar contenido de eliminación
-  iniciarObserverEliminacion();
+  // OBSERVER ELIMINADO - Causaba duplicación de event listeners
+  // iniciarObserverEliminacion();
 });
 
 // Función para mostrar el modal de confirmación
@@ -1479,6 +2665,8 @@ function confirmarEntrega() {
     modal.show();
   }
 }
+
+
 
 // Función para manejar la subida de entrega
 function subirEntrega() {
@@ -1541,6 +2729,9 @@ function subirEntrega() {
       
       // Reinicializar el formulario
       inicializarFormularioEntrega();
+      
+      // Recargar la página completa para actualizar todos los datos
+      window.location.reload();
     })
     .catch(error => {
       console.error('Error:', error);
@@ -1552,6 +2743,15 @@ function subirEntrega() {
       submitBtn.disabled = false;
     });
   }
+}
+
+// Función para recargar la sección de inicio
+function recargarSeccionInicio() {
+  // Mostrar loading
+  document.getElementById('loading').classList.add('show');
+  
+  // Recargar la página para obtener los datos actualizados
+  window.location.reload();
 }
 
 // Función para validar archivo
@@ -1867,6 +3067,11 @@ function cargarEstadisticasCalificaciones() {
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
+        
         // Actualizar URL sin recargar
         const url = new URL(window.location);
         url.searchParams.set('seccion', 'calificaciones');
@@ -1924,6 +3129,11 @@ function cargarRubricasCalificaciones() {
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
+        
         // Actualizar URL sin recargar
         const url = new URL(window.location);
         url.searchParams.set('seccion', 'calificaciones');
@@ -1963,6 +3173,11 @@ function cargarDetalleEvaluacion(evaluacionId) {
         
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
+        
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
         
         // Actualizar URL sin recargar
         const url = new URL(window.location);
@@ -2010,9 +3225,13 @@ function cargarDetalleCalificacion(evaluacionId) {
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
+        
         // Actualizar URL sin recargar
         const url = new URL(window.location);
-        url.searchParams.set('seccion', 'calificaciones');
         url.searchParams.set('action', 'ver_detalle');
         url.searchParams.set('evaluacion_id', evaluacionId);
         window.history.pushState({}, '', url);
@@ -2070,6 +3289,35 @@ function cargarRubrica(evaluacionId) {
         seccionCalificaciones.innerHTML = data.html;
         seccionCalificaciones.classList.add('active');
         
+        // Asegurar que el contenedor de criterios exista después de cargar la rúbrica
+        setTimeout(() => {
+          if (typeof crearContenedorCriterios === 'function') {
+            let criteriosContainer = document.querySelector('.criterios-list');
+            if (!criteriosContainer) {
+              console.log('🔧 Cargar rúbrica: Creando contenedor de criterios...');
+              crearContenedorCriterios();
+            }
+          }
+          
+                  // Inicializar cálculos de puntaje después de cargar el contenido
+        inicializarCalculosPuntaje();
+        
+        // Verificar si hay criterios y actualizar el estado
+        const criteriosItems = document.querySelectorAll('.criterio-item');
+        if (criteriosItems.length > 0) {
+          console.log(`🔍 Rúbrica cargada con ${criteriosItems.length} criterios`);
+          
+          // Limpiar el estado anterior para forzar la obtención de puntajes actualizados
+          console.log('🧹 Limpiando estado anterior para forzar actualización de puntajes...');
+          limpiarEstadoRubrica();
+          
+          // Forzar actualización del estado con puntajes del backend
+          setTimeout(() => {
+            obtenerPuntajesActualizadosDelBackend(evaluacionId);
+          }, 100);
+        }
+        }, 300); // Delay para asegurar que el DOM esté completamente cargado
+        
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
@@ -2079,6 +3327,11 @@ function cargarRubrica(evaluacionId) {
         url.searchParams.set('action', 'ver_rubrica');
         url.searchParams.set('evaluacion_id', evaluacionId);
         window.history.pushState({}, '', url);
+        
+        // Agregar event listeners a los modales después de cargar la rúbrica
+        setTimeout(() => {
+          agregarEventListenersModales();
+        }, 500);
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -2146,7 +3399,10 @@ function cargarEditarEvaluacion(evaluacionId) {
         // Inicializar el formulario después de cargar el contenido
         setTimeout(() => {
           inicializarFormularioEditarEvaluacion();
-        }, 100);
+          
+          // Inicializar cálculos de puntaje después de cargar el contenido
+          inicializarCalculosPuntaje();
+        }, 300);
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -2361,11 +3617,14 @@ function cargarCalificar(evaluacionId, estudianteId = null) {
         // Ejecutar cálculo de nota después de cargar el contenido
         // Esto es necesario cuando se precarga un estudiante
         setTimeout(() => {
-                  if (typeof calcularNota === 'function') {
-          calcularNota();
-        } else {
-          console.warn('Función calcularNota no está disponible');
-        }
+          if (typeof calcularNota === 'function') {
+            calcularNota();
+          } else {
+            console.warn('Función calcularNota no está disponible');
+          }
+          
+          // Inicializar cálculos de puntaje después de cargar el contenido
+          inicializarCalculosPuntaje();
         }, 500); // Aumentar el timeout para asegurar que el DOM esté completamente cargado
       } else {
         document.getElementById('loading').classList.remove('show');
@@ -2389,7 +3648,7 @@ function cargarCalificar(evaluacionId, estudianteId = null) {
         `;
         seccionCalificaciones.classList.add('active');
       }
-    });
+    });    
 }
 
 // Función para cargar el formulario de crear evaluación
@@ -2424,7 +3683,10 @@ function cargarCrearEvaluacion() {
         // Inicializar el formulario después de cargar el contenido
         setTimeout(() => {
           inicializarFormularioCrearEvaluacion();
-        }, 100);
+          
+          // Inicializar cálculos de puntaje después de cargar el contenido
+          inicializarCalculosPuntaje();
+        }, 300);
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -2437,14 +3699,11 @@ function cargarCrearEvaluacion() {
 
 // Función para cargar vista de eliminar evaluación
 function cargarEliminarEvaluacion(evaluacionId) {
-
-  
+  console.log('🔍 cargarEliminarEvaluacion llamada con evaluacionId:', evaluacionId);
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
   
-  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}?action=eliminar_evaluacion&evaluacion_id=${evaluacionId}`;
-  
-  fetch(url, {
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=eliminar_evaluacion&evaluacion_id=${evaluacionId}`, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
     }
@@ -2464,33 +3723,9 @@ function cargarEliminarEvaluacion(evaluacionId) {
           el.classList.remove('active');
         });
         
-
-        
         // Actualizar contenido y mostrar sección de calificaciones
         seccionCalificaciones.innerHTML = data.html;
         seccionCalificaciones.classList.add('active');
-        
-        // Asegurar visibilidad de la sección
-        seccionCalificaciones.style.display = 'block';
-        seccionCalificaciones.style.visibility = 'visible';
-        seccionCalificaciones.style.opacity = '1';
-        
-        // Asegurar visibilidad del contenido de eliminación si existe
-        setTimeout(() => {
-          const eliminarContent = seccionCalificaciones.querySelector('.eliminar-evaluacion-content');
-          if (eliminarContent) {
-            eliminarContent.style.display = 'block';
-            eliminarContent.style.visibility = 'visible';
-            eliminarContent.style.opacity = '1';
-          }
-        }, 50);
-        
-
-        
-        // Inicializar funciones de eliminación después de cargar el contenido
-        setTimeout(() => {
-          inicializarEliminacionSiExiste();
-        }, 100);
         
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
@@ -2501,6 +3736,21 @@ function cargarEliminarEvaluacion(evaluacionId) {
         url.searchParams.set('action', 'eliminar_evaluacion');
         url.searchParams.set('evaluacion_id', evaluacionId);
         window.history.pushState({}, '', url);
+        
+        // Inicializar el formulario después de cargar el contenido
+        setTimeout(() => {
+          console.log('🔍 Llamando a inicializarFormularioEliminacionEvaluacion desde cargarEliminarEvaluacion');
+          // Limpiar marca de inicialización previa si existe
+          const form = document.getElementById('formEliminarEvaluacion');
+          if (form && form._eliminacionInicializada) {
+            console.log('🔍 Limpiando marca de inicialización previa');
+            delete form._eliminacionInicializada;
+          }
+          inicializarFormularioEliminacionEvaluacion();
+          
+          // Inicializar cálculos de puntaje después de cargar el contenido
+          inicializarCalculosPuntaje();
+        }, 300);
       } else {
         document.getElementById('loading').classList.remove('show');
       }
@@ -2531,6 +3781,10 @@ function cargarCalificaciones() {
   // Mostrar loading
   document.getElementById('loading').classList.add('show');
   
+  // Limpiar el estado de la rúbrica actual antes de cambiar
+  limpiarEstadoRubrica();
+  console.log('🧹 Estado de rúbrica limpiado al volver a calificaciones principales');
+  
   fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}`, {
     headers: {
       'X-Requested-With': 'XMLHttpRequest'
@@ -2553,13 +3807,48 @@ function cargarCalificaciones() {
         // Ocultar loading
         document.getElementById('loading').classList.remove('show');
         
+        // Actualizar navegación activa
+        document.querySelectorAll('.nav-link').forEach(el => {
+          el.classList.remove('active');
+        });
+        document.querySelector('[data-seccion="calificaciones"]').classList.add('active');
+        
+        // Actualizar título
+        const config = PLATAFORMA_CONFIG.secciones['calificaciones'];
+        const titleElement = document.getElementById('section-title');
+        if (titleElement && config) {
+          titleElement.innerHTML = `<i class="${config.icono} me-2"></i>${config.titulo}`;
+        }
+        
         // Actualizar URL sin recargar
         const url = new URL(window.location);
+        
+        // LIMPIAR EL PATH: Si la URL actual tiene /calificaciones/, volver a /plataforma/
+        if (url.pathname.includes('/calificaciones/')) {
+          const cursoMatch = url.pathname.match(/\/curso\/(\d+)\/plataforma/);
+          if (cursoMatch) {
+            url.pathname = `/curso/${cursoMatch[1]}/plataforma/`;
+          }
+        }
+        
         url.searchParams.set('seccion', 'calificaciones');
         // Limpiar parámetros específicos
         url.searchParams.delete('action');
         url.searchParams.delete('evaluacion_id');
         window.history.pushState({}, '', url);
+        
+        console.log('🔍 URL actualizada después de cargar calificaciones:', url.toString());
+        console.log('🔍 Parámetros de la URL:', Object.fromEntries(url.searchParams));
+        
+        // Inicializar cálculos de puntaje después de cargar el contenido
+        setTimeout(() => {
+          inicializarCalculosPuntaje();
+        }, 300);
+        
+        // Agregar event listeners a los modales después de cargar calificaciones
+        setTimeout(() => {
+          agregarEventListenersModales();
+        }, 500);
       }
     })
     .catch(error => {
@@ -2800,12 +4089,34 @@ let esperablesListEditar = [];
 
 // Funciones para el modal de criterios
 function abrirModalAgregarCriterio() {
+
+  // Limpiar el formulario
+  const form = document.getElementById('formAgregarCriterio');
+  form.reset();
+
   // Limpiar la lista de esperables
   esperablesList = [];
   actualizarListaEsperables();
   
+  // Cargar objetivos de aprendizaje desde la base de datos
+cargarObjetivosAprendizaje();
+
+// Agregar event listeners globales para objetivos de aprendizaje
+document.addEventListener('DOMContentLoaded', function() {
+  // Agregar event listeners a los modales cuando se cargue la página
+  agregarEventListenersModales();
+  
+  // Debug de URLs para verificar que estén correctas
+  debugURLs();
+  
+  // Debug del DOM para verificar que los elementos estén presentes
+  debugDOM();
+});
+  
   const modal = new bootstrap.Modal(document.getElementById('modalAgregarCriterio'));
   modal.show();
+  
+
 }
 
 function abrirModalAgregarEsperable() {
@@ -3089,9 +4400,15 @@ function guardarCriterio() {
   // Validar campos requeridos
   const nombre = formData.get('nombre');
   const objetivo = formData.get('objetivo');
-  const puntaje = formData.get('puntaje');
+  const objetivoAprendizaje = formData.get('objetivo_aprendizaje');
   
-  if (!nombre || !objetivo || !puntaje) {
+  console.log('🔍 Datos del formulario:', {
+    nombre,
+    objetivo,
+    objetivoAprendizaje
+  });
+  
+  if (!nombre || !objetivo || !objetivoAprendizaje) {
     alert('Por favor completa todos los campos obligatorios.');
     return;
   }
@@ -3102,12 +4419,6 @@ function guardarCriterio() {
     return;
   }
   
-  // Validar que el puntaje sea un número válido
-  if (isNaN(puntaje) || parseFloat(puntaje) < 0) {
-    alert('El puntaje debe ser un número válido mayor o igual a 0.');
-    return;
-  }
-  
   // Limpiar esperables existentes del FormData y agregar solo los de la lista
   formData.delete('esperables[]');
   esperablesList.forEach((esperable, index) => {
@@ -3115,6 +4426,45 @@ function guardarCriterio() {
 
     formData.append('esperables[]', esperableJson);
   });
+  
+  // Log del FormData completo antes de enviar
+  console.log('📤 FormData completo antes de enviar:');
+  for (let [key, value] of formData.entries()) {
+    console.log(`  ${key}: ${value}`);
+  }
+  
+  // Log específico del objetivo de aprendizaje
+  const objetivoAprendizajeSelect = document.getElementById('criterio_objetivo_aprendizaje');
+  if (objetivoAprendizajeSelect) {
+    console.log('🎯 Objetivo de aprendizaje seleccionado:', {
+      valor: objetivoAprendizajeSelect.value,
+      texto: objetivoAprendizajeSelect.options[objetivoAprendizajeSelect.selectedIndex]?.text,
+      opcionesDisponibles: Array.from(objetivoAprendizajeSelect.options).map(opt => ({value: opt.value, text: opt.text}))
+    });
+  }
+  
+  // Procesar objetivo de aprendizaje
+  const objetivoSeleccionado = objetivoAprendizajeSelect?.value;
+  if (objetivoSeleccionado) {
+    if (objetivoSeleccionado === 'nuevo') {
+      // El usuario quiere crear un nuevo objetivo
+      console.log('🔄 Usuario seleccionó crear nuevo objetivo');
+      
+      // Mostrar el formulario para crear nuevo objetivo
+      mostrarFormularioNuevoObjetivo();
+      return; // No continuar con el guardado del criterio
+      
+    } else if (objetivoSeleccionado && objetivoSeleccionado !== '') {
+      // El usuario seleccionó un objetivo existente
+      const selectedOption = objetivoAprendizajeSelect.options[objetivoAprendizajeSelect.selectedIndex];
+      const realId = selectedOption.getAttribute('data-real-id');
+      
+      if (realId) {
+        console.log('🔄 Objetivo existente seleccionado:', realId);
+        formData.append('objetivo_aprendizaje', realId);
+      }
+    }
+  }
   
   // Enviar datos vía AJAX
   // Obtener el evaluacion_id de la URL actual
@@ -3153,10 +4503,36 @@ function guardarCriterio() {
   })
   .then(data => {
     if (data.success) {
-      // Cerrar modal y recargar página
+      // Cerrar modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarCriterio'));
       modal.hide();
-      location.reload();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Criterio agregado exitosamente', 'success');
+      
+      // Verificar si se guardó el objetivo de aprendizaje
+      if (data.objetivo_aprendizaje_id && data.objetivo_aprendizaje_nombre) {
+        mostrarMensaje(`Objetivo de aprendizaje "${data.objetivo_aprendizaje_nombre}" asociado correctamente`, 'info');
+      }
+      
+      // Agregar el criterio dinámicamente al DOM
+      if (data.criterio) {
+        console.log('📥 Datos del criterio recibidos del servidor:', data.criterio);
+        
+        // Asegurar que el DOM esté listo antes de agregar el criterio
+        setTimeout(() => {
+          try {
+            agregarCriterioAlDOM(data.criterio);
+          } catch (error) {
+            console.error('Error al agregar criterio al DOM:', error);
+            // Fallback: recargar la página para mostrar el criterio
+            window.location.reload();
+          }
+        }, 100);
+        
+        // La función agregarCriterioAlDOM ahora maneja la actualización de puntajes internamente
+        // No necesitamos llamar actualizarPuntajesMaximos aquí
+      }
     } else {
       alert('Error: ' + data.error);
     }
@@ -3167,18 +4543,504 @@ function guardarCriterio() {
   });
 }
 
-function editarCriterio(criterioId) {
-  // Cargar los datos del criterio
-  // Obtener el evaluacion_id de la URL actual
+// ===== FUNCIONES PARA CRITERIOS DINÁMICOS =====
+
+// Función auxiliar para crear el contenedor de criterios si no existe
+function crearContenedorCriterios() {
+  console.log('🔧 Creando contenedor de criterios...');
+  
+  // Buscar específicamente el contenedor de la sección de calificaciones
+  // Primero buscar por la URL o por elementos específicos de la sección
+  let contenedorCorrecto = null;
+  
+  // Buscar por la sección de calificaciones específicamente
+  if (window.location.search.includes('seccion=calificaciones')) {
+    // Buscar en la sección de calificaciones
+    contenedorCorrecto = document.querySelector('#calificaciones .card-body, .calificaciones .card-body, [data-seccion="calificaciones"] .card-body');
+    
+    if (!contenedorCorrecto) {
+      // Buscar por el modal de agregar criterio
+      const modalAgregarCriterio = document.getElementById('modalAgregarCriterio');
+      if (modalAgregarCriterio) {
+        // Buscar el contenedor más cercano que tenga el modal
+        contenedorCorrecto = modalAgregarCriterio.closest('.card-body, .container, .row');
+      }
+    }
+    
+    if (!contenedorCorrecto) {
+      // Buscar por el botón de agregar criterio
+      const btnAgregar = document.querySelector('button[onclick="abrirModalAgregarCriterio()"]');
+      if (btnAgregar) {
+        contenedorCorrecto = btnAgregar.closest('.card-body, .container, .row');
+      }
+    }
+  }
+  
+  // Si no se encontró el contenedor específico, usar el card-body más cercano
+  if (!contenedorCorrecto) {
+    contenedorCorrecto = document.querySelector('.card-body');
+  }
+  
+  if (!contenedorCorrecto) {
+    console.error('No se encontró el contenedor correcto para crear el contenedor de criterios');
+    return null;
+  }
+  
+  console.log('🔍 Contenedor correcto encontrado:', contenedorCorrecto);
+  console.log('🔍 Clases del contenedor:', contenedorCorrecto.className);
+  
+  // Crear el contenedor de criterios
+  const criteriosContainer = document.createElement('div');
+  criteriosContainer.className = 'criterios-list';
+  criteriosContainer.style.cssText = 'border: 2px solid rgb(254, 254, 254); padding: 5px; margin: 5px 0; background-color: rgb(255, 255, 255); min-height: 10px;';
+  
+  // Insertar el contenedor antes del botón de agregar criterio
+  const btnAgregar = contenedorCorrecto.querySelector('button[onclick="abrirModalAgregarCriterio()"]');
+  if (btnAgregar) {
+    contenedorCorrecto.insertBefore(criteriosContainer, btnAgregar);
+    console.log('✅ Contenedor de criterios creado exitosamente antes del botón');
+  } else {
+    // Si no hay botón, insertar al final del contenedor
+    contenedorCorrecto.appendChild(criteriosContainer);
+    console.log('✅ Contenedor de criterios creado al final del contenedor');
+  }
+  
+  // Agregar un mensaje inicial para hacer el contenedor visible
+  criteriosContainer.innerHTML = '<div class="text-muted text-center"></div>';
+  
+  console.log('🔍 Contenedor creado en:', criteriosContainer.parentElement);
+  console.log('🔍 Posición en el DOM:', criteriosContainer);
+  
+  return criteriosContainer;
+}
+
+// Función para agregar un criterio dinámicamente al DOM
+function agregarCriterioAlDOM(criterio) {
+
+  const noCriteriosMsg = document.querySelector('#no-criterios');
+  console.log('🔍 Mensaje "No hay criterios agregados" encontrado:', noCriteriosMsg);
+  if (noCriteriosMsg) {
+    noCriteriosMsg.remove(); // Eliminar completamente el mensaje
+    console.log('✅ Mensaje "No hay criterios agregados" eliminado');
+  } else {
+    console.log('✅ Mensaje "No hay criterios agregados" no encontrado');
+  }
+
+
+  console.log('🔄 Agregando criterio al DOM:', criterio);
+  
+  // Buscar el contenedor de criterios
+  let criteriosContainer = null;
+  try {
+    criteriosContainer = document.querySelector('.criterios-list');
+  } catch (error) {
+    console.warn('⚠️ Error al buscar contenedor de criterios:', error);
+  }
+  console.log('🔍 Contenedor de criterios encontrado:', criteriosContainer);
+  
+  // Si no existe, crearlo automáticamente
+  if (!criteriosContainer) {
+    console.log('⚠️ Contenedor de criterios no encontrado, creándolo automáticamente...');
+    criteriosContainer = crearContenedorCriterios();
+    
+    if (!criteriosContainer) {
+      console.error('No se pudo crear el contenedor de criterios');
+      return;
+    }
+  }
+  
+  // Verificar que el contenedor esté en la ubicación correcta
+  if (criteriosContainer) {
+    const contenedorPadre = criteriosContainer.parentElement;
+    console.log('🔍 Contenedor padre del criterios-list:', contenedorPadre);
+    console.log('🔍 Clases del contenedor padre:', contenedorPadre?.className);
+    
+    // Si el contenedor está en el lugar equivocado, moverlo al lugar correcto
+    if (contenedorPadre && !contenedorPadre.querySelector('button[onclick="abrirModalAgregarCriterio()"]')) {
+      console.log('⚠️ Contenedor de criterios está en el lugar equivocado, moviéndolo...');
+      
+      // Buscar el contenedor correcto
+      const contenedorCorrecto = document.querySelector('button[onclick="abrirModalAgregarCriterio()"]')?.closest('.card-body, .container, .row');
+      if (contenedorCorrecto) {
+        contenedorCorrecto.appendChild(criteriosContainer);
+        console.log('✅ Contenedor de criterios movido al lugar correcto');
+      }
+    }
+  }
+  
+  // Limpiar cualquier contenedor de criterios que se haya creado en el lugar equivocado
+  const contenedoresIncorrectos = document.querySelectorAll('.criterios-list');
+  if (contenedoresIncorrectos.length > 1) {
+    console.log('⚠️ Se encontraron múltiples contenedores de criterios, limpiando...');
+    
+    // Mantener solo el primero (que debería ser el correcto)
+    for (let i = 1; i < contenedoresIncorrectos.length; i++) {
+      const contenedorIncorrecto = contenedoresIncorrectos[i];
+      console.log('🗑️ Eliminando contenedor incorrecto:', contenedorIncorrecto);
+      contenedorIncorrecto.remove();
+    }
+    
+    // Actualizar la referencia al contenedor correcto
+    criteriosContainer = document.querySelector('.criterios-list');
+  }
+  
+  // Si no hay contenedor o está en el lugar equivocado, crear uno nuevo en el lugar correcto
+  if (!criteriosContainer || !criteriosContainer.parentElement?.querySelector('button[onclick="abrirModalAgregarCriterio()"]')) {
+    console.log('🔄 Creando nuevo contenedor de criterios en el lugar correcto...');
+    criteriosContainer = crearContenedorCriterios();
+  }
+  
+  // Verificar que el contenedor sea visible
+  console.log('🔍 Contenedor de criterios:', {
+    elemento: criteriosContainer,
+    parent: criteriosContainer.parentElement,
+    visible: criteriosContainer.offsetParent !== null,
+    display: window.getComputedStyle(criteriosContainer).display,
+    visibility: window.getComputedStyle(criteriosContainer).visibility,
+    height: criteriosContainer.offsetHeight,
+    width: criteriosContainer.offsetWidth
+  });
+  
+  // Verificar también el contenedor padre (card-body)
+  const cardBody = criteriosContainer.parentElement;
+  if (cardBody) {
+    const estilosCardBody = window.getComputedStyle(cardBody);
+    console.log('🔍 Estilos del card-body padre:', {
+      display: estilosCardBody.display,
+      visibility: estilosCardBody.visibility,
+      opacity: estilosCardBody.opacity,
+      height: cardBody.offsetHeight,
+      width: cardBody.offsetWidth,
+      visible: cardBody.offsetParent !== null
+    });
+    
+    // Si el card-body está oculto, forzar su visibilidad
+    if (estilosCardBody.display === 'none' || estilosCardBody.visibility === 'hidden') {
+      cardBody.style.display = 'block';
+      cardBody.style.visibility = 'visible';
+      console.log('🔧 Visibilidad del card-body forzada');
+    }
+  }
+  
+  // Crear el HTML del criterio con estilos inline para forzar visibilidad
+  const criterioHtml = `
+    <div class="criterio-item mb-3 p-3 border rounded" 
+         data-criterio-id="${criterio.id}" 
+         data-criterio-puntaje-maximo="${criterio.puntaje || 0}"
+         style="display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; min-height: 100px !important; background-color: white !important">
+      <h6 class="mb-2">${criterio.nombre}</h6>
+      <p class="text-muted small mb-2">${criterio.objetivo}</p>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted">${criterio.esperables_count || 0} esperables</small>
+        <span class="badge bg-primary">${criterio.puntaje || 0} puntos</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted">Puntaje máximo: <strong>${criterio.puntaje || 0}</strong></small>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-primary btn-sm" onclick="editarCriterio(${criterio.id})">
+            <i class="fas fa-edit"></i>Editar
+          </button>
+          <button class="btn btn-outline-danger btn-sm" onclick="eliminarCriterio(${criterio.id})">
+            <i class="fas fa-trash"></i>Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  console.log('📝 HTML del criterio a insertar:', criterioHtml);
+  console.log('📊 Datos del criterio:', {
+    id: criterio.id,
+    nombre: criterio.nombre,
+    puntaje: criterio.puntaje,
+    puntajeMaximo: criterio.puntaje || 0
+  });
+  
+  // Ocultar mensaje de "no hay criterios" si existe
+  // Buscar por atributo data-mensaje para mayor precisión
+
+  
+  // Agregar el criterio al final del contenedor
+  criteriosContainer.insertAdjacentHTML('beforeend', criterioHtml);
+  
+  // Forzar la visibilidad del contenedor
+  criteriosContainer.style.display = 'block';
+  criteriosContainer.style.visibility = 'visible';
+  criteriosContainer.style.opacity = '1';
+  
+  // Forzar la visibilidad de todos los contenedores padres
+  let elementoPadre = criteriosContainer.parentElement;
+  while (elementoPadre && elementoPadre !== document.body) {
+    const estilos = window.getComputedStyle(elementoPadre);
+    if (estilos.display === 'none') {
+      elementoPadre.style.display = 'block';
+      console.log('🔧 Forzando display: block en:', elementoPadre.className || elementoPadre.tagName);
+    }
+    if (estilos.visibility === 'hidden') {
+      elementoPadre.style.visibility = 'visible';
+      console.log('🔧 Forzando visibility: visible en:', elementoPadre.className || elementoPadre.tagName);
+    }
+    elementoPadre = elementoPadre.parentElement;
+  }
+  
+  // Remover el mensaje inicial si existe
+  const mensajeInicial = criteriosContainer.querySelector('.text-muted.text-center');
+  if (mensajeInicial && mensajeInicial.textContent.includes('Contenedor de criterios creado')) {
+    mensajeInicial.remove();
+  }
+  
+  console.log('✅ Criterio agregado al DOM exitosamente');
+  
+  // Verificar inmediatamente que el criterio esté en el contenedor
+  const criterioInmediato = criteriosContainer.querySelector(`[data-criterio-id="${criterio.id}"]`);
+  if (criterioInmediato) {
+    console.log('✅ Criterio verificado inmediatamente en el contenedor');
+    console.log('🔍 Contenedor actualizado:', criteriosContainer.innerHTML);
+    
+    // Verificar que el criterio sea visible
+    const estilosCriterio = window.getComputedStyle(criterioInmediato);
+    console.log('🔍 Estilos del criterio:', {
+      display: estilosCriterio.display,
+      visibility: estilosCriterio.visibility,
+      opacity: estilosCriterio.opacity,
+      height: criterioInmediato.offsetHeight,
+      width: criterioInmediato.offsetWidth,
+      visible: criterioInmediato.offsetParent !== null
+    });
+    
+    // Forzar la visibilidad del criterio si es necesario
+    if (estilosCriterio.display === 'none' || estilosCriterio.visibility === 'hidden') {
+      criterioInmediato.style.display = 'block';
+      criterioInmediato.style.visibility = 'visible';
+      console.log('🔧 Visibilidad del criterio forzada');
+    }
+  } else {
+    console.error('❌ El criterio no se encontró inmediatamente en el contenedor');
+  }
+  
+  // Verificar que el elemento se haya insertado correctamente
+  const criterioInsertado = criteriosContainer.querySelector(`[data-criterio-id="${criterio.id}"]`);
+  if (criterioInsertado) {
+    console.log('✅ Elemento del criterio verificado en el DOM:', criterioInsertado);
+    console.log('🔍 Atributos del criterio insertado:', {
+      'data-criterio-id': criterioInsertado.getAttribute('data-criterio-id'),
+      'data-criterio-puntaje-maximo': criterioInsertado.getAttribute('data-criterio-puntaje-maximo')
+    });
+    
+    // Verificar la posición del contenedor en la página
+    const rectContenedor = criteriosContainer.getBoundingClientRect();
+    const rectCriterio = criterioInsertado.getBoundingClientRect();
+    
+    console.log('🔍 Posición del contenedor:', {
+      top: rectContenedor.top,
+      left: rectContenedor.left,
+      width: rectContenedor.width,
+      height: rectContenedor.height,
+      visible: rectContenedor.width > 0 && rectContenedor.height > 0
+    });
+    
+    console.log('🔍 Posición del criterio:', {
+      top: rectCriterio.top,
+      left: rectCriterio.left,
+      width: rectCriterio.width,
+      height: rectCriterio.height,
+      visible: rectCriterio.width > 0 && rectCriterio.height > 0
+    });
+    
+    // Hacer scroll hacia el criterio si es necesario
+    if (rectCriterio.top < 0 || rectCriterio.bottom > window.innerHeight) {
+      criterioInsertado.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      console.log('🔧 Scroll hacia el criterio realizado');
+    }
+    
+      // Verificar que el criterio sea visible después de forzar la visibilidad
+  setTimeout(() => {
+    const rectCriterioFinal = criterioInsertado.getBoundingClientRect();
+    console.log('🔍 Posición final del criterio después de forzar visibilidad:', {
+      top: rectCriterioFinal.top,
+      left: rectCriterioFinal.left,
+      width: rectCriterioFinal.width,
+      height: rectCriterioFinal.height,
+      visible: rectCriterioFinal.width > 0 && rectCriterioFinal.height > 0
+    });
+    
+    if (rectCriterioFinal.width > 0 && rectCriterioFinal.height > 0) {
+      console.log('✅ Criterio ahora es visible en la pantalla');
+    } else {
+      console.warn('⚠️ El criterio aún no es visible, intentando forzar visibilidad adicional');
+      
+      // Verificar si hay CSS de Bootstrap o Material Kit que esté ocultando el elemento
+      const estilosComputados = window.getComputedStyle(criterioInsertado);
+      console.log('🔍 Estilos computados que podrían estar ocultando el elemento:', {
+        display: estilosComputados.display,
+        visibility: estilosComputados.visibility,
+        opacity: estilosComputados.opacity,
+        position: estilosComputados.position,
+        zIndex: estilosComputados.zIndex,
+        overflow: estilosComputados.overflow
+      });
+      
+      // Intentar forzar la visibilidad del criterio específicamente con estilos más agresivos
+      criterioInsertado.style.cssText = `
+        display: block !important; 
+        visibility: visible !important; 
+        opacity: 1 !important; 
+        position: relative !important; 
+        min-height: 100px !important; 
+        background-color: white !important; 
+        border: 2px solid #28a745 !important;
+        z-index: 9999 !important;
+        overflow: visible !important;
+      `;
+      
+      // También verificar si el contenedor padre tiene algún CSS que esté causando problemas
+      const contenedorPadre = criterioInsertado.parentElement;
+      if (contenedorPadre) {
+        contenedorPadre.style.cssText = `
+          display: block !important; 
+          visibility: visible !important; 
+          opacity: 1 !important; 
+          position: relative !important;
+          min-height: 200px !important;
+        `;
+      }
+      
+      console.log('🔧 Visibilidad forzada con estilos agresivos');
+    }
+  }, 100);
+    
+    // Esperar a que el DOM se actualice completamente antes de calcular puntajes
+    requestAnimationFrame(() => {
+      console.log('🔄 Ejecutando actualizarPuntajesMaximos después de agregar criterio...');
+      
+      // Verificar el estado del DOM antes de calcular
+      console.log('🔍 Estado del DOM antes de calcular puntajes:');
+      const criteriosEnDOM = document.querySelectorAll('.criterio-item');
+      criteriosEnDOM.forEach((item, index) => {
+        console.log(`  Criterio ${index + 1}:`, {
+          id: item.getAttribute('data-criterio-id'),
+          puntaje: item.getAttribute('data-criterio-puntaje-maximo'),
+          nombre: item.querySelector('h6')?.textContent
+        });
+      });
+      
+      const total = actualizarPuntajesMaximos();
+      console.log(`✅ Total de puntajes máximos calculado: ${total} puntos`);
+      
+      // Verificar que el total se haya calculado correctamente
+      if (total > 0) {
+        console.log('✅ Criterio agregado y puntajes calculados exitosamente');
+      } else {
+        console.warn('⚠️ El total de puntajes no se calculó correctamente');
+        // Intentar forzar la actualización después de un delay adicional
+        setTimeout(() => {
+          console.log('🔄 Intentando forzar actualización después de delay...');
+          const totalRetry = actualizarPuntajesMaximos();
+          console.log(`🔄 Total recalculado: ${totalRetry} puntos`);
+        }, 100);
+      }
+    });
+  } else {
+    console.error('❌ El criterio no se insertó correctamente en el DOM');
+  }
+}
+
+// Función para eliminar un criterio dinámicamente del DOM
+function eliminarCriterioDelDOM(criterioId) {
+  console.log('🔄 Eliminando criterio del DOM:', criterioId);
+  
+  // Buscar el criterio por el botón de eliminar que contiene el criterioId
+  const botonEliminar = document.querySelector(`button[onclick*="eliminarCriterio(${criterioId})"]`);
+  if (botonEliminar) {
+    const criterioElement = botonEliminar.closest('.criterio-item');
+    if (criterioElement) {
+      criterioElement.remove();
+      console.log('✅ Criterio eliminado del DOM exitosamente');
+      
+      // Actualizar los puntajes máximos después de eliminar el criterio
+      setTimeout(() => {
+        actualizarPuntajesMaximos();
+      }, 100);
+      
+      // Verificar si quedan criterios
+      const criteriosRestantes = document.querySelectorAll('.criterio-item');
+      if (criteriosRestantes.length === 0) {
+        // Mostrar mensaje de "no hay criterios"
+        let criteriosContainer = document.querySelector('.criterios-list');
+        
+        // Si no existe el contenedor, crearlo
+        if (!criteriosContainer) {
+          console.log('⚠️ Contenedor de criterios no encontrado al eliminar, creándolo...');
+          criteriosContainer = crearContenedorCriterios();
+        }
+        
+        if (criteriosContainer) {
+          const noCriteriosMsg = criteriosContainer.querySelector('.text-center');
+          if (noCriteriosMsg && noCriteriosMsg.textContent.includes('No hay criterios')) {
+            noCriteriosMsg.style.display = 'block';
+            console.log('✅ Mensaje "No hay criterios" mostrado');
+          } else {
+            // Crear mensaje si no existe
+            const mensajeHtml = `
+              <div id="no-criterios" class="text-center py-4">
+                <i class="fas fa-clipboard-list fa-2x text-muted mb-3"></i>
+                <p class="text-muted">No hay criterios agregados</p>
+              </div>
+            `;
+            criteriosContainer.innerHTML = mensajeHtml;
+            console.log('✅ Mensaje "No hay criterios" creado');
+          }
+        }
+      }
+    } else {
+      console.error('No se encontró el elemento padre del criterio');
+    }
+  } else {
+    console.error('No se encontró el botón de eliminar para el criterio:', criterioId);
+  }
+}
+
+// Función para actualizar dinámicamente la lista de criterios sin recargar la página
+function actualizarListaCriterios() {
+  console.log('🔄 Actualizando lista de criterios dinámicamente...');
+  
+  // Preservar los objetivos de aprendizaje existentes antes de actualizar
+  const objetivosContainer = document.getElementById('objetivos-container');
+  const objetivosExistentes = objetivosContainer ? objetivosContainer.innerHTML : '';
+  
+  // Preservar las variables globales de objetivos de aprendizaje
+  const objetivosEnMemoria = window.objetivosAprendizaje ? [...window.objetivosAprendizaje] : [...objetivosAprendizaje];
+  const contadorPreservado = window.contadorObjetivos || contadorObjetivos;
+  
+  console.log('💾 Preservando objetivos en memoria:', objetivosEnMemoria);
+  console.log('💾 Contador preservado:', contadorPreservado);
+  
+  // Determinar el contexto y obtener la URL correcta
+  let url;
   const urlParams = new URLSearchParams(window.location.search);
   const evaluacionId = urlParams.get('evaluacion_id');
   
-  if (!evaluacionId) {
-    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
-    return;
+  if (evaluacionId) {
+    // Contexto de plataforma_aprendizaje.html
+    url = `/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/obtener-criterios-rubrica/${evaluacionId}/`;
+  } else {
+    // Contexto de editar_rubrica.html - obtener de la URL actual
+    const pathSegments = window.location.pathname.split('/');
+    const cursoIdIndex = pathSegments.indexOf('curso') + 1;
+    const evaluacionIdIndex = pathSegments.indexOf('editar-rubrica') + 1;
+    
+    if (cursoIdIndex < pathSegments.length && evaluacionIdIndex < pathSegments.length) {
+      const cursoId = pathSegments[cursoIdIndex];
+      const evaluacionIdFromPath = pathSegments[evaluacionIdIndex];
+      url = `/curso/${cursoId}/calificaciones/obtener-criterios-rubrica/${evaluacionIdFromPath}/`;
+    } else {
+      console.error('No se pudo determinar la evaluación');
+      return;
+    }
   }
   
-  fetch(`/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/obtener-criterio/${evaluacionId}/${criterioId}/`, {
+  // Hacer una petición AJAX para obtener la lista actualizada de criterios
+  fetch(url, {
     method: 'GET',
     headers: {
       'X-Requested-With': 'XMLHttpRequest',
@@ -3188,21 +5050,168 @@ function editarCriterio(criterioId) {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      // Llenar el formulario con los datos del criterio
-      document.getElementById('criterio_id_editar').value = data.criterio.id;
-      document.getElementById('criterio_nombre_editar').value = data.criterio.nombre;
-      document.getElementById('criterio_objetivo_editar').value = data.criterio.objetivo;
-      document.getElementById('criterio_puntaje_editar').value = data.criterio.puntaje;
+      // Buscar el contenedor de criterios en diferentes contextos
+      let criteriosContainer = document.querySelector('.criterios-list');
+      let cardBody = document.querySelector('.card-body');
       
-      // Cargar los esperables
-      esperablesListEditar = data.criterio.esperables;
-      actualizarListaEsperablesEditar();
+      if (!criteriosContainer && cardBody) {
+        // Si no hay contenedor de criterios directo, buscar dentro del card-body
+        criteriosContainer = cardBody.querySelector('.criterios-list');
+      }
       
-      // Mostrar el modal
-      const modal = new bootstrap.Modal(document.getElementById('modalEditarCriterio'));
-      modal.show();
+      if (criteriosContainer) {
+        // Actualizar el contenedor existente
+        criteriosContainer.innerHTML = data.html;
+        console.log('✅ Lista de criterios actualizada exitosamente');
+      } else if (cardBody) {
+        // Si no hay contenedor de criterios, crearlo automáticamente
+        console.log('⚠️ Contenedor de criterios no encontrado, creándolo automáticamente...');
+        criteriosContainer = crearContenedorCriterios();
+        
+        if (criteriosContainer) {
+          // Ahora actualizar el contenedor recién creado
+          criteriosContainer.innerHTML = data.html;
+          console.log('✅ Lista de criterios actualizada en contenedor recién creado');
+        } else {
+          // Si no se pudo crear, usar la lógica de fallback existente
+          // Si no hay contenedor de criterios, buscar el mensaje de "no hay criterios"
+          const noCriteriosMsg = cardBody.querySelector('.text-center.py-4');
+          const btnAgregar = cardBody.querySelector('button[onclick="abrirModalAgregarCriterio()"]');
+          
+          // Crear un div temporal para parsear el HTML
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = data.html;
+          
+          // Buscar los elementos en el HTML nuevo
+          const newCriteriosList = tempDiv.querySelector('.criterios-list');
+          const newNoCriteriosMsg = tempDiv.querySelector('.text-center.py-4');
+          const newBtnAgregar = tempDiv.querySelector('button[onclick="abrirModalAgregarCriterio()"]');
+          
+          if (newCriteriosList) {
+            // Si hay criterios en el nuevo HTML
+            if (noCriteriosMsg) {
+              // Reemplazar el mensaje con la lista
+              noCriteriosMsg.outerHTML = newCriteriosList.outerHTML;
+            } else {
+              // Insertar la lista antes del botón
+              cardBody.insertBefore(newCriteriosList, btnAgregar);
+            }
+          } else if (newNoCriteriosMsg) {
+            // Si no hay criterios en el nuevo HTML
+            if (criteriosContainer) {
+              // Reemplazar la lista con el mensaje
+              criteriosContainer.outerHTML = newNoCriteriosMsg.outerHTML;
+            } else if (noCriteriosMsg) {
+              // Actualizar el mensaje existente
+              noCriteriosMsg.outerHTML = newNoCriteriosMsg.outerHTML;
+            }
+          }
+          
+          // Actualizar o agregar el botón
+          if (btnAgregar && newBtnAgregar) {
+            btnAgregar.outerHTML = newBtnAgregar.outerHTML;
+          } else if (newBtnAgregar) {
+            cardBody.appendChild(newBtnAgregar);
+          }
+          
+          console.log('✅ Lista de criterios actualizada exitosamente');
+        }
+      }
+      
+      // Restaurar los objetivos de aprendizaje si se perdieron
+      if (objetivosContainer && objetivosExistentes) {
+        objetivosContainer.innerHTML = objetivosExistentes;
+        console.log('✅ Objetivos de aprendizaje preservados en DOM');
+      }
+      
+      // Restaurar las variables globales de objetivos de aprendizaje
+      if (window.objetivosAprendizaje) {
+        window.objetivosAprendizaje = [...objetivosEnMemoria];
+        window.contadorObjetivos = contadorPreservado;
+        console.log('✅ Variables globales de objetivos restauradas:', window.objetivosAprendizaje);
+      } else {
+        objetivosAprendizaje = [...objetivosEnMemoria];
+        contadorObjetivos = contadorPreservado;
+        console.log('✅ Variables globales de objetivos restauradas:', objetivosAprendizaje);
+      }
+      
+      // Actualizar los dropdowns de objetivos de aprendizaje en los modales
+      if (typeof window.actualizarDropdownsObjetivos === 'function') {
+        window.actualizarDropdownsObjetivos();
+      } else if (typeof actualizarDropdownsObjetivos === 'function') {
+        actualizarDropdownsObjetivos();
+      }
+      
+      // Agregar event listeners a los modales después de actualizar
+      setTimeout(() => {
+        agregarEventListenersModales();
+      }, 200);
     } else {
-      alert('Error al cargar los datos del criterio: ' + data.error);
+      console.error('Error al actualizar criterios:', data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error al actualizar criterios:', error);
+  });
+}
+
+function editarCriterio(criterioId) {
+  console.log('🔄 Editando criterio:', criterioId);
+  
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  // Construir la URL para editar criterio usando la URL de Django
+  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+  const formData = new FormData();
+  formData.append('action', 'ver_editar_criterio');
+  formData.append('criterio_id', criterioId);
+  formData.append('evaluacion_id', evaluacionId);
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.html) {
+      // Actualizar el contenido del modal con el HTML renderizado
+      const modalBody = document.querySelector('#modalEditarCriterio .modal-body');
+      if (modalBody) {
+        modalBody.innerHTML = data.html;
+        
+        // Si hay datos adicionales del criterio, configurar el estado
+        if (data.criterio_data) {
+          console.log('✅ Datos del criterio cargados:', data.criterio_data);
+          
+          // Configurar los esperables para el sistema de edición
+          if (data.criterio_data.esperables) {
+            esperablesListEditar = data.criterio_data.esperables;
+            console.log('✅ Esperables cargados:', esperablesListEditar);
+            
+            // Actualizar la lista visual de esperables usando el sistema original
+            actualizarListaEsperablesEditar();
+          }
+        }
+        
+        // Mostrar el modal
+        const modal = new bootstrap.Modal(document.getElementById('modalEditarCriterio'));
+        modal.show();
+      } else {
+        alert('Error: No se pudo encontrar el contenedor del modal');
+      }
+    } else {
+      alert('Error al cargar los datos del criterio: ' + (data.error || 'Error desconocido'));
     }
   })
   .catch(error => {
@@ -3218,9 +5227,9 @@ function guardarCriterioEditado() {
   // Validar campos requeridos
   const nombre = formData.get('nombre');
   const objetivo = formData.get('objetivo');
-  const puntaje = formData.get('puntaje');
+  const objetivoAprendizaje = formData.get('objetivo_aprendizaje');
   
-  if (!nombre || !objetivo || !puntaje) {
+  if (!nombre || !objetivo || !objetivoAprendizaje) {
     alert('Por favor completa todos los campos obligatorios.');
     return;
   }
@@ -3228,12 +5237,6 @@ function guardarCriterioEditado() {
   // Validar que haya al menos un esperable
   if (esperablesListEditar.length === 0) {
     alert('Debe agregar al menos un esperable.');
-    return;
-  }
-  
-  // Validar que el puntaje sea un número válido
-  if (isNaN(puntaje) || parseFloat(puntaje) < 0) {
-    alert('El puntaje debe ser un número válido mayor o igual a 0.');
     return;
   }
   
@@ -3277,10 +5280,54 @@ function guardarCriterioEditado() {
   })
   .then(data => {
     if (data.success) {
-      // Cerrar modal y recargar página
+      // Cerrar modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarCriterio'));
       modal.hide();
-      location.reload();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Criterio editado exitosamente', 'success');
+      
+      // Verificar si se guardó el objetivo de aprendizaje
+      if (data.objetivo_aprendizaje_id && data.objetivo_aprendizaje_nombre) {
+        mostrarMensaje(`Objetivo de aprendizaje "${data.objetivo_aprendizaje_nombre}" asociado correctamente`, 'info');
+      }
+      
+      // Actualizar el criterio en el DOM
+      if (data.criterio) {
+        // Buscar el criterio existente y reemplazarlo
+        const botonEditar = document.querySelector(`button[onclick*="editarCriterio(${data.criterio.id})"]`);
+        if (botonEditar) {
+          const criterioElement = botonEditar.closest('.criterio-item');
+          if (criterioElement) {
+            // Crear el nuevo HTML del criterio
+            const criterioHtml = `
+              <div class="criterio-item mb-3 p-3 border rounded">
+                <h6 class="mb-2">${data.criterio.nombre}</h6>
+                <p class="text-muted small mb-2">${data.criterio.objetivo}</p>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <small class="text-muted">${data.criterio.esperables_count || 0} esperables</small>
+                  <span class="badge bg-primary">${data.criterio.puntaje || 0} puntos</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <small class="text-muted">Puntaje máximo</small>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" onclick="editarCriterio(${data.criterio.id})">
+                      <i class="fas fa-edit"></i>Editar
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="eliminarCriterio(${data.criterio.id})">
+                      <i class="fas fa-trash"></i>Eliminar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+            
+            // Reemplazar el elemento existente
+            criterioElement.outerHTML = criterioHtml;
+            console.log('✅ Criterio actualizado en el DOM exitosamente');
+          }
+        }
+      }
     } else {
       alert('Error: ' + data.error);
     }
@@ -3332,8 +5379,12 @@ function confirmarEliminarCriterio() {
       // Cerrar el modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarEliminarCriterio'));
       modal.hide();
-      // Recargar la página
-      location.reload();
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Criterio eliminado exitosamente', 'success');
+      
+      // Eliminar el criterio del DOM
+      eliminarCriterioDelDOM(criterioId);
     } else {
       alert('Error al eliminar el criterio: ' + (data.error || 'Error desconocido'));
     }
@@ -3352,6 +5403,52 @@ function cerrarModalYRedirigir() {
   
   // Redirigir a la página de calificaciones
   cargarCalificaciones();
+}
+
+function guardarCambiosRubrica() {
+  console.log('🔄 Guardando cambios de la rúbrica');
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  const nombre = document.getElementById('nombre').value;
+
+  console.log('🔄 Evaluación ID:', evaluacionId);
+  console.log('🔄 Nombre:', nombre);
+
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+
+  if (!nombre) {
+    alert('Error: No se pudo determinar el nombre de la rúbrica. Por favor, ingresa un nombre.');
+    return;
+  }
+
+  const url = `/curso/${PLATAFORMA_CONFIG.cursoId}/calificaciones/guardar-cambios-rubrica/${evaluacionId}/${encodeURIComponent(nombre)}/`
+
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Cambios guardados exitosamente');
+      cargarCalificaciones();
+    } else {
+      alert('Error al guardar los cambios de la rúbrica: ' + (data.error || 'Error desconocido'));
+      cargarCalificaciones();
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error al guardar los cambios de la rúbrica: ' + (error || 'Error desconocido'));
+    cargarCalificaciones();
+  });
 }
 
 // ============================================================================
@@ -4877,6 +6974,17 @@ document.addEventListener('DOMContentLoaded', function() {
   // Inicializar mensajes cerrables
   inicializarMensajesCerrables();
   
+  // Inicializar cálculos de puntaje si estamos en la sección de calificaciones
+  inicializarCalculosPuntaje();
+  
+  // Event listener adicional para asegurar que los cálculos se ejecuten después de un reload
+  setTimeout(() => {
+    if (window.location.search.includes('seccion=calificaciones')) {
+      console.log('🔄 Página recargada en sección de calificaciones, ejecutando cálculos...');
+      inicializarCalculosPuntaje();
+    }
+  }, 1000);
+  
   // Event listener para búsqueda en tiempo real (admin)
   const buscarInput = document.getElementById('buscar-tickets');
   if (buscarInput) {
@@ -4896,8 +7004,1165 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================================================
+// FUNCIONES PARA INICIALIZAR CÁLCULOS DE PUNTAJE
+// ============================================================================
+
+// Función para actualizar los puntajes máximos de los criterios
+function actualizarPuntajesMaximos() {
+  console.log('🔢 Actualizando puntajes máximos de criterios...');
+  
+  try {
+    // Obtener el evaluacion_id de la URL actual
+    const urlParams = new URLSearchParams(window.location.search);
+    const evaluacionId = urlParams.get('evaluacion_id');
+    
+    if (!evaluacionId) {
+      console.warn('⚠️ No se pudo determinar la evaluación, omitiendo actualización de puntajes');
+      return 0;
+    }
+  } catch (error) {
+    console.error('❌ Error en actualizarPuntajesMaximos:', error);
+    return 0;
+  }
+  
+  console.log('🔍 Evaluación ID encontrada:', evaluacionId);
+  
+  // Buscar todos los elementos de criterio
+  let criteriosItems = document.querySelectorAll('.criterio-item');
+  console.log('📋 Criterios encontrados en el DOM:', criteriosItems.length);
+  
+  // También buscar en el contenedor específico de criterios
+  let criteriosContainer = null;
+  try {
+    criteriosContainer = document.querySelector('.criterios-list');
+  } catch (error) {
+    console.warn('⚠️ Error al buscar contenedor de criterios:', error);
+  }
+  
+  if (criteriosContainer) {
+    const criteriosEnContainer = criteriosContainer.querySelectorAll('.criterio-item');
+    console.log('📦 Criterios encontrados en contenedor específico:', criteriosEnContainer.length);
+    
+    // Si hay más criterios en el contenedor específico, usar esos
+    if (criteriosEnContainer.length > criteriosItems.length) {
+      criteriosItems = criteriosEnContainer;
+      console.log('🔄 Usando criterios del contenedor específico');
+    }
+  }
+  
+  if (criteriosItems.length === 0) {
+    console.log('⚠️ No se encontraron elementos de criterio en el DOM');
+    
+    // Intentar cargar desde el estado guardado
+    if (typeof cargarEstadoRubrica === 'function' && cargarEstadoRubrica(evaluacionId) && RUBRICA_STATE && RUBRICA_STATE.criterios && RUBRICA_STATE.criterios.length > 0) {
+      console.log('📂 Cargando criterios desde el estado guardado:', RUBRICA_STATE.criterios);
+      return RUBRICA_STATE.puntajeTotal;
+    }
+    
+    return 0;
+  }
+  
+  let puntajeTotal = 0;
+  const criteriosActualizados = [];
+  
+  criteriosItems.forEach((item, index) => {
+    const criterioId = item.getAttribute('data-criterio-id');
+    const puntajeMaximo = parseFloat(item.getAttribute('data-criterio-puntaje-maximo') || 0);
+    const nombre = item.querySelector('h6')?.textContent || `Criterio ${index + 1}`;
+    
+    console.log(`📊 Criterio ${index + 1}: ID=${criterioId}, Nombre="${nombre}", Puntaje=${puntajeMaximo}`);
+    console.log(`🔍 Elemento DOM:`, item);
+    console.log(`🔍 Atributo data-criterio-puntaje-maximo:`, item.getAttribute('data-criterio-puntaje-maximo'));
+    
+    puntajeTotal += puntajeMaximo;
+    
+    // Actualizar la lista de criterios para el estado
+    criteriosActualizados.push({
+      id: criterioId,
+      nombre: nombre,
+      puntaje: puntajeMaximo
+    });
+  });
+  
+  console.log(`✅ Puntaje total máximo calculado: ${puntajeTotal} puntos`);
+  console.log('📋 Criterios actualizados:', criteriosActualizados);
+  
+  // Actualizar el estado global
+  actualizarEstadoRubrica(evaluacionId, criteriosActualizados);
+  
+  
+  // Solo llamar a calcularNota si estamos en la vista de calificar estudiantes
+  // (donde existen los campos select de criterios)
+  const hayCamposCalificacion = document.querySelector('select[id^="id_criterio_"]') !== null ||
+                                document.querySelector('select[name^="criterio_"]') !== null;
+  
+  if (hayCamposCalificacion && typeof calcularNota === 'function') {
+    setTimeout(() => {
+      calcularNota();
+    }, 100);
+  }
+  
+  console.log('🎯 Función actualizarPuntajesMaximos completada. Total retornado:', puntajeTotal);
+  return puntajeTotal;
+}
+
+// Función de prueba para verificar el cálculo de puntajes (solo para desarrollo)
+function probarCalculoPuntajes() {
+  console.log('🧪 Probando cálculo de puntajes...');
+  
+  // Verificar elementos del DOM
+  let criteriosContainer = document.querySelector('.criterios-list');
+  console.log('📦 Contenedor de criterios:', criteriosContainer);
+  
+  const criteriosItems = document.querySelectorAll('.criterio-item');
+  console.log('📋 Elementos de criterio encontrados:', criteriosItems.length);
+  
+  criteriosItems.forEach((item, index) => {
+    const puntaje = item.getAttribute('data-criterio-puntaje-maximo');
+    const nombre = item.querySelector('h6')?.textContent || `Criterio ${index + 1}`;
+    console.log(`📊 Criterio ${index + 1}: "${nombre}" - ${puntaje} puntos`);
+  });
+  
+  // Verificar estado guardado
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  console.log('🔍 Evaluación ID:', evaluacionId);
+  
+  if (evaluacionId) {
+    const estadoCargado = cargarEstadoRubrica(evaluacionId);
+    console.log('📂 Estado cargado:', estadoCargado ? 'SÍ' : 'NO');
+    if (estadoCargado) {
+      console.log('📊 Estado actual:', RUBRICA_STATE);
+    }
+  }
+  
+  // Ejecutar la función principal
+  const total = actualizarPuntajesMaximos();
+  console.log(`🎯 Total calculado: ${total} puntos`);
+  
+  return total;
+}
+
+// Función para forzar la actualización de puntajes (útil para debugging)
+function forzarActualizacionPuntajes() {
+  console.log('🚀 Forzando actualización de puntajes...');
+  
+  // Verificar que estemos en la sección correcta
+  const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+  if (!seccionCalificaciones || !seccionCalificaciones.classList.contains('active')) {
+    console.error('❌ No estamos en la sección de calificaciones');
+    return false;
+  }
+  
+  // Verificar que haya criterios
+  const criteriosItems = document.querySelectorAll('.criterio-item');
+  if (criteriosItems.length === 0) {
+    console.error('❌ No hay criterios en el DOM');
+    return false;
+  }
+  
+  // Verificar que los criterios tengan los atributos correctos
+  let criteriosValidos = 0;
+  criteriosItems.forEach((item, index) => {
+    const puntaje = item.getAttribute('data-criterio-puntaje-maximo');
+    const id = item.getAttribute('data-criterio-id');
+    if (puntaje && id) {
+      criteriosValidos++;
+      console.log(`✅ Criterio ${index + 1}: ID=${id}, Puntaje=${puntaje}`);
+    } else {
+      console.error(`❌ Criterio ${index + 1} sin atributos válidos:`, item);
+    }
+  });
+  
+  if (criteriosValidos === 0) {
+    console.error('❌ No hay criterios válidos para calcular');
+    return false;
+  }
+  
+  console.log(`✅ ${criteriosValidos} criterios válidos encontrados, ejecutando actualización...`);
+  
+  // Ejecutar la actualización
+  const total = actualizarPuntajesMaximos();
+  console.log(`🎯 Total final: ${total} puntos`);
+  
+  return total > 0;
+}
+
+// Función para limpiar todo el estado y localStorage
+function limpiarTodoEstado() {
+  console.log('🧹 Limpiando todo el estado...');
+  
+  // Limpiar estado en memoria
+  limpiarEstadoRubrica();
+  
+  // Limpiar localStorage
+  try {
+    const keys = Object.keys(localStorage);
+    const rubricaKeys = keys.filter(key => key.startsWith('rubrica_'));
+    rubricaKeys.forEach(key => {
+      localStorage.removeItem(key);
+      console.log(`🗑️ Removido de localStorage: ${key}`);
+    });
+  } catch (error) {
+    console.warn('⚠️ Error al limpiar localStorage:', error);
+  }
+  
+  console.log('✅ Estado completamente limpiado');
+}
+
+// Hacer las funciones disponibles globalmente para pruebas
+window.probarCalculoPuntajes = probarCalculoPuntajes;
+window.forzarActualizacionPuntajes = forzarActualizacionPuntajes;
+window.limpiarTodoEstado = limpiarTodoEstado;
+window.RUBRICA_STATE = RUBRICA_STATE;
+window.debugDOMCriterios = debugDOMCriterios;
+window.obtenerPuntajesActualizadosDelBackend = obtenerPuntajesActualizadosDelBackend;
+window.cargarObjetivosAprendizaje = cargarObjetivosAprendizaje;
+window.guardarObjetivoAprendizaje = guardarObjetivoAprendizaje;
+window.mostrarFormularioNuevoObjetivo = mostrarFormularioNuevoObjetivo;
+window.cerrarModalObjetivo = cerrarModalObjetivo;
+window.debugModalObjetivo = debugModalObjetivo;
+
+// Función para inicializar los cálculos de puntaje cuando se carga la página
+function inicializarCalculosPuntaje() {
+  console.log('🔢 Inicializando cálculos de puntaje...');
+  
+  // Verificar si estamos en la sección de calificaciones
+  const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+  if (!seccionCalificaciones || !seccionCalificaciones.classList.contains('active')) {
+    console.log('⚠️ No estamos en la sección de calificaciones, omitiendo inicialización de puntajes');
+    return;
+  }
+  
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    console.log('⚠️ No se pudo determinar la evaluación, omitiendo inicialización de puntajes');
+    return;
+  }
+  
+  console.log(`✅ Evaluación ID encontrada: ${evaluacionId}, obteniendo puntajes actualizados del backend...`);
+  
+  // OPCIÓN 1: Cálculo Dinámico al Cargar la Página
+  // Hacer llamada AJAX al backend para obtener los puntajes actualizados
+  obtenerPuntajesActualizadosDelBackend(evaluacionId);
+
+  const criterioFields = seccionCalificaciones.querySelectorAll('select[id^="id_criterio_"]');
+  criterioFields.forEach(function(field) {
+    field.addEventListener('change', function() {
+      console.log('🔍 Cambio detectado en criterio:', field.id);
+      if (typeof calcularNota === 'function') {
+        calcularNota();
+      } else {
+        console.error('❌ Función calcularNota no disponible');
+      }
+    });
+  });
+
+  console.log(`✅ ${criterioFields.length} campos de criterio configurados con event listeners`);
+}
+
+// Función para obtener los puntajes actualizados del backend (OPCIÓN 1)
+function obtenerPuntajesActualizadosDelBackend(evaluacionId) {
+  console.log('🔄 Obteniendo puntajes actualizados del backend para evaluación:', evaluacionId);
+  
+  // Hacer llamada AJAX al backend
+  fetch(`{% url 'plataforma_calificaciones_ajax' curso.id %}?action=obtener_puntajes_actualizados&evaluacion_id=${evaluacionId}`, {
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.success) {
+      console.log('✅ Puntajes actualizados obtenidos del backend:', data);
+      
+      // Actualizar el DOM con los puntajes correctos
+      actualizarPuntajesEnDOM(data.criterios);
+      
+      // Actualizar el estado local
+      actualizarEstadoRubrica(evaluacionId, data.criterios);
+      
+        // Mostrar el total actualizado
+  if (data.puntaje_total > 0) {
+    console.log(`✅ Total de puntajes actualizado: ${data.puntaje_total} puntos`);
+  }
+  
+  // Verificar que los criterios se estén mostrando correctamente
+  setTimeout(() => {
+    verificarVisualizacionCriterios();
+  }, 200);
+    } else {
+      console.warn('⚠️ No se pudieron obtener los puntajes del backend:', data.error);
+      // Fallback: usar el estado local
+      fallbackPuntajesLocales(evaluacionId);
+    }
+  })
+  .catch(error => {
+    console.error('❌ Error obteniendo puntajes del backend:', error);
+    // Fallback: usar el estado local
+    fallbackPuntajesLocales(evaluacionId);
+  });
+}
+
+// Función para actualizar los puntajes en el DOM con los datos del backend
+function actualizarPuntajesEnDOM(criterios) {
+  console.log('🔄 Actualizando puntajes en el DOM:', criterios);
+  
+  criterios.forEach(criterio => {
+    // Buscar el elemento del criterio en el DOM
+    const criterioElement = document.querySelector(`[data-criterio-id="${criterio.id}"]`);
+    if (criterioElement) {
+      console.log(`🔍 Actualizando criterio ${criterio.id} con puntaje: ${criterio.puntaje}`);
+      
+      // Actualizar el atributo data-criterio-puntaje-maximo
+      criterioElement.setAttribute('data-criterio-puntaje-maximo', criterio.puntaje);
+      
+      // Actualizar el badge de puntaje (buscar por clase y contenido)
+      const badges = criterioElement.querySelectorAll('.badge');
+      badges.forEach(badge => {
+        if (badge.classList.contains('bg-primary') || badge.textContent.includes('puntos')) {
+          badge.textContent = `${criterio.puntaje} puntos`;
+          console.log(`✅ Badge actualizado: ${badge.textContent}`);
+        }
+      });
+      
+      // Actualizar el texto de puntaje máximo (buscar por contexto)
+      const textosPuntaje = criterioElement.querySelectorAll('strong');
+      textosPuntaje.forEach(texto => {
+        // Verificar si este strong está en el contexto de puntaje máximo
+        const parentDiv = texto.closest('div');
+        if (parentDiv && parentDiv.textContent.includes('Puntaje máximo')) {
+          texto.textContent = criterio.puntaje;
+          console.log(`✅ Puntaje máximo actualizado: ${texto.textContent}`);
+        }
+      });
+      
+      // También actualizar cualquier otro elemento que contenga el puntaje
+      const elementosConPuntaje = criterioElement.querySelectorAll('*');
+      elementosConPuntaje.forEach(elemento => {
+        if (elemento.textContent && elemento.textContent.includes('0 puntos') && !elemento.textContent.includes('esperables')) {
+          elemento.textContent = elemento.textContent.replace('0 puntos', `${criterio.puntaje} puntos`);
+          console.log(`✅ Elemento con puntaje actualizado: ${elemento.textContent}`);
+        }
+      });
+      
+      console.log(`✅ Criterio ${criterio.id} completamente actualizado con puntaje: ${criterio.puntaje}`);
+      
+      // Verificar que la actualización se haya aplicado correctamente
+      const puntajeActualizado = criterioElement.getAttribute('data-criterio-puntaje-maximo');
+      console.log(`🔍 Verificación - Atributo data-criterio-puntaje-maximo: ${puntajeActualizado}`);
+      
+    } else {
+      console.warn(`⚠️ No se encontró el elemento del criterio ${criterio.id} en el DOM`);
+      
+      // Intentar buscar por otros selectores (método compatible)
+      const criteriosItems = document.querySelectorAll('.criterio-item');
+      let criterioAlternativo = null;
+      
+      for (const item of criteriosItems) {
+        const titulo = item.querySelector('h6');
+        if (titulo && titulo.textContent.trim() === criterio.nombre.trim()) {
+          criterioAlternativo = item;
+          break;
+        }
+      }
+      
+      if (criterioAlternativo) {
+        console.log(`🔄 Criterio encontrado por nombre alternativo: ${criterio.nombre}`);
+        // Actualizar este criterio
+        criterioAlternativo.setAttribute('data-criterio-id', criterio.id);
+        criterioAlternativo.setAttribute('data-criterio-puntaje-maximo', criterio.puntaje);
+        
+        // Actualizar el contenido visual
+        const badges = criterioAlternativo.querySelectorAll('.badge');
+        badges.forEach(badge => {
+          if (badge.classList.contains('bg-primary') || badge.textContent.includes('puntos')) {
+            badge.textContent = `${criterio.puntaje} puntos`;
+          }
+        });
+        
+        const textosPuntaje = criterioAlternativo.querySelectorAll('strong');
+        textosPuntaje.forEach(texto => {
+          const parentDiv = texto.closest('div');
+          if (parentDiv && parentDiv.textContent.includes('Puntaje máximo')) {
+            texto.textContent = criterio.puntaje;
+          }
+        });
+        
+        console.log(`✅ Criterio alternativo ${criterio.id} actualizado con puntaje: ${criterio.puntaje}`);
+      }
+    }
+  });
+  
+  // Verificar que todos los criterios se hayan actualizado correctamente
+  const criteriosActualizados = document.querySelectorAll('.criterio-item');
+  console.log(`🔍 Verificación final - Criterios en DOM: ${criteriosActualizados.length}`);
+  
+  criteriosActualizados.forEach((criterioElement, index) => {
+    const id = criterioElement.getAttribute('data-criterio-id');
+    const puntaje = criterioElement.getAttribute('data-criterio-puntaje-maximo');
+    const nombre = criterioElement.querySelector('h6')?.textContent || `Criterio ${index + 1}`;
+    
+    console.log(`  Criterio ${index + 1}: ID=${id}, Nombre="${nombre}", Puntaje=${puntaje}`);
+  });
+  
+  // Forzar la actualización visual de todos los criterios
+  forzarActualizacionVisualCriterios();
+}
+
+// Función para forzar la actualización visual de todos los criterios
+function forzarActualizacionVisualCriterios() {
+  console.log('🔄 Forzando actualización visual de todos los criterios...');
+  
+  const criteriosItems = document.querySelectorAll('.criterio-item');
+  criteriosItems.forEach((criterioElement, index) => {
+    const puntajeMaximo = criterioElement.getAttribute('data-criterio-puntaje-maximo');
+    
+    if (puntajeMaximo && puntajeMaximo !== '0') {
+      console.log(`🔧 Forzando actualización visual del criterio ${index + 1} con puntaje: ${puntajeMaximo}`);
+      
+      // Actualizar badges
+      const badges = criterioElement.querySelectorAll('.badge');
+      badges.forEach(badge => {
+        if (badge.classList.contains('bg-primary') || badge.textContent.includes('puntos')) {
+          badge.textContent = `${puntajeMaximo} puntos`;
+          badge.style.display = 'inline-block';
+          badge.style.visibility = 'visible';
+        }
+      });
+      
+      // Actualizar textos de puntaje máximo
+      const textosPuntaje = criterioElement.querySelectorAll('strong');
+      textosPuntaje.forEach(texto => {
+        const parentDiv = texto.closest('div');
+        if (parentDiv && parentDiv.textContent.includes('Puntaje máximo')) {
+          texto.textContent = puntajeMaximo;
+          texto.style.display = 'inline';
+          texto.style.visibility = 'visible';
+        }
+      });
+      
+      // Forzar visibilidad del criterio
+      criterioElement.style.display = 'block';
+      criterioElement.style.visibility = 'visible';
+      criterioElement.style.opacity = '1';
+      
+      console.log(`✅ Criterio ${index + 1} visualmente actualizado`);
+    }
+  });
+  
+  console.log('✅ Actualización visual de criterios completada');
+}
+
+// Función para verificar que los criterios se estén mostrando correctamente
+function verificarVisualizacionCriterios() {
+  console.log('🔍 Verificando visualización de criterios...');
+  
+  const criteriosItems = document.querySelectorAll('.criterio-item');
+  console.log(`📋 Total de criterios encontrados: ${criteriosItems.length}`);
+  
+  criteriosItems.forEach((criterioElement, index) => {
+    const id = criterioElement.getAttribute('data-criterio-id');
+    const puntaje = criterioElement.getAttribute('data-criterio-puntaje-maximo');
+    const nombre = criterioElement.querySelector('h6')?.textContent || `Criterio ${index + 1}`;
+    
+    // Verificar que el criterio sea visible
+    const estilos = window.getComputedStyle(criterioElement);
+    const rect = criterioElement.getBoundingClientRect();
+    
+    console.log(`🔍 Criterio ${index + 1}:`, {
+      id: id,
+      nombre: nombre,
+      puntaje: puntaje,
+      visible: estilos.display !== 'none' && estilos.visibility !== 'hidden',
+      display: estilos.display,
+      visibility: estilos.visibility,
+      opacity: estilos.opacity,
+      width: rect.width,
+      height: rect.height,
+      top: rect.top,
+      left: rect.left
+    });
+    
+    // Verificar que el puntaje se esté mostrando correctamente
+    const badge = criterioElement.querySelector('.badge.bg-primary');
+    const textoPuntaje = criterioElement.querySelector('strong');
+    
+    if (badge) {
+      console.log(`  Badge: "${badge.textContent}" (visible: ${badge.offsetParent !== null})`);
+    }
+    
+    if (textoPuntaje) {
+      console.log(`  Puntaje máximo: "${textoPuntaje.textContent}" (visible: ${textoPuntaje.offsetParent !== null})`);
+    }
+    
+    // Si el criterio no es visible, forzar su visibilidad
+    if (estilos.display === 'none' || estilos.visibility === 'hidden' || rect.width === 0 || rect.height === 0) {
+      console.log(`⚠️ Criterio ${index + 1} no es visible, forzando visibilidad...`);
+      
+      criterioElement.style.cssText = `
+        display: block !important; 
+        visibility: visible !important; 
+        opacity: 1 !important; 
+        position: relative !important; 
+        min-height: 100px !important; 
+        background-color: white !important; 
+        border: 2px solid #28a745 !important;
+        z-index: 9999 !important;
+      `;
+      
+      console.log(`✅ Visibilidad del criterio ${index + 1} forzada`);
+    }
+  });
+  
+  console.log('✅ Verificación de visualización completada');
+}
+
+// Función para cerrar el modal de objetivo
+function cerrarModalObjetivo() {
+  console.log('🔄 Cerrando modal de objetivo...');
+  
+  const modalObjetivo = bootstrap.Modal.getInstance(document.getElementById('modalObjetivo'));
+  if (modalObjetivo) {
+    modalObjetivo.hide();
+  }
+}
+
+// Función para mostrar el formulario de nuevo objetivo de aprendizaje
+function mostrarFormularioNuevoObjetivo() {
+  console.log('🔄 Mostrando formulario para nuevo objetivo de aprendizaje...');
+  
+  // Debug del DOM antes de mostrar el modal
+  debugDOM();
+  
+  // Ocultar el modal de criterio
+  const modalCriterio = bootstrap.Modal.getInstance(document.getElementById('modalAgregarCriterio'));
+  if (modalCriterio) {
+    modalCriterio.hide();
+  }
+  
+  // Mostrar el modal de objetivo de aprendizaje
+  const modalObjetivo = new bootstrap.Modal(document.getElementById('modalObjetivo'));
+  modalObjetivo.show();
+  
+  // Limpiar el formulario
+  const formObjetivo = document.getElementById('formObjetivo');
+  if (formObjetivo) {
+    formObjetivo.reset();
+  }
+  
+  // Debug del DOM después de mostrar el modal
+  setTimeout(() => {
+    console.log('🔍 DEBUG: Verificando DOM después de mostrar modal...');
+    debugDOM();
+  }, 100);
+}
+
+// Función para guardar un nuevo objetivo de aprendizaje en la base de datos
+function guardarObjetivoAprendizaje() {
+  console.log('🔄 Guardando nuevo objetivo de aprendizaje...');
+  
+  const formObjetivo = document.getElementById('formObjetivo');
+  console.log('🔍 Formulario encontrado:', formObjetivo);
+  
+  if (!formObjetivo) {
+    console.error('❌ Formulario de objetivo no encontrado');
+    console.log('🔍 Elementos en el DOM:', {
+      'formObjetivo': document.getElementById('formObjetivo'),
+      'modalObjetivo': document.getElementById('modalObjetivo'),
+      'objetivo_nombre': document.getElementById('objetivo_nombre'),
+      'objetivo_descripcion': document.getElementById('objetivo_descripcion')
+    });
+    return;
+  }
+  
+  const nombre = document.getElementById('objetivo_nombre').value;
+  const descripcion = document.getElementById('objetivo_descripcion').value;
+  
+  console.log('🔍 Valores del formulario:', { nombre, descripcion });
+  
+  if (!nombre || !descripcion) {
+    alert('Por favor completa todos los campos obligatorios.');
+    return;
+  }
+  
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    alert('Error: No se pudo determinar la evaluación. Por favor, recarga la página.');
+    return;
+  }
+  
+  // Construir la URL para guardar el objetivo usando la URL de Django
+  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+  const formDataObjetivo = new FormData();
+  formDataObjetivo.append('action', 'guardar_objetivo_aprendizaje');
+  formDataObjetivo.append('evaluacion_id', evaluacionId);
+  formDataObjetivo.append('nombre', nombre);
+  formDataObjetivo.append('descripcion', descripcion);
+  
+  // Verificar CSRF token
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  console.log('🔍 CSRF Token encontrado:', csrfToken ? 'SÍ' : 'NO');
+  if (csrfToken) {
+    console.log('🔍 CSRF Token valor:', csrfToken.substring(0, 10) + '...');
+  }
+  
+  console.log('🔍 URL construida:', url);
+  console.log('🔍 Datos a enviar:', {
+    action: 'guardar_objetivo_aprendizaje',
+    evaluacion_id: evaluacionId,
+    nombre: nombre,
+    descripcion: descripcion
+  });
+  
+  // Debug del FormData
+  console.log('🔍 FormData contenido:');
+  for (let [key, value] of formDataObjetivo.entries()) {
+    console.log(`  ${key}: ${value}`);
+  }
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: formDataObjetivo
+  })
+  .then(response => {
+    console.log('🔍 Response recibida:', response);
+    console.log('🔍 Response status:', response.status);
+    console.log('🔍 Response headers:', response.headers);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    // Capturar la respuesta como texto primero para debug
+    return response.text().then(text => {
+      console.log('🔍 Response text:', text);
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('❌ Error parseando JSON:', e);
+        console.error('❌ Texto que no se pudo parsear:', text);
+        throw new Error('Respuesta del servidor no es JSON válido: ' + text);
+      }
+    });
+  })
+  .then(data => {
+    console.log('🔍 Data parseada:', data);
+    console.log('🔍 Tipo de data:', typeof data);
+    console.log('🔍 Data.success:', data.success);
+    
+    if (data.success) {
+      console.log('✅ Objetivo de aprendizaje guardado exitosamente:', data.objetivo);
+      
+      // Cerrar modal de objetivo
+      const modalObjetivo = bootstrap.Modal.getInstance(document.getElementById('modalObjetivo'));
+      if (modalObjetivo) {
+        modalObjetivo.hide();
+      }
+      
+      // Mostrar mensaje de éxito
+      mostrarMensaje('Objetivo de aprendizaje guardado exitosamente', 'success');
+      
+      // Recargar objetivos de aprendizaje
+      cargarObjetivosAprendizaje();
+      
+      // Actualizar todos los dropdowns de objetivos de aprendizaje
+      setTimeout(() => {
+        actualizarDropdownsObjetivos();
+      }, 100);
+      
+    } else {
+      alert('Error: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('❌ Error completo:', error);
+    console.error('🔍 URL que falló:', url);
+    console.error('🔍 Evaluación ID:', evaluacionId);
+    console.error('🔍 Datos del formulario:', { nombre, descripcion });
+    
+    let mensajeError = 'Error al guardar el objetivo de aprendizaje. Por favor, intenta nuevamente.\n\n';
+    mensajeError += 'Detalles: ' + error.message + '\n\n';
+    mensajeError += 'URL: ' + url + '\n';
+    mensajeError += 'Evaluación ID: ' + evaluacionId;
+    
+    alert(mensajeError);
+  });
+}
+
+// Función para cargar objetivos de aprendizaje desde la base de datos
+function cargarObjetivosAprendizaje() {
+  console.log('🔄 Cargando objetivos de aprendizaje desde la base de datos...');
+  
+  // Obtener el evaluacion_id de la URL actual
+  const urlParams = new URLSearchParams(window.location.search);
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (!evaluacionId) {
+    console.warn('⚠️ No se pudo determinar la evaluación para cargar objetivos');
+    return;
+  }
+  
+  // Construir la URL para obtener objetivos usando la URL de Django
+  const url = `{% url 'plataforma_calificaciones_ajax' curso.id %}`;
+  const formData = new FormData();
+  formData.append('action', 'obtener_objetivos_aprendizaje');
+  formData.append('evaluacion_id', evaluacionId);
+  
+  // Verificar CSRF token
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  console.log('🔍 CSRF Token encontrado para obtener objetivos:', csrfToken ? 'SÍ' : 'NO');
+  if (csrfToken) {
+    console.log('🔍 CSRF Token valor para obtener objetivos:', csrfToken.substring(0, 10) + '...');
+  }
+  
+  console.log('🔍 URL construida para obtener objetivos:', url);
+  console.log('🔍 Datos a enviar para obtener objetivos:', {
+    action: 'obtener_objetivos_aprendizaje',
+    evaluacion_id: evaluacionId
+  });
+  
+  fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: formData
+  })
+  .then(response => {
+    console.log('🔍 Response recibida para obtener objetivos:', response);
+    console.log('🔍 Response status para obtener objetivos:', response.status);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    // Capturar la respuesta como texto primero para debug
+    return response.text().then(text => {
+      console.log('🔍 Response text para obtener objetivos:', text);
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        console.error('❌ Error parseando JSON para obtener objetivos:', e);
+        console.error('❌ Texto que no se pudo parsear para obtener objetivos:', text);
+        throw new Error('Respuesta del servidor no es JSON válido para obtener objetivos: ' + text);
+      }
+    });
+  })
+  .then(data => {
+    console.log('🔍 Data parseada para obtener objetivos:', data);
+    console.log('🔍 Tipo de data para obtener objetivos:', typeof data);
+    console.log('🔍 Data.success para obtener objetivos:', data.success);
+    
+    if (data.success) {
+      console.log(`✅ Objetivos de aprendizaje cargados: ${data.objetivos.length} objetivos`);
+      
+      // Actualizar la lista visual de objetivos
+      actualizarListaObjetivosVisual(data.objetivos);
+      
+      // Actualizar TODOS los dropdowns de objetivos de aprendizaje
+      actualizarDropdownsObjetivosConDatos(data.objetivos);
+      
+      // Agregar event listeners a todos los dropdowns de objetivos de aprendizaje
+      agregarEventListenersObjetivos();
+      
+      // Actualizar la lista de objetivos temporales si existe
+      if (window.objetivosAprendizaje) {
+        // Limpiar objetivos temporales que ya no son necesarios
+        window.objetivosAprendizaje = [];
+      }
+      
+    } else {
+      console.warn('⚠️ Error al cargar objetivos:', data.error);
+    }
+  })
+  .catch(error => {
+    console.error('❌ Error al cargar objetivos de aprendizaje:', error);
+    console.error('🔍 URL que falló:', url);
+    console.error('🔍 Evaluación ID:', evaluacionId);
+  });
+}
+
+// Nueva función para actualizar todos los dropdowns con datos de la base de datos
+function actualizarDropdownsObjetivosConDatos(objetivos) {
+  console.log('🔄 Actualizando todos los dropdowns con objetivos de la base de datos...');
+  
+  // Lista de IDs de dropdowns que deben ser actualizados
+  const dropdownIds = [
+    'objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje_editar'
+  ];
+  
+  dropdownIds.forEach(dropdownId => {
+    const dropdown = document.getElementById(dropdownId);
+    if (dropdown) {
+      console.log(`✅ Actualizando dropdown: ${dropdownId}`);
+      actualizarDropdownConObjetivos(dropdown, objetivos);
+    } else {
+      console.log(`⚠️ Dropdown no encontrado: ${dropdownId}`);
+    }
+  });
+  
+  // Buscar otros dropdowns que puedan existir
+  const otrosDropdowns = document.querySelectorAll('select[name*="objetivo_aprendizaje"]');
+  otrosDropdowns.forEach(dropdown => {
+    if (!dropdownIds.includes(dropdown.id)) {
+      console.log(`✅ Actualizando dropdown adicional: ${dropdown.id}`);
+      actualizarDropdownConObjetivos(dropdown, objetivos);
+    }
+  });
+  
+  console.log('✅ Todos los dropdowns actualizados correctamente');
+}
+
+// Función para actualizar la lista visual de objetivos de aprendizaje
+function actualizarListaObjetivosVisual(objetivos) {
+  console.log('🔄 Actualizando lista visual de objetivos de aprendizaje...');
+  
+  const container = document.getElementById('objetivos-container');
+  if (!container) {
+    console.warn('⚠️ Contenedor de objetivos no encontrado');
+    return;
+  }
+  
+  // Limpiar el contenedor
+  container.innerHTML = '';
+  
+  if (objetivos.length === 0) {
+    // Mostrar mensaje de "no hay objetivos"
+    container.innerHTML = `
+      <div class="text-center py-4">
+        <i class="fas fa-bullseye fa-2x text-muted mb-3"></i>
+        <p class="text-muted">No hay objetivos de aprendizaje configurados</p>
+      </div>
+    `;
+    return;
+  }
+  
+  // Crear elementos para cada objetivo
+  objetivos.forEach(objetivo => {
+    const objetivoElement = document.createElement('div');
+    objetivoElement.className = 'objetivo-item mb-3 p-3 border rounded';
+    objetivoElement.id = `objetivo_${objetivo.id}`;
+    
+    objetivoElement.innerHTML = `
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group mb-2">
+            <label class="form-label small">Nombre del Objetivo</label>
+            <input type="text" class="form-control form-control-sm" 
+                   name="objetivos[${objetivo.id}][nombre]" 
+                   value="${objetivo.nombre}" 
+                   placeholder="Ej: Comprensión conceptual" 
+                   required>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="form-group mb-2">
+            <label class="form-label small">Descripción</label>
+            <textarea class="form-control form-control-sm" rows="2" 
+                      name="objetivos[${objetivo.id}][descripcion]" 
+                      placeholder="Descripción del objetivo" 
+                      required>${objetivo.descripcion}</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="text-end">
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="eliminarObjetivo('${objetivo.id}')">
+          <i class="fas fa-trash me-1"></i>Eliminar
+        </button>
+      </div>
+    `;
+    
+    container.appendChild(objetivoElement);
+  });
+  
+  console.log(`✅ Lista visual actualizada con ${objetivos.length} objetivos`);
+}
+
+// Función auxiliar para actualizar un dropdown específico con objetivos de la base de datos
+function actualizarDropdownConObjetivos(dropdown, objetivos) {
+  if (!dropdown) return;
+  
+  // Guardar la selección actual
+  const valorSeleccionado = dropdown.value;
+  
+  // Limpiar opciones existentes
+  dropdown.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
+  
+  // Agregar objetivos existentes
+  objetivos.forEach(objetivo => {
+    const opcion = document.createElement('option');
+    opcion.value = objetivo.id;
+    opcion.textContent = `${objetivo.nombre} (${objetivo.criterios_count || 0} criterios)`;
+    opcion.setAttribute('data-real-id', objetivo.id);
+    dropdown.appendChild(opcion);
+  });
+  
+  // Restaurar la selección anterior si es posible
+  if (valorSeleccionado && valorSeleccionado !== '') {
+    const opcionAnterior = dropdown.querySelector(`option[value="${valorSeleccionado}"]`);
+    if (opcionAnterior) {
+      opcionAnterior.selected = true;
+    }
+  }
+  
+  console.log(`✅ Dropdown ${dropdown.id} actualizado con ${objetivos.length} objetivos`);
+}
+
+// Función para agregar event listeners a todos los dropdowns de objetivos de aprendizaje
+function agregarEventListenersObjetivos() {
+  console.log('🔄 Agregando event listeners a dropdowns de objetivos...');
+  
+  // Lista de IDs de dropdowns que deben tener event listeners
+  const dropdownIds = [
+    'objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje',
+    'criterio_objetivo_aprendizaje_editar'
+  ];
+  
+  dropdownIds.forEach(dropdownId => {
+    const dropdown = document.getElementById(dropdownId);
+    if (dropdown) {
+      // Remover event listeners anteriores para evitar duplicados
+      dropdown.removeEventListener('change', handleObjetivoChange);
+      // Agregar nuevo event listener
+      dropdown.addEventListener('change', handleObjetivoChange);
+      console.log(`✅ Event listener agregado a: ${dropdownId}`);
+    }
+  });
+  
+  // Buscar otros dropdowns que puedan existir
+  const otrosDropdowns = document.querySelectorAll('select[name*="objetivo_aprendizaje"]');
+  otrosDropdowns.forEach(dropdown => {
+    if (!dropdownIds.includes(dropdown.id)) {
+      // Remover event listeners anteriores para evitar duplicados
+      dropdown.removeEventListener('change', handleObjetivoChange);
+      // Agregar nuevo event listener
+      dropdown.addEventListener('change', handleObjetivoChange);
+      console.log(`✅ Event listener agregado a dropdown adicional: ${dropdown.id}`);
+    }
+  });
+  
+  // Agregar event listeners para cuando se abran los modales
+  agregarEventListenersModales();
+}
+
+// Función para agregar event listeners a los modales
+function agregarEventListenersModales() {
+  // Modal de agregar criterio
+  const modalAgregar = document.getElementById('modalAgregarCriterio');
+  if (modalAgregar) {
+    modalAgregar.removeEventListener('shown.bs.modal', handleModalShown);
+    modalAgregar.addEventListener('shown.bs.modal', handleModalShown);
+  }
+  
+  // Modal de editar criterio
+  const modalEditar = document.getElementById('modalEditarCriterio');
+  if (modalEditar) {
+    modalEditar.removeEventListener('shown.bs.modal', handleModalShown);
+    modalEditar.addEventListener('shown.bs.modal', handleModalShown);
+  }
+}
+
+// Función manejadora para cuando se abre un modal
+function handleModalShown() {
+  console.log('🔄 Modal abierto, actualizando dropdowns...');
+  setTimeout(() => {
+    agregarEventListenersObjetivos();
+  }, 100);
+}
+
+// Función manejadora del cambio en dropdowns de objetivos
+function handleObjetivoChange(event) {
+  if (event.target.value === 'nuevo') {
+    console.log('🔄 Usuario seleccionó crear nuevo objetivo');
+    mostrarFormularioNuevoObjetivo();
+  }
+}
+
+// Función para hacer debug del DOM y ver qué está pasando
+function debugDOMCriterios() {
+  console.log('🐛 DEBUG: Analizando DOM de criterios...');
+  
+  let criteriosContainer = document.querySelector('.criterios-list');
+  if (criteriosContainer) {
+    console.log('📦 Contenedor de criterios encontrado:', criteriosContainer);
+    console.log('🔍 HTML del contenedor:', criteriosContainer.innerHTML);
+    console.log('🔍 Clases del contenedor:', criteriosContainer.className);
+    console.log('🔍 Estilos del contenedor:', criteriosContainer.style.cssText);
+    
+    const criteriosItems = criteriosContainer.querySelectorAll('.criterio-item');
+    console.log(`📋 Criterios en contenedor: ${criteriosItems.length}`);
+    
+    criteriosItems.forEach((criterio, index) => {
+      console.log(`🔍 Criterio ${index + 1}:`, {
+        elemento: criterio,
+        html: criterio.outerHTML,
+        clases: criterio.className,
+        estilos: criterio.style.cssText,
+        atributos: {
+          'data-criterio-id': criterio.getAttribute('data-criterio-id'),
+          'data-criterio-puntaje-maximo': criterio.getAttribute('data-criterio-puntaje-maximo')
+        }
+      });
+      
+      // Verificar elementos internos
+      const titulo = criterio.querySelector('h6');
+      const badge = criterio.querySelector('.badge.bg-primary');
+      const textoPuntaje = criterio.querySelector('strong');
+      
+      console.log(`  Título: ${titulo?.textContent || 'NO ENCONTRADO'}`);
+      console.log(`  Badge: ${badge?.textContent || 'NO ENCONTRADO'}`);
+      console.log(`  Puntaje máximo: ${textoPuntaje?.textContent || 'NO ENCONTRADO'}`);
+    });
+  } else {
+    console.log('❌ No se encontró contenedor de criterios');
+    
+    // Buscar criterios en todo el documento
+    const criteriosEnDocumento = document.querySelectorAll('.criterio-item');
+    console.log(`📋 Criterios en documento: ${criteriosEnDocumento.length}`);
+    
+    criteriosEnDocumento.forEach((criterio, index) => {
+      console.log(`🔍 Criterio ${index + 1} en documento:`, {
+        elemento: criterio,
+        parent: criterio.parentElement,
+        html: criterio.outerHTML
+      });
+    });
+  }
+  
+  console.log('🐛 DEBUG completado');
+}
+
+// Función de fallback para usar puntajes locales si falla el backend
+function fallbackPuntajesLocales(evaluacionId) {
+  console.log('🔄 Usando fallback de puntajes locales para evaluación:', evaluacionId);
+  
+  // Intentar cargar el estado guardado
+  const estadoCargado = cargarEstadoRubrica(evaluacionId);
+  console.log('📂 Estado de rúbrica cargado (fallback):', estadoCargado ? 'SÍ' : 'NO');
+  
+  // Verificar si hay criterios en la página
+  let criteriosContainer = document.querySelector('.criterios-list');
+  if (!criteriosContainer) {
+    console.log('⚠️ No se encontró contenedor de criterios en fallback');
+    return;
+  }
+  
+  // Verificar si hay elementos de criterio
+  const criteriosItems = criteriosContainer.querySelectorAll('.criterio-item');
+  if (criteriosItems.length === 0) {
+    console.log('⚠️ No se encontraron criterios en el DOM (fallback)');
+    
+    // Si no hay criterios en el DOM pero hay estado guardado, mostrar el total
+    if (estadoCargado && RUBRICA_STATE.puntajeTotal > 0) {
+      console.log('📂 Mostrando total desde estado guardado (fallback):', RUBRICA_STATE.puntajeTotal);
+    }
+    return;
+  }
+  
+  console.log(`✅ Encontrados ${criteriosItems.length} criterios en fallback, ejecutando cálculos locales...`);
+  
+  // Ejecutar cálculos locales como fallback
+  setTimeout(() => {
+    console.log('⏰ Ejecutando cálculos locales después de 500ms (fallback)...');
+    
+    // Forzar recálculo de puntajes máximos
+    const total = actualizarPuntajesMaximos();
+    console.log('📊 Total calculado en fallback:', total);
+    
+    // Solo llamar a calcularNota si estamos en la vista de calificar estudiantes
+    const hayCamposCalificacion = document.querySelector('select[id^="id_criterio_"]') !== null ||
+                                  document.querySelector('select[name^="criterio_"]') !== null;
+    
+    if (hayCamposCalificacion && typeof calcularNota === 'function') {
+      calcularNota();
+    }
+    
+    console.log('✅ Cálculos de puntaje inicializados correctamente en fallback. Total:', total);
+    
+    // Si no se calculó correctamente, intentar forzar
+    if (total === 0) {
+      console.warn('⚠️ Total no calculado correctamente en fallback, intentando forzar...');
+      setTimeout(() => {
+        forzarActualizacionPuntajes();
+      }, 1000);
+    }
+  }, 500);
+}
+
+// ============================================================================
 // FUNCIONES PARA MANEJAR EL CIERRE DE MENSAJES
 // ============================================================================
+
+// Función para manejar la recarga de la página y obtener puntajes actualizados
+function manejarRecargaPagina() {
+  console.log('🔄 Página recargada, verificando si estamos en sección de calificaciones...');
+  
+  // Verificar si estamos en la sección de calificaciones
+  const urlParams = new URLSearchParams(window.location.search);
+  const seccion = urlParams.get('seccion');
+  const action = urlParams.get('action');
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (seccion === 'calificaciones' && action === 'ver_rubrica' && evaluacionId) {
+    console.log('✅ Estamos en sección de calificaciones con rúbrica, obteniendo puntajes actualizados...');
+    
+    // Esperar a que el DOM esté completamente cargado
+    setTimeout(() => {
+      // Limpiar estado anterior
+      limpiarEstadoRubrica();
+      
+      // Obtener puntajes actualizados del backend
+      obtenerPuntajesActualizadosDelBackend(evaluacionId);
+    }, 500);
+  }
+}
+
+// Agregar event listener para cuando se carga la página
+document.addEventListener('DOMContentLoaded', manejarRecargaPagina);
+
+// Agregar event listener para navegación del navegador (botón atrás/adelante)
+window.addEventListener('popstate', function(event) {
+  console.log('🔄 Navegación del navegador detectada:', event);
+  
+  // Verificar si estamos en la sección de calificaciones
+  const urlParams = new URLSearchParams(window.location.search);
+  const seccion = urlParams.get('seccion');
+  const action = urlParams.get('action');
+  const evaluacionId = urlParams.get('evaluacion_id');
+  
+  if (seccion === 'calificaciones' && action === 'ver_rubrica' && evaluacionId) {
+    console.log('✅ Navegación a sección de calificaciones con rúbrica, obteniendo puntajes actualizados...');
+    
+    // Esperar a que el DOM esté completamente cargado
+    setTimeout(() => {
+      // Limpiar estado anterior
+      limpiarEstadoRubrica();
+      
+      // Obtener puntajes actualizados del backend
+      obtenerPuntajesActualizadosDelBackend(evaluacionId);
+    }, 500);
+  }
+});
 
 // Función para hacer un mensaje cerrable
 function hacerMensajeCerrable(elemento) {
@@ -5379,7 +8644,7 @@ function calcularNotaModal() {
     const notaField = document.getElementById('editNota');
     if (notaField) {
       notaField.value = notaCalculada.toFixed(1);
-
+    }
   } catch (error) {
     console.error('Error al calcular nota en modal:', error);
   }
@@ -5515,7 +8780,7 @@ document.addEventListener('keydown', function(event) {
 // Función para calcular la nota automáticamente
 function calcularNota() {
 
-  
+  console.log('🔄 Calculando nota');
   // Buscar el campo de nota de múltiples formas
   let notaField = document.getElementById('id_nota_calculada');
   if (!notaField) {
@@ -5569,7 +8834,6 @@ function calcularNota() {
     criterioFields = document.querySelectorAll('select[data-criterio-id]');
 
   }
-
   
   criterioFields.forEach(function(field) {
 
@@ -5671,117 +8935,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// Función para calcular la nota automáticamente
-function calcularNota() {
-
-  
-  // Buscar el campo de nota de múltiples formas
-  let notaField = document.getElementById('id_nota_calculada');
-  if (!notaField) {
-    notaField = document.querySelector('input[name="nota"]');
-  }
-  if (!notaField) {
-    notaField = document.querySelector('input[type="number"][readonly]');
-  }
-  if (!notaField) {
-    notaField = document.querySelector('.nota-calculada-value input');
-  }
-  if (!notaField) {
-    // Buscar cualquier campo de nota en la página
-    const allNotaFields = document.querySelectorAll('input[type="number"], input[name="nota"]');
-    if (allNotaFields.length > 0) {
-      notaField = allNotaFields[0];
-    }
-  }
-
-  
-  if (notaField) {
-    notaField.placeholder = 'Calculando...';
-  }
-  
-  // Obtener la nota máxima de la evaluación desde el contexto o usar un valor por defecto
-  let evaluacionNotaMaxima = 7.0; // Valor por defecto
-  
-  // Intentar obtener la nota máxima del contexto de la evaluación
-  try {
-    // Buscar información de la evaluación en el DOM
-    const evaluacionInfo = document.querySelector('form[data-evaluacion-nota-maxima]');
-    if (evaluacionInfo) {
-      evaluacionNotaMaxima = parseFloat(evaluacionInfo.getAttribute('data-evaluacion-nota-maxima'));
-    }
-  } catch (e) {
-    alert('No se pudo obtener la nota máxima de la evaluación, usando valor por defecto:', evaluacionNotaMaxima);
-  }
-  
-
-  let sumaPuntajesObtenidos = 0;
-  let sumaPuntajesMaximos = 0;
-  
-  // Obtener todos los campos de criterio (buscar por ID y por nombre)
-  let criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
-
-  if (criterioFields.length === 0) {
-    criterioFields = document.querySelectorAll('select[name^="criterio_"]');
-
-  }
-  if (criterioFields.length === 0) {
-    // Buscar cualquier select que tenga atributos de criterio
-    criterioFields = document.querySelectorAll('select[data-criterio-id]');
-
-  }
-  
-  criterioFields.forEach(function(field) {
-
-    const selectedOption = field.options[field.selectedIndex];
-    if (selectedOption && selectedOption.value !== '') {
-      // Extraer el puntaje del texto de la opción (formato: "25.00 pts - Logrado - Descripción")
-      const optionText = selectedOption.text;
-
-      const puntajeMatch = optionText.match(/(\d+\.?\d*)\s+pts/);
-      if (puntajeMatch) {
-        const puntaje = parseFloat(puntajeMatch[1]);
-        sumaPuntajesObtenidos += puntaje;
-
-      }
-    }
-    
-    // Obtener el puntaje máximo del criterio desde el atributo data
-    const puntajeMaximo = parseFloat(field.getAttribute('data-criterio-puntaje-maximo') || 0);
-    sumaPuntajesMaximos += puntajeMaximo;
-
-  });
-  
-  // Calcular la nota según la fórmula
-  let notaCalculada = 0;
-  if (sumaPuntajesMaximos > 0) {
-    notaCalculada = (evaluacionNotaMaxima * sumaPuntajesObtenidos) / sumaPuntajesMaximos;
-  }
-  
-  // Actualizar el campo de nota con animación
-  if (notaField) {
-    // Agregar clase para animación
-    notaField.classList.add('nota-updating');
-    
-    // Actualizar valor
-    notaField.value = notaCalculada.toFixed(1);
-    
-    // Actualizar también el campo oculto para el formulario
-    const notaHidden = document.getElementById('nota_hidden');
-    if (notaHidden) {
-      notaHidden.value = notaField.value;
-
-    }
-    
-    // Remover clase después de la animación
-    setTimeout(() => {
-      notaField.classList.remove('nota-updating');
-    }, 300);
-  }
-  
-  // Mostrar información de debug (opcional)
-
-}
-
 // Inicialización específica para la página de calificar estudiante
 
 
@@ -5808,6 +8961,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       if (typeof calcularNota === 'function') {
         calcularNota();
+        console.log('🔄 Nota en proceso de calculo desde el evento change');
       }
     }
   });
@@ -6408,23 +9562,21 @@ function enviarFormularioEditarRecurso() {
     }
   })
     .then(response => {
-
       return response.json();
     })
-          .then(data => {
-
-        if (data.success) {
-          // Mostrar mensaje de éxito simple
-          placeholder.innerHTML = `
-            <div class="alert alert-success text-center">
-              <h4>Recurso actualizado exitosamente</h4>
-              <p class="mb-3">El recurso se ha actualizado correctamente.</p>
-              <button class="btn btn-primary" onclick="cargarRecursosContenido();">
-                <i class="fas fa-arrow-left me-2"></i>Volver a la lista
-              </button>
-            </div>
-          `;
-        } else {
+    .then(data => {
+      if (data.success) {
+        // Mostrar mensaje de éxito simple
+        placeholder.innerHTML = `
+          <div class="alert alert-success text-center">
+            <h4>Recurso actualizado exitosamente</h4>
+            <p class="mb-3">El recurso se ha actualizado correctamente.</p>
+            <button class="btn btn-primary" onclick="cargarRecursosContenido();">
+              <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+            </button>
+          </div>
+        `;
+      } else {
         // Mostrar errores
         let errorHtml = '<div class="alert alert-danger"><h4>Error al actualizar el recurso</h4><ul>';
         if (data.errors) {
@@ -6479,7 +9631,171 @@ function inicializarFormulariosRecursos() {
 }
 
 // Event listeners para admin
+
+// ============================================================================
+// FUNCIONES PARA EL FORMULARIO DE ELIMINACIÓN DE EVALUACIÓN
+// ============================================================================
+
+// Función para inicializar el formulario de eliminación de evaluación
+function inicializarFormularioEliminacionEvaluacion() {
+  console.log('🔍 inicializarFormularioEliminacionEvaluacion llamada');
+  const form = document.getElementById('formEliminarEvaluacion');
+  const confirmacionInput = document.getElementById('confirmacion');
+  const btnEliminar = document.getElementById('btnEliminar');
+  
+  console.log('🔍 Elementos encontrados:', {
+    form: form ? 'SÍ' : 'NO',
+    confirmacionInput: confirmacionInput ? 'SÍ' : 'NO', 
+    btnEliminar: btnEliminar ? 'SÍ' : 'NO'
+  });
+  
+  // Verificar el contenido del DOM
+  const seccionCalificaciones = document.getElementById('seccion-calificaciones');
+  console.log('🔍 Contenido de seccion-calificaciones:', seccionCalificaciones ? seccionCalificaciones.innerHTML.substring(0, 200) + '...' : 'NO ENCONTRADO');
+  
+  if (!form || !btnEliminar) {
+    console.error('Formulario o botón de eliminar no encontrado');
+    return;
+  }
+  
+  // PREVENCIÓN DE DUPLICACIÓN: Verificar si ya está inicializado
+  if (form._eliminacionInicializada) {
+    console.log('🔍 Formulario ya inicializado, saltando inicialización duplicada');
+    return;
+  }
+  
+  console.log('🔍 Formulario y botón encontrados, agregando event listeners');
+  
+  // Marcar como inicializado para prevenir duplicación
+  form._eliminacionInicializada = true;
+  
+  // Verificar si ya hay event listeners en el formulario
+  console.log('🔍 Event listeners actuales en el formulario:', form._eventListeners || 'Ninguno');
+  
+  // Configurar el input de confirmación si existe
+  if (confirmacionInput) {
+    console.log('🔍 Agregando event listener al input de confirmación');
+    // Remover event listeners anteriores para evitar duplicados
+    confirmacionInput.removeEventListener('input', confirmacionInput._confirmacionHandler);
+    
+    // Crear nuevo handler
+    confirmacionInput._confirmacionHandler = function() {
+      btnEliminar.disabled = this.value.trim() !== 'ELIMINAR';
+    };
+    
+    confirmacionInput.addEventListener('input', confirmacionInput._confirmacionHandler);
+  }
+  
+  // Verificar si el botón tiene otros event listeners
+  console.log('🔍 Verificando event listeners del botón:', btnEliminar.onclick ? 'Tiene onclick' : 'No tiene onclick');
+  console.log('🔍 Atributos del botón:', btnEliminar.attributes);
+  
+  // Configurar el formulario
+  console.log('🔍 Agregando event listener al formulario');
+  
+  // Remover event listeners anteriores para evitar duplicados
+  form.removeEventListener('submit', form._submitHandler);
+  
+  // Crear nuevo handler
+  form._submitHandler = function(e) {
+    console.log('🔍 Event listener de submit ejecutado - Timestamp:', new Date().getTime());
+    console.log('🔍 Event target:', e.target);
+    console.log('🔍 Event currentTarget:', e.currentTarget);
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const evaluacionId = this.getAttribute('data-evaluacion-id');
+    
+    // Mostrar loading
+    btnEliminar.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Eliminando...';
+    btnEliminar.disabled = true;
+    
+    fetch(`{% url 'eliminar_evaluacion_ajax' curso.id %}?evaluacion_id=${evaluacionId}`, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: formData
+    })
+    .then(response => {
+      console.log('🔍 Response recibida del servidor - Timestamp:', new Date().getTime(), response.status, response.statusText);
+      console.log('🔍 Response headers:', response.headers);
+      return response.json();
+    })
+    .then(data => {
+      console.log('🔍 Data parseada del servidor - Timestamp:', new Date().getTime(), data);
+      if (data.success) {
+        console.log('🔍 Respuesta exitosa del servidor, mostrando alert:', data.message);
+        console.log('🔍 URL antes de llamar a cargarCalificaciones:', window.location.href);
+        alert(data.message);
+        // Redirigir a calificaciones
+        cargarCalificaciones();
+      } else {
+        alert('Error: ' + data.error);
+        // Restaurar botón
+        btnEliminar.innerHTML = '<i class="fas fa-trash-alt me-2"></i>Eliminar Evaluación';
+        btnEliminar.disabled = false;
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error al eliminar la evaluación. Por favor, intenta nuevamente.');
+      // Restaurar botón
+      btnEliminar.innerHTML = '<i class="fas fa-trash-alt me-2"></i>Eliminar Evaluación';
+      btnEliminar.disabled = false;
+    });
+  };
+  
+  // Agregar el event listener
+  form.addEventListener('submit', form._submitHandler);
+}
+
+
+
+
 </script>
+
+<!-- Modal para Agregar Objetivo de Aprendizaje -->
+<div class="modal fade" id="modalObjetivo" tabindex="-1" aria-labelledby="modalObjetivoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title text-white" id="modalObjetivoLabel">
+          <i class="fas fa-bullseye me-2"></i>Agregar Objetivo de Aprendizaje
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formObjetivo">
+                    <div class="row">
+            <div class="col-md-12">
+              <div class="form-group mb-3">
+                <label for="objetivo_nombre" class="form-label required-field">Nombre del Objetivo</label>
+                <input type="text" class="form-control" id="objetivo_nombre" autocomplete="off"
+                       placeholder="Ej: Comprensión conceptual" required>
+                <small class="form-text text-muted">Nombre descriptivo y conciso del objetivo</small>
+              </div>
+            </div>
+          </div>
+          <div class="form-group mb-3">
+            <label for="objetivo_descripcion" class="form-label required-field">Descripción</label>
+            <textarea class="form-control" id="objetivo_descripcion" rows="4" 
+                      placeholder="Describe detalladamente qué se espera que el estudiante logre..." required></textarea>
+            <small class="form-text text-muted">Descripción clara y específica del objetivo de aprendizaje</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalObjetivo()">
+          <i class="fas fa-times me-1"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" onclick="guardarObjetivoAprendizaje()">
+          <i class="fas fa-save me-1"></i>Guardar Objetivo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </div> <!-- Cierre del contenedor plataforma-aprendizaje -->
 

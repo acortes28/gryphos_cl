@@ -3,13 +3,13 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalAgregarCriterioLabel">
+        <h5 class="modal-title text-white" id="modalAgregarCriterioLabel">
           <i class="fas fa-plus-circle me-2"></i>Agregar Criterio
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form id="formAgregarCriterio">
+        <form id="formAgregarCriterio" autocomplete="off">
           <div class="form-group mb-3">
             <label for="criterio_nombre" class="form-label required-field">Nombre del Criterio</label>
             <input type="text" class="form-control" id="criterio_nombre" name="nombre" required>
@@ -21,10 +21,12 @@
           </div>
           
           <div class="form-group mb-3">
-            <label for="criterio_puntaje" class="form-label required-field">Puntaje Máximo</label>
-            <input type="number" class="form-control" id="criterio_puntaje" name="puntaje" 
-                   min="0" step="0.01" required placeholder="Ej: 10.0">
-            <small class="form-text text-muted">Puntaje máximo que se puede obtener en este criterio</small>
+            <label for="criterio_objetivo_aprendizaje" class="form-label required-field">Objetivo de Aprendizaje</label>
+            <select class="form-control" id="criterio_objetivo_aprendizaje" name="objetivo_aprendizaje">
+              <option value="">-- Seleccionar Objetivo de Aprendizaje --</option>
+              <!-- Los objetivos se cargarán dinámicamente -->
+            </select>
+            <small class="form-text text-muted">Opcional: Asocia este criterio a un objetivo de aprendizaje específico</small>
           </div>
           
           <div class="form-group mb-3">
@@ -57,13 +59,13 @@
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalEditarCriterioLabel">
+        <h5 class="modal-title text-white" id="modalEditarCriterioLabel">
           <i class="fas fa-edit me-2"></i>Editar Criterio
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form id="formEditarCriterio">
+        <form id="formEditarCriterio" autocomplete="off">
           <input type="hidden" id="criterio_id_editar" name="criterio_id">
           <div class="form-group mb-3">
             <label for="criterio_nombre_editar" class="form-label required-field">Nombre del Criterio</label>
@@ -76,10 +78,12 @@
           </div>
           
           <div class="form-group mb-3">
-            <label for="criterio_puntaje_editar" class="form-label required-field">Puntaje Máximo</label>
-            <input type="number" class="form-control" id="criterio_puntaje_editar" name="puntaje" 
-                   min="0" step="0.01" required placeholder="Ej: 10.0">
-            <small class="form-text text-muted">Puntaje máximo que se puede obtener en este criterio</small>
+            <label for="criterio_objetivo_aprendizaje_editar" class="form-label">Objetivo de Aprendizaje</label>
+            <select class="form-control" id="criterio_objetivo_aprendizaje_editar" name="objetivo_aprendizaje">
+              <option value="">-- Seleccionar Objetivo de Aprendizaje --</option>
+              <!-- Los objetivos se cargarán dinámicamente -->
+            </select>
+            <small class="form-text text-muted">Opcional: Asocia este criterio a un objetivo de aprendizaje específico</small>
           </div>
           
           <div class="form-group mb-3">
@@ -112,13 +116,13 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalAgregarEsperableLabel">
+        <h5 class="modal-title text-white" id="modalAgregarEsperableLabel">
           <i class="fas fa-plus-circle me-2"></i>Agregar Esperable
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form id="formAgregarEsperable">
+        <form id="formAgregarEsperable" autocomplete="off">
           <div class="form-group mb-3">
             <label for="esperable_nivel" class="form-label required-field">Nivel de Desempeño</label>
             <input type="text" class="form-control" id="esperable_nivel" name="nivel" 
@@ -156,13 +160,13 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalAgregarEsperableEditarLabel">
+        <h5 class="modal-title text-white" id="modalAgregarEsperableEditarLabel">
           <i class="fas fa-plus-circle me-2"></i>Agregar Esperable
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form id="formAgregarEsperableEditar">
+        <form id="formAgregarEsperableEditar" autocomplete="off">
           <div class="form-group mb-3">
             <label for="esperable_nivel_editar" class="form-label required-field">Nivel de Desempeño</label>
             <input type="text" class="form-control" id="esperable_nivel_editar" name="nivel" 
@@ -200,7 +204,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalConfirmarEliminarCriterioLabel">
+        <h5 class="modal-title text-white" id="modalConfirmarEliminarCriterioLabel">
           <i class="fas fa-exclamation-triangle text-warning me-2"></i>Confirmar Eliminación
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -234,7 +238,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalCambiosGuardadosLabel">
+        <h5 class="modal-title text-white" id="modalCambiosGuardadosLabel">
           <i class="fas fa-check-circle text-success me-2"></i>Cambios Guardados
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -260,3 +264,68 @@
     </div>
   </div>
 </div> 
+
+<script>
+// Función para actualizar los objetivos de aprendizaje en el modal de criterio
+function actualizarObjetivosAprendizaje() {
+  const selectObjetivos = document.getElementById('criterio_objetivo_aprendizaje');
+  if (selectObjetivos) {
+    // Limpiar opciones existentes (mantener la primera opción por defecto)
+    selectObjetivos.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
+    
+    // Obtener objetivos de aprendizaje si la función está disponible
+    if (typeof window.obtenerObjetivosAprendizaje === 'function') {
+      const objetivos = window.obtenerObjetivosAprendizaje();
+      
+      // Agregar opciones para cada objetivo
+      objetivos.forEach(objetivo => {
+        const option = document.createElement('option');
+        option.value = objetivo.id;
+        option.textContent = objetivo.nombre;
+        selectObjetivos.appendChild(option);
+      });
+    }
+  }
+}
+
+// Función para actualizar objetivos en el modal de editar criterio
+function actualizarObjetivosAprendizajeEditar() {
+  const selectObjetivos = document.getElementById('criterio_objetivo_aprendizaje_editar');
+  if (selectObjetivos) {
+    // Limpiar opciones existentes (mantener la primera opción por defecto)
+    selectObjetivos.innerHTML = '<option value="">-- Seleccionar Objetivo de Aprendizaje --</option>';
+    
+    // Obtener objetivos de aprendizaje si la función está disponible
+    if (typeof window.obtenerObjetivosAprendizaje === 'function') {
+      const objetivos = window.obtenerObjetivosAprendizaje();
+      
+      // Agregar opciones para cada objetivo
+      objetivos.forEach(objetivo => {
+        const option = document.createElement('option');
+        option.value = objetivo.id;
+        option.textContent = objetivo.nombre;
+        selectObjetivos.appendChild(option);
+      });
+    }
+  }
+}
+
+// Event listeners para actualizar objetivos cuando se abran los modales
+document.addEventListener('DOMContentLoaded', function() {
+  // Modal de agregar criterio
+  const modalAgregarCriterio = document.getElementById('modalAgregarCriterio');
+  if (modalAgregarCriterio) {
+    modalAgregarCriterio.addEventListener('show.bs.modal', function() {
+      actualizarObjetivosAprendizaje();
+    });
+  }
+  
+  // Modal de editar criterio
+  const modalEditarCriterio = document.getElementById('modalEditarCriterio');
+  if (modalEditarCriterio) {
+    modalEditarCriterio.addEventListener('show.bs.modal', function() {
+      actualizarObjetivosAprendizajeEditar();
+    });
+  }
+});
+</script> 

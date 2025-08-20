@@ -328,7 +328,8 @@ class EvaluacionForm(forms.ModelForm):
             }),
             'nombre': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Nombre de la evaluación'
+                'placeholder': 'Nombre de la evaluación',
+                'autocomplete': 'off'
             }),
             'fecha_inicio': forms.DateInput(attrs={
                 'class': 'form-control',
@@ -601,8 +602,10 @@ class CalificacionForm(forms.ModelForm):
                 
                 for criterio in rubrica.criterios.all():
                     # Crear opciones para este criterio basadas en sus esperables
+                    # Usar el método personalizado para obtener esperables ordenados por puntaje
                     choices = [('', 'Selecciona un nivel...')]
-                    for esperable in criterio.esperables.all():
+                    esperables_ordenados = criterio.get_esperables_ordenados()
+                    for esperable in esperables_ordenados:
                         # Asegurar que el puntaje se muestre con punto decimal
                         puntaje_str = str(esperable.puntaje).replace(',', '.')
                         choices.append((esperable.id, f"{puntaje_str} pts - {esperable.nivel} - {esperable.descripcion}"))
@@ -615,11 +618,9 @@ class CalificacionForm(forms.ModelForm):
                         widget=forms.Select(attrs={
                             'class': 'form-control',
                             'data-criterio-id': criterio.id,
-                            'data-criterio-nombre': criterio.nombre,
-                            'data-criterio-puntaje-maximo': criterio.puntaje
+                            'data-criterio-nombre': criterio.nombre
                         }),
-                        label=f"{criterio.nombre}",
-                        help_text=f"Puntaje máximo: {criterio.puntaje} puntos"
+                        label=f"{criterio.nombre}"
                     )
                     
                     # Guardar información adicional del criterio para uso en el template
@@ -627,7 +628,6 @@ class CalificacionForm(forms.ModelForm):
                         self.criterios_info = {}
                     self.criterios_info[criterio.id] = {
                         'nombre': criterio.nombre,
-                        'puntaje_maximo': criterio.puntaje,
                         'field_name': field_name
                     }
     
