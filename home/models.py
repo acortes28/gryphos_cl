@@ -532,10 +532,6 @@ class Rubrica(models.Model):
     def get_criterios_count(self):
         """Retorna el número de criterios de la rúbrica"""
         return self.criterios.count()
-    
-    def get_puntaje_total(self):
-        """Retorna el puntaje total de la rúbrica"""
-        return self.criterios.aggregate(total=models.Sum('puntaje'))['total'] or 0
 
 class ObjetivoAprendizaje(models.Model):
     """
@@ -584,6 +580,12 @@ class CriterioRubrica(models.Model):
     
     def __str__(self):
         return f"{self.nombre} - {self.rubrica.nombre}"
+    
+    def get_esperables_ordenados(self):
+        """
+        Retorna los esperables ordenados por puntaje de menor a mayor
+        """
+        return self.esperables.all().order_by('puntaje')
 
 class Esperable(models.Model):
     """
@@ -595,7 +597,7 @@ class Esperable(models.Model):
     puntaje = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Puntaje asociado a este esperable")
     
     class Meta:
-        ordering = ['nivel']
+        ordering = ['puntaje']  # Ordenar por puntaje de menor a mayor
         verbose_name = 'Esperable'
         verbose_name_plural = 'Esperables'
     

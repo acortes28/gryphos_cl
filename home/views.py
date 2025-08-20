@@ -2982,14 +2982,14 @@ def ver_calificacion_detalle(request, curso_id, calificacion_id):
                         puntaje_obtenido = puntaje_criterio.puntaje_obtenido
                         
                         # Buscar coincidencia exacta primero
-                        for esperable in criterio.esperables.all():
+                        for esperable in criterio.get_esperables_ordenados():
                             if esperable.puntaje == puntaje_obtenido:
                                 esperable_correcto = esperable
                                 break
                         
                         # Si no hay coincidencia exacta, buscar el esperable más cercano
                         if esperable_correcto is None:
-                            esperables_ordenados = list(criterio.esperables.all().order_by('puntaje'))
+                            esperables_ordenados = list(criterio.get_esperables_ordenados())
                             for i, esperable in enumerate(esperables_ordenados):
                                 if esperable.puntaje >= puntaje_obtenido:
                                     esperable_correcto = esperable
@@ -5800,19 +5800,33 @@ def plataforma_calificaciones_ajax(request, curso_id):
         
         if action == 'ver_rubricas':
             # Cargar vista de rúbricas para todos los usuarios
-            evaluaciones_con_rubricas = []
-            evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
+            # evaluaciones_con_rubricas = []
+            # evaluaciones = Evaluacion.objects.filter(curso=curso, activa=True).order_by('fecha_inicio')
             
-            for evaluacion in evaluaciones:
-                try:
-                    rubrica = evaluacion.rubrica
-                    if rubrica and rubrica.activa:
-                        evaluaciones_con_rubricas.append({
-                            'evaluacion': evaluacion,
-                            'rubrica': rubrica
-                        })
-                except:
-                    continue
+            # for evaluacion in evaluaciones:
+            #     try:
+            #         rubrica = evaluacion.rubrica
+            #         if rubrica and rubrica.activa:
+            #             evaluaciones_con_rubricas.append({
+            #                 'evaluacion': evaluacion,
+            #                 'rubrica': rubrica
+            #             })
+            #     except:
+            #         continue
+
+
+            rubricas = Rubrica.objects.filter(
+                evaluacion__curso=curso,
+                evaluacion__activa=True,
+                activa=True
+            ).select_related('evaluacion').order_by('evaluacion__fecha_inicio')
+
+            evaluaciones_con_rubricas = []
+            for rubrica in rubricas:
+                evaluaciones_con_rubricas.append({
+                    'evaluacion': rubrica.evaluacion,
+                    'rubrica': rubrica
+                })
             
             context = {
                 'curso': curso,
@@ -6656,14 +6670,14 @@ def plataforma_calificaciones_ajax(request, curso_id):
                                     puntaje_obtenido = puntaje_criterio.puntaje_obtenido
                                     
                                     # Buscar coincidencia exacta primero
-                                    for esperable in criterio.esperables.all():
+                                    for esperable in criterio.get_esperables_ordenados():
                                         if esperable.puntaje == puntaje_obtenido:
                                             esperable_correcto = esperable
                                             break
                                     
                                     # Si no hay coincidencia exacta, buscar el esperable más cercano
                                     if esperable_correcto is None:
-                                        esperables_ordenados = list(criterio.esperables.all().order_by('puntaje'))
+                                        esperables_ordenados = list(criterio.get_esperables_ordenados())
                                         for i, esperable in enumerate(esperables_ordenados):
                                             if esperable.puntaje >= puntaje_obtenido:
                                                 esperable_correcto = esperable

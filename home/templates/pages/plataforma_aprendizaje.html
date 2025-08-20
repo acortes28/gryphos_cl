@@ -900,7 +900,7 @@
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <h5 class="mb-0">
+    <h5 class="mb-0 text-white">
       <i class="fas fa-graduation-cap me-2"></i>
       {{ curso.nombre }}
     </h5>
@@ -1280,50 +1280,6 @@
             </div>
           </div>
         </div>
-        
-
-        
-        <!-- Mensaje cuando no hay datos -->
-        {% if not ultima_calificacion and not ultimo_recurso and not entregas_pendientes %}
-        <div class="row">
-          <div class="col-12">
-            <div class="text-center py-5">
-              <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
-              <h5 class="text-muted">Bienvenido a tu plataforma de aprendizaje</h5>
-              <p class="text-muted">Aquí podrás ver tu progreso, recursos y entregas pendientes.</p>
-              <div class="row mt-4">
-                <div class="col-md-4">
-                  <div class="card border-0 bg-light">
-                    <div class="card-body text-center">
-                      <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
-                      <h6>Calificaciones</h6>
-                      <p class="small text-muted">Revisa tus calificaciones y progreso</p>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="card border-0 bg-light">
-                    <div class="card-body text-center">
-                      <i class="fas fa-book fa-2x text-info mb-2"></i>
-                      <h6>Recursos</h6>
-                      <p class="small text-muted">Accede a materiales de estudio</p>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="card border-0 bg-light">
-                    <div class="card-body text-center">
-                      <i class="fas fa-upload fa-2x text-warning mb-2"></i>
-                      <h6>Entregas</h6>
-                      <p class="small text-muted">Sube tus trabajos y evaluaciones</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        {% endif %}
       {% endif %}
     </div>
     
@@ -9804,7 +9760,7 @@ function inicializarFormularioEliminacionEvaluacion() {
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalObjetivoLabel">
+        <h5 class="modal-title text-white" id="modalObjetivoLabel">
           <i class="fas fa-bullseye me-2"></i>Agregar Objetivo de Aprendizaje
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>

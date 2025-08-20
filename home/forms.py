@@ -328,7 +328,8 @@ class EvaluacionForm(forms.ModelForm):
             }),
             'nombre': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Nombre de la evaluación'
+                'placeholder': 'Nombre de la evaluación',
+                'autocomplete': 'off'
             }),
             'fecha_inicio': forms.DateInput(attrs={
                 'class': 'form-control',
@@ -601,8 +602,10 @@ class CalificacionForm(forms.ModelForm):
                 
                 for criterio in rubrica.criterios.all():
                     # Crear opciones para este criterio basadas en sus esperables
+                    # Usar el método personalizado para obtener esperables ordenados por puntaje
                     choices = [('', 'Selecciona un nivel...')]
-                    for esperable in criterio.esperables.all():
+                    esperables_ordenados = criterio.get_esperables_ordenados()
+                    for esperable in esperables_ordenados:
                         # Asegurar que el puntaje se muestre con punto decimal
                         puntaje_str = str(esperable.puntaje).replace(',', '.')
                         choices.append((esperable.id, f"{puntaje_str} pts - {esperable.nivel} - {esperable.descripcion}"))
