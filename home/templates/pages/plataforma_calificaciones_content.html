@@ -63,20 +63,23 @@
         </div>
         
         {% if info_entregas %}
-          <div class="alert alert-info mb-4">
+          <div class="alert alert-info mb-4" role="alert">
             <div class="d-flex align-items-center">
               <i class="fas fa-info-circle me-2"></i>
               <div>
                 <strong>{{ info_entregas.mensaje }}</strong>
                 <br>
-                <small class="text-muted">
+                <small class="text-white">
                   Evaluaciones con entregas: {{ info_entregas.evaluaciones_con_entregas }}/{{ info_entregas.total_evaluaciones }}
                   {% if info_entregas.evaluaciones_sin_entregas > 0 %}
                     • Sin entregas: {{ info_entregas.evaluaciones_sin_entregas }}
                   {% endif %}
                 </small>
               </div>
+              <button type="button" class="btn-close btn-close" data-bs-dismiss="alert" aria-label="Cerrar alerta" style="position: absolute; right: 10px; top: 10px;"></button>
             </div>
+
+
           </div>
         {% endif %}
         

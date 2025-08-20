@@ -688,7 +688,7 @@
   }
   
   .alert-info .btn-close {
-    color: #0c5460;
+    color:rgb(255, 255, 255);
   }
   
   /* Estilos para mensajes pequeños */
@@ -3692,7 +3692,7 @@ function cargarCalificar(evaluacionId, estudianteId = null) {
         `;
         seccionCalificaciones.classList.add('active');
       }
-    });
+    });    
 }
 
 // Función para cargar el formulario de crear evaluación
@@ -7292,6 +7292,20 @@ function inicializarCalculosPuntaje() {
   // OPCIÓN 1: Cálculo Dinámico al Cargar la Página
   // Hacer llamada AJAX al backend para obtener los puntajes actualizados
   obtenerPuntajesActualizadosDelBackend(evaluacionId);
+
+  const criterioFields = seccionCalificaciones.querySelectorAll('select[id^="id_criterio_"]');
+  criterioFields.forEach(function(field) {
+    field.addEventListener('change', function() {
+      console.log('🔍 Cambio detectado en criterio:', field.id);
+      if (typeof calcularNota === 'function') {
+        calcularNota();
+      } else {
+        console.error('❌ Función calcularNota no disponible');
+      }
+    });
+  });
+
+  console.log(`✅ ${criterioFields.length} campos de criterio configurados con event listeners`);
 }
 
 // Función para obtener los puntajes actualizados del backend (OPCIÓN 1)
@@ -8810,7 +8824,7 @@ document.addEventListener('keydown', function(event) {
 // Función para calcular la nota automáticamente
 function calcularNota() {
 
-  
+  console.log('🔄 Calculando nota');
   // Buscar el campo de nota de múltiples formas
   let notaField = document.getElementById('id_nota_calculada');
   if (!notaField) {
@@ -8965,117 +8979,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// Función para calcular la nota automáticamente
-function calcularNota() {
-
-  
-  // Buscar el campo de nota de múltiples formas
-  let notaField = document.getElementById('id_nota_calculada');
-  if (!notaField) {
-    notaField = document.querySelector('input[name="nota"]');
-  }
-  if (!notaField) {
-    notaField = document.querySelector('input[type="number"][readonly]');
-  }
-  if (!notaField) {
-    notaField = document.querySelector('.nota-calculada-value input');
-  }
-  if (!notaField) {
-    // Buscar cualquier campo de nota en la página
-    const allNotaFields = document.querySelectorAll('input[type="number"], input[name="nota"]');
-    if (allNotaFields.length > 0) {
-      notaField = allNotaFields[0];
-    }
-  }
-
-  
-  if (notaField) {
-    notaField.placeholder = 'Calculando...';
-  }
-  
-  // Obtener la nota máxima de la evaluación desde el contexto o usar un valor por defecto
-  let evaluacionNotaMaxima = 7.0; // Valor por defecto
-  
-  // Intentar obtener la nota máxima del contexto de la evaluación
-  try {
-    // Buscar información de la evaluación en el DOM
-    const evaluacionInfo = document.querySelector('form[data-evaluacion-nota-maxima]');
-    if (evaluacionInfo) {
-      evaluacionNotaMaxima = parseFloat(evaluacionInfo.getAttribute('data-evaluacion-nota-maxima'));
-    }
-  } catch (e) {
-    alert('No se pudo obtener la nota máxima de la evaluación, usando valor por defecto:', evaluacionNotaMaxima);
-  }
-  
-
-  let sumaPuntajesObtenidos = 0;
-  let sumaPuntajesMaximos = 0;
-  
-  // Obtener todos los campos de criterio (buscar por ID y por nombre)
-  let criterioFields = document.querySelectorAll('select[id^="id_criterio_"]');
-
-  if (criterioFields.length === 0) {
-    criterioFields = document.querySelectorAll('select[name^="criterio_"]');
-
-  }
-  if (criterioFields.length === 0) {
-    // Buscar cualquier select que tenga atributos de criterio
-    criterioFields = document.querySelectorAll('select[data-criterio-id]');
-
-  }
-  
-  criterioFields.forEach(function(field) {
-
-    const selectedOption = field.options[field.selectedIndex];
-    if (selectedOption && selectedOption.value !== '') {
-      // Extraer el puntaje del texto de la opción (formato: "25.00 pts - Logrado - Descripción")
-      const optionText = selectedOption.text;
-
-      const puntajeMatch = optionText.match(/(\d+\.?\d*)\s+pts/);
-      if (puntajeMatch) {
-        const puntaje = parseFloat(puntajeMatch[1]);
-        sumaPuntajesObtenidos += puntaje;
-
-      }
-    }
-    
-    // Obtener el puntaje máximo del criterio desde el atributo data
-    const puntajeMaximo = parseFloat(field.getAttribute('data-criterio-puntaje-maximo') || 0);
-    sumaPuntajesMaximos += puntajeMaximo;
-
-  });
-  
-  // Calcular la nota según la fórmula
-  let notaCalculada = 0;
-  if (sumaPuntajesMaximos > 0) {
-    notaCalculada = (evaluacionNotaMaxima * sumaPuntajesObtenidos) / sumaPuntajesMaximos;
-  }
-  
-  // Actualizar el campo de nota con animación
-  if (notaField) {
-    // Agregar clase para animación
-    notaField.classList.add('nota-updating');
-    
-    // Actualizar valor
-    notaField.value = notaCalculada.toFixed(1);
-    
-    // Actualizar también el campo oculto para el formulario
-    const notaHidden = document.getElementById('nota_hidden');
-    if (notaHidden) {
-      notaHidden.value = notaField.value;
-
-    }
-    
-    // Remover clase después de la animación
-    setTimeout(() => {
-      notaField.classList.remove('nota-updating');
-    }, 300);
-  }
-  
-  // Mostrar información de debug (opcional)
-
-}
-
 // Inicialización específica para la página de calificar estudiante
 
 
@@ -9102,6 +9005,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       if (typeof calcularNota === 'function') {
         calcularNota();
+        console.log('🔄 Nota en proceso de calculo desde el evento change');
       }
     }
   });
