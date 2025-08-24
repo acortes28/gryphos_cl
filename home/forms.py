@@ -78,7 +78,8 @@ class RegistrationForm(UserCreationForm):
     email = forms.EmailField(
         widget=forms.EmailInput(attrs={
             'class': 'form-control',
-            'placeholder': ''
+            'placeholder': '',
+            'autocomplete': 'off'
         }),
         validators=[validate_gryphos_email],
         label="Correo Electrónico",

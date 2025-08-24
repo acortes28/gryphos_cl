@@ -94,8 +94,8 @@
                     <small class="text-danger">{{ field.errors }}</small>
                   {% endif %}
                 {% endfor %}
-                <div class="form-check form-switch d-flex align-items-center mb-3">
-                  <input class="form-check-input" type="checkbox" id="rememberMe" checked>
+                <div class="form-check form-switch d-flex align-items-center mb-3" autocomplete="off">
+                  <input class="form-check-input" type="checkbox" id="rememberMe" checked autocomplete="off">
                   <label class="form-check-label mb-0 ms-3" for="rememberMe">Recordar</label>
                 </div>
                 <a href="{% url 'password_reset' %}" class="mt-4 text-sm">

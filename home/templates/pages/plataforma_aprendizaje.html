@@ -3634,13 +3634,15 @@ function cargarCalificar(evaluacionId, estudianteId = null) {
       console.error('Error cargando vista de calificación:', error);
       document.getElementById('loading').classList.remove('show');
       
+      console.log(error);
+
       // Mostrar mensaje de error al usuario
       const seccionCalificaciones = document.getElementById('seccion-calificaciones');
       if (seccionCalificaciones) {
         seccionCalificaciones.innerHTML = `
           <div class="alert alert-danger">
             <h4>Error al cargar la vista de calificación</h4>
-            <p>Hubo un problema al cargar la vista de calificación. Por favor, intenta nuevamente.</p>
+            <p class="text-white">Hubo un problema al cargar la vista de calificación. Asegurese de haber creado la rúbrica de la evaluación. Si la rúbrica está creada puede ponerse en contacto con el administrador.</p>
             <button onclick="cargarCalificaciones()" class="btn btn-outline-secondary">
               <i class="fas fa-arrow-left me-1"></i>Volver a Calificaciones
             </button>

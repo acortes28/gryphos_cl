@@ -27,7 +27,7 @@ import logging
 import traceback
 from datetime import datetime, timedelta
 import jwt
-from django.db.models import Avg, Min, Max, Count, Sum
+from django.db.models import Avg, Min, Max, Sum, Count, Q
 from django.conf import settings
 from decimal import Decimal
 from django.db.models import Prefetch
@@ -1644,6 +1644,41 @@ def cursos_list(request):
     return render(request, 'pages/cursos_list.html', context)
 
 
+def obtener_cursos_con_calificaciones_completas_detallado(estudiante):
+    """
+    Versión más detallada y fácil de entender
+    """
+    cursos_completos = []
+    
+    for curso in estudiante.cursos.all():
+        # Obtener todas las evaluaciones activas del curso
+        evaluaciones_activas = curso.evaluaciones.filter(activa=True)
+        
+        # Si no hay evaluaciones activas, el curso se considera completo
+        if not evaluaciones_activas.exists():
+            cursos_completos.append(curso)
+            continue
+        
+        # Verificar para cada evaluación activa
+        curso_completo = True
+        for evaluacion in evaluaciones_activas:
+            try:
+                # Intentar obtener la calificación del estudiante
+                calificacion = evaluacion.calificaciones.get(estudiante=estudiante)
+                # Si la calificación existe pero es nula, el curso está incompleto
+                if calificacion.nota is None:
+                    curso_completo = False
+                    break
+            except Calificacion.DoesNotExist:
+                # Si no existe calificación, el curso está incompleto
+                curso_completo = False
+                break
+        
+        if curso_completo:
+            cursos_completos.append(curso)
+    
+    return cursos_completos
+
 @login_required
 def mi_perfil(request):
     """
@@ -1683,10 +1718,19 @@ def mi_perfil(request):
         return redirect('mi_perfil')
     
     # Obtener cursos completados del usuario (puedes ajustar la lógica según tu modelo)
-    cursos_completados = request.user.cursos.all()  # Ajusta según tu lógica de cursos completados
-    
+    #cursos_completados = request.user.cursos.all()  # Ajusta según tu lógica de cursos completados
+
+
+    #Obtener todos los cursos del usuario donde tiene calificaciones en todas las evaluaciones
+    #cursos_inscritos = request.user.cursos.all()
+
+    # Cursos donde el estudiante está inscrito
+    cursos_completados = obtener_cursos_con_calificaciones_completas_detallado(request.user)
+
+    print(f"cursos_completados: {cursos_completados}")
+
     context = {
-        'cursos_completados': cursos_completados,
+        'cursos_completados': cursos_completados, 
     }
     return render(request, 'pages/mi_perfil.html', context)
 
