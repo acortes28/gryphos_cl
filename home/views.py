@@ -36,6 +36,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from django.http import HttpResponse
 import io
+import calendar
+from .utils import CalendarioUtils
 
 logger = logging.getLogger(__name__)
 
@@ -380,6 +382,12 @@ def index(request):
     
     # Obtener todos los cursos activos para mostrar en la página principal
     cursos_activos = Curso.objects.filter(activo=True).order_by('nombre')
+
+    for curso in cursos_activos:
+        curso.precio = f"{curso.precio:,.0f}"
+        curso.precio = curso.precio.replace(',', '.')
+
+
     context = {
         'cursos_activos': cursos_activos,
     }
@@ -1636,6 +1644,11 @@ def cursos_list(request):
         # Solo incluir cursos donde realmente está inscrito (ya pagó)
         inscripciones_usuario = list(cursos_inscritos)
     
+
+    for curso in cursos_activos:
+        curso.precio = f"{curso.precio:,.0f}"
+        curso.precio = curso.precio.replace(',', '.')
+
     context = {
         'cursos': cursos_activos,
         'inscripciones_usuario': inscripciones_usuario,
@@ -1761,8 +1774,17 @@ def curso_detail_public(request, curso_id):
             # Solo considerar como inscrito si realmente tiene acceso al curso
             usuario_inscrito = tiene_acceso
         
+        curso.precio = f"{curso.precio:,.0f}"
+        curso.precio = curso.precio.replace(',', '.')
+
+        horarios = curso.videollamadas.filter(activa=True)
+
+        for horario in horarios:
+            horario.dia_semana = CalendarioUtils().obtener_dia_semana(horario.dia_semana)
+
         context = {
             'curso': curso,
+            'horarios': horarios,
             'usuario_inscrito': usuario_inscrito,
             'tiene_inscripcion_pendiente': tiene_inscripcion_pendiente,
         }

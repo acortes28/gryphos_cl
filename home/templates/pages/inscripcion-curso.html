@@ -149,7 +149,7 @@ input[name="telefono_contacto"] {
               {% endfor %}
             {% endif %}
             
-            <form method="post">
+            <form method="post" autocomplete="off">
               {% csrf_token %}
               
               <div class="row">

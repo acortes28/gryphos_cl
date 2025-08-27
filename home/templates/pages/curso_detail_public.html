@@ -3,6 +3,7 @@
 {% block title %} {{ curso.nombre }} - Gryphos Consulting {% endblock title %}
 {% block body %} class="about-us bg-gray-200" {% endblock body %}
 {% block content %}
+{% load humanize %}
 
 </div></div>
 
@@ -78,7 +79,19 @@
                   {% if curso.precio %}
                   <div class="mb-2">
                     <strong><i class="fas fa-dollar-sign me-2"></i>Precio:</strong>
-                    <span class="ms-2 text-success">{{ curso.precio|floatformat:0 }}</span>
+                    <span class="ms-2 text-success">{{ curso.precio }}</span>
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="col-md-8">
+                  {% if horarios %}
+                  <div class="mb-2">
+                    <strong><i class="fas fa-clock me-2"></i>Horarios:</strong>
+                    <span class="ms-2">
+                      {% for horario in horarios %}
+                        <li>{{ horario.dia_semana }} : {{ horario.hora_inicio }} - {{ horario.hora_fin }}</li>
+                      {% endfor %}
+                    </span>
                   </div>
                   {% endif %}
                 </div>

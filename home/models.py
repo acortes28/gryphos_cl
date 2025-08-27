@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import JSONField
 import os
+from datetime import datetime, time, timedelta
 
 class CustomUser(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
@@ -250,7 +251,6 @@ class Videollamada(models.Model):
     def esta_activa_ahora(self):
         """Verifica si la videollamada está activa en el momento actual"""
         from django.utils import timezone
-        from datetime import datetime, time
         import logging
         import traceback
         
@@ -297,6 +297,10 @@ class Videollamada(models.Model):
             # Verificar cada condición por separado
             condicion_activa = self.activa
             condicion_dia = dia_actual == self.dia_semana
+
+            self.hora_inicio = datetime.combine(ahora.date(), self.hora_inicio) - timedelta(minutes=5)
+            self.hora_inicio = self.hora_inicio.time()
+
             condicion_hora = self.hora_inicio <= hora_actual <= self.hora_fin
             
             logger.debug(f"Condiciones: activa={condicion_activa}, dia={condicion_dia}, hora={condicion_hora}")
