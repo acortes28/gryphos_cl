@@ -1074,3 +1074,82 @@ class Asignatura(models.Model):
                 )
             
             return nueva_evaluacion
+
+
+class Reunion(models.Model):
+    """
+    Modelo para reuniones entre usuarios staff/admin
+    """
+    nombre = models.CharField(max_length=200, help_text="Nombre de la reunión")
+    organizador = models.ForeignKey(
+        CustomUser, 
+        on_delete=models.CASCADE, 
+        related_name='reuniones_organizadas',
+        help_text="Usuario que organiza la reunión"
+    )
+    participantes = models.ManyToManyField(
+        CustomUser, 
+        related_name='reuniones_participantes',
+        help_text="Usuarios participantes de la reunión"
+    )
+    fecha_reunion = models.DateField(help_text="Fecha de la reunión")
+    hora_inicio = models.TimeField(help_text="Hora de inicio de la reunión")
+    hora_fin = models.TimeField(help_text="Hora de fin de la reunión")
+    link_videollamada = models.URLField(help_text="Enlace de la videollamada")
+    descripcion = models.TextField(blank=True, null=True, help_text="Descripción de la reunión")
+    activa = models.BooleanField(default=True, help_text="Indica si la reunión está activa")
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_modificacion = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['fecha_reunion', 'hora_inicio']
+        verbose_name = 'Reunión'
+        verbose_name_plural = 'Reuniones'
+    
+    def __str__(self):
+        return f"{self.nombre} - {self.fecha_reunion} {self.hora_inicio}"
+    
+    def esta_activa_ahora(self):
+        """Verifica si la reunión está activa en el momento actual"""
+        from django.utils import timezone
+        from datetime import datetime, timedelta
+        
+        try:
+            ahora = timezone.localtime(timezone.now())
+            fecha_actual = ahora.date()
+            hora_actual = ahora.time()
+            
+            # Verificar que la fecha actual coincida con la fecha de la reunión
+            if fecha_actual != self.fecha_reunion:
+                return False
+            
+            # Verificar que la hora actual esté dentro del rango de la reunión
+            # Permitir unirse 5 minutos antes
+            hora_inicio_permiso = datetime.combine(ahora.date(), self.hora_inicio) - timedelta(minutes=5)
+            hora_inicio_permiso = hora_inicio_permiso.time()
+            
+            return hora_inicio_permiso <= hora_actual <= self.hora_fin
+            
+        except Exception as e:
+            return False
+    
+    def puede_unirse(self, usuario):
+        """Verifica si un usuario puede unirse a la reunión"""
+        # Solo usuarios staff/admin pueden unirse
+        if not (usuario.is_staff or usuario.is_superuser):
+            return False
+        
+        # El usuario debe ser el organizador o un participante
+        return usuario == self.organizador or usuario in self.participantes.all()
+    
+    def clean(self):
+        """Validación personalizada del modelo"""
+        from django.core.exceptions import ValidationError
+        
+        # Verificar que la hora de fin sea posterior a la hora de inicio
+        if self.hora_inicio and self.hora_fin and self.hora_inicio >= self.hora_fin:
+            raise ValidationError('La hora de fin debe ser posterior a la hora de inicio.')
+    
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)

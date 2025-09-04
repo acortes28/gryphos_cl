@@ -13,7 +13,7 @@ class CalendarioUtils:
         
         dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
         
-        if 1 <= numero <= 7:
+        if 0 <= numero <= 6:
             return dias[numero]
         else:
             return f"Error: El número {numero} está fuera del rango válido (1-7)"

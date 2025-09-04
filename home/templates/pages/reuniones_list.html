@@ -1,0 +1,128 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+{% block title %} Gryphos Consulting - Mis Reuniones {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+{% block content %}
+
+<header class="bg-gradient-dark">
+  <div class="page-header min-vh-50" style="background-image: url('{% static 'img/bggryphos-small.jpg' %}');">
+    <span class="mask bg-gradient-dark opacity-6"></span>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 text-center mx-auto my-auto">
+          <h1 class="text-white">Mis Reuniones</h1>
+          <h3 class="text-white mb-0">
+            <i class="fas fa-users me-2"></i>
+            Gestiona tus reuniones de equipo
+          </h3>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="card card-body blur shadow-blur mx-3 mx-md-4 mt-n6">
+  <section>
+    <div class="container">
+      <div class="row">
+        <div class="col-12">
+          <!-- Botones de acción -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4>Reuniones Programadas</h4>
+            <a href="{% url 'crear-reunion' %}" class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i>Crear Nueva Reunión
+            </a>
+          </div>
+
+          {% if reuniones %}
+            <div class="row">
+              {% for reunion in reuniones %}
+                <div class="col-12 col-md-6 col-lg-4 mb-4">
+                  <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                      <h6 class="mb-0">{{ reunion.nombre }}</h6>
+                      {% if reunion.organizador == user %}
+                        <span class="badge bg-primary">Organizador</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Participante</span>
+                      {% endif %}
+                    </div>
+                    <div class="card-body">
+                      <div class="mb-3">
+                        <p class="mb-1">
+                          <i class="fas fa-calendar me-1"></i>
+                          <strong>{{ reunion.fecha_reunion|date:"d/m/Y" }}</strong>
+                        </p>
+                        <p class="mb-1">
+                          <i class="fas fa-clock me-1"></i>
+                          {{ reunion.hora_inicio|time:'H:i' }} - {{ reunion.hora_fin|time:'H:i' }}
+                        </p>
+                        <p class="mb-1">
+                          <i class="fas fa-user me-1"></i>
+                          Organizada por: {{ reunion.organizador.get_full_name|default:reunion.organizador.username }}
+                        </p>
+                        {% if reunion.descripcion %}
+                          <p class="mb-0 text-muted small">{{ reunion.descripcion|truncatechars:100 }}</p>
+                        {% endif %}
+                      </div>
+                      
+                      <div class="mb-3">
+                        <small class="text-muted">
+                          <i class="fas fa-users me-1"></i>
+                          Participantes: {{ reunion.participantes.count|add:1 }}
+                        </small>
+                      </div>
+                      
+                      <div class="d-grid gap-2">
+                        {% if reunion.esta_activa_ahora %}
+                          <a href="{% url 'unirse-reunion' reunion.id %}" class="btn btn-success">
+                            <i class="fas fa-video me-1"></i>Unirse a la Videollamada
+                          </a>
+                        {% else %}
+                          <button class="btn btn-outline-secondary" disabled title="Reunión programada para {{ reunion.fecha_reunion|date:'d/m/Y' }} {{ reunion.hora_inicio|time:'H:i' }}">
+                            <i class="fas fa-clock me-1"></i>Programada
+                          </button>
+                        {% endif %}
+                        
+                        {% if reunion.organizador == user %}
+                          <div class="btn-group" role="group">
+                            <a href="{% url 'editar-reunion' reunion.id %}" class="btn btn-outline-primary btn-sm">
+                              <i class="fas fa-edit me-1"></i>Editar
+                            </a>
+                            <a href="{% url 'eliminar-reunion' reunion.id %}" class="btn btn-outline-danger btn-sm">
+                              <i class="fas fa-trash me-1"></i>Eliminar
+                            </a>
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="alert alert-info text-center">
+              <i class="fas fa-info-circle me-2"></i>
+              No tienes reuniones programadas actualmente.
+              <div class="mt-3">
+                <a href="{% url 'crear-reunion' %}" class="btn btn-primary">
+                  <i class="fas fa-plus me-2"></i>Crear tu Primera Reunión
+                </a>
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- Botón de navegación -->
+          <div class="text-center mt-4">
+            <a href="{% url 'user_space' %}" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-2"></i>
+              Volver al Portal Principal
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+{% endblock content %}

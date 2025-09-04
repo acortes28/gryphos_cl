@@ -146,4 +146,11 @@ urlpatterns = [
     path('asignatura/<int:asignatura_id>/editar/', views.asignatura_edit, name='asignatura-edit'),
     path('asignatura/<int:asignatura_id>/eliminar/', views.asignatura_delete, name='asignatura-delete'),
     path('asignatura/<int:asignatura_id>/copiar-evaluacion/', views.copiar_evaluacion_asignatura, name='copiar-evaluacion-asignatura'),
+    
+    # Reuniones URLs
+    path('reuniones/', views.reuniones_list, name='reuniones-list'),
+    path('reuniones/crear/', views.crear_reunion, name='crear-reunion'),
+    path('reuniones/<int:reunion_id>/editar/', views.editar_reunion, name='editar-reunion'),
+    path('reuniones/<int:reunion_id>/eliminar/', views.eliminar_reunion, name='eliminar-reunion'),
+    path('reuniones/<int:reunion_id>/unirse/', views.unirse_reunion, name='unirse-reunion'),
 ]

@@ -5,12 +5,12 @@ from django.db import models
 import time
 import re
 import json
-from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm, EntregaForm, TicketSoporteForm, ComentarioTicketForm, TicketSoporteAdminForm, RecursoForm
+from .forms import LoginForm, RegistrationForm, UserPasswordResetForm, UserSetPasswordForm, UserPasswordChangeForm, CursoCapacitacionForm, PostForm, CommentForm, BlogPostForm, EvaluacionForm, CalificacionForm, EntregaForm, TicketSoporteForm, ComentarioTicketForm, TicketSoporteAdminForm, RecursoForm, ReunionForm
 from django.contrib.auth import logout
 from django.contrib.auth import views as auth_views
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket, Asignatura, Recurso, ObjetivoAprendizaje
+from .models import RegistrationLink, Post, Comment, Curso, BlogPost, InscripcionCurso, Evaluacion, Calificacion, Entrega, TicketSoporte, ClasificacionTicket, SubclasificacionTicket, Rubrica, CriterioRubrica, Esperable, ResultadoRubrica, PuntajeCriterio, CustomUser, ComentarioTicket, Asignatura, Recurso, ObjetivoAprendizaje, Reunion
 from django.http import JsonResponse, HttpResponseRedirect
 from django.core.mail import send_mail
 from django.contrib import messages
@@ -452,8 +452,18 @@ def portal_cliente(request):
         cursos_usuario = request.user.cursos.all()
         logger.debug(f"Usuario {request.user.username} tiene {cursos_usuario.count()} cursos")
         
+        # Obtener reuniones si el usuario es staff/admin
+        reuniones_usuario = []
+        if request.user.is_staff or request.user.is_superuser:
+            reuniones_usuario = Reunion.objects.filter(
+                models.Q(organizador=request.user) | models.Q(participantes=request.user),
+                activa=True
+            ).distinct().order_by('fecha_reunion', 'hora_inicio')
+            logger.debug(f"Usuario {request.user.username} tiene {reuniones_usuario.count()} reuniones")
+        
         context = {
             'cursos_usuario': cursos_usuario,
+            'reuniones_usuario': reuniones_usuario,
             'request': request
         }
         
@@ -7725,3 +7735,200 @@ def asignatura_delete(request, asignatura_id):
     }
     
     return render(request, 'pages/asignatura_delete.html', context)
+
+
+@login_required
+def reuniones_list(request):
+    """
+    Vista para listar las reuniones del usuario staff/admin
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    # Obtener reuniones donde el usuario es organizador o participante
+    reuniones = Reunion.objects.filter(
+        models.Q(organizador=request.user) | models.Q(participantes=request.user),
+        activa=True
+    ).distinct().order_by('fecha_reunion', 'hora_inicio')
+    
+    context = {
+        'reuniones': reuniones,
+        'page_title': 'Mis Reuniones',
+    }
+    
+    return render(request, 'pages/reuniones_list.html', context)
+
+
+@login_required
+def crear_reunion(request):
+    """
+    Vista para crear una nueva reunión
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    if request.method == 'POST':
+        form = ReunionForm(request.POST, organizador=request.user)
+        if form.is_valid():
+            reunion = form.save()
+            messages.success(request, f'Reunión "{reunion.nombre}" creada exitosamente.')
+            return redirect('reuniones-list')
+    else:
+        form = ReunionForm(organizador=request.user)
+    
+    context = {
+        'form': form,
+        'page_title': 'Crear Nueva Reunión',
+    }
+    
+    return render(request, 'pages/crear_reunion.html', context)
+
+
+@login_required
+def editar_reunion(request, reunion_id):
+    """
+    Vista para editar una reunión existente
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    reunion = get_object_or_404(Reunion, id=reunion_id, activa=True)
+    
+    # Solo el organizador puede editar la reunión
+    if reunion.organizador != request.user:
+        messages.error(request, 'Solo el organizador puede editar esta reunión.')
+        return redirect('reuniones-list')
+    
+    if request.method == 'POST':
+        form = ReunionForm(request.POST, instance=reunion, organizador=request.user)
+        if form.is_valid():
+            reunion = form.save()
+            messages.success(request, f'Reunión "{reunion.nombre}" actualizada exitosamente.')
+            return redirect('reuniones-list')
+    else:
+        form = ReunionForm(instance=reunion, organizador=request.user)
+    
+    context = {
+        'form': form,
+        'reunion': reunion,
+        'page_title': f'Editar Reunión: {reunion.nombre}',
+    }
+    
+    return render(request, 'pages/editar_reunion.html', context)
+
+
+@login_required
+def eliminar_reunion(request, reunion_id):
+    """
+    Vista para eliminar una reunión
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    reunion = get_object_or_404(Reunion, id=reunion_id, activa=True)
+    
+    # Solo el organizador puede eliminar la reunión
+    if reunion.organizador != request.user:
+        messages.error(request, 'Solo el organizador puede eliminar esta reunión.')
+        return redirect('reuniones-list')
+    
+    if request.method == 'POST':
+        nombre_reunion = reunion.nombre
+        reunion.activa = False  # Marcar como inactiva en lugar de eliminar
+        reunion.save()
+        messages.success(request, f'Reunión "{nombre_reunion}" eliminada exitosamente.')
+        return redirect('reuniones-list')
+    
+    context = {
+        'reunion': reunion,
+        'page_title': f'Eliminar Reunión: {reunion.nombre}',
+    }
+    
+    return render(request, 'pages/eliminar_reunion.html', context)
+
+
+@login_required
+def unirse_reunion(request, reunion_id):
+    """
+    Vista para unirse a una reunión específica con JWT token
+    """
+    if not (request.user.is_staff or request.user.is_superuser):
+        messages.error(request, 'No tienes permisos para acceder a esta sección.')
+        return redirect('portal-cliente')
+    
+    logger.info(f"Intento de unirse a reunión {reunion_id} - Usuario: {request.user.username}")
+    logger.debug(f"IP del usuario: {request.META.get('REMOTE_ADDR', 'desconocida')}")
+    
+    try:
+        # Obtener la reunión
+        logger.debug(f"Buscando reunión con ID: {reunion_id}")
+        reunion = Reunion.objects.get(id=reunion_id, activa=True)
+        logger.debug(f"Reunión encontrada: {reunion}")
+        
+        # Verificar que el usuario pueda unirse a la reunión
+        logger.debug(f"Verificando acceso del usuario {request.user.username} a la reunión {reunion.nombre}")
+        if not reunion.puede_unirse(request.user):
+            logger.warning(f"Acceso denegado: Usuario {request.user.username} no puede unirse a la reunión {reunion.nombre}")
+            messages.error(request, 'No tienes acceso a esta reunión.')
+            return redirect('reuniones-list')
+        
+        logger.debug(f"Acceso verificado: Usuario {request.user.username} puede unirse a la reunión {reunion.nombre}")
+        
+        # Verificar que la reunión esté activa ahora
+        logger.debug(f"Verificando si la reunión {reunion_id} está activa ahora")
+        if not reunion.esta_activa_ahora():
+            logger.warning(f"Reunión {reunion_id} no está activa en este momento para usuario {request.user.username}")
+            messages.warning(request, 'Esta reunión no está activa en este momento.')
+            return redirect('reuniones-list')
+        
+        logger.debug(f"Reunión {reunion_id} está activa ahora para usuario {request.user.username}")
+        
+        # Generar token JWT para la reunión
+        logger.debug(f"Generando token JWT para reunión {reunion_id}")
+        from urllib.parse import urlparse
+        parsed_url = urlparse(reunion.link_videollamada)
+        room_name = parsed_url.path.strip('/').split('/')[-1]
+        token_response = generate_jitsi_token(request, room_name=room_name, user=request.user)
+        
+        if token_response.status_code != 200:
+            logger.error(f"Error generando JWT para reunión {reunion_id}: {token_response.content}")
+            messages.error(request, 'Error al generar el token de acceso. Intenta nuevamente.')
+            return redirect('reuniones-list')
+        
+        # Extraer el token del JsonResponse
+        import json
+        token_data = json.loads(token_response.content.decode('utf-8'))
+        jwt_token = token_data.get('token')
+        
+        if not jwt_token:
+            logger.error(f"No se recibió token JWT para reunión {reunion_id}")
+            messages.error(request, 'Error al obtener el token de acceso.')
+            return redirect('reuniones-list')
+        
+        logger.info(f"Token JWT generado exitosamente para usuario {request.user.username} en reunión {reunion_id}")
+        
+        # Crear contexto para el template
+        context = {
+            'reunion': reunion,
+            'jwt_token': jwt_token,
+            'link_videollamada': reunion.link_videollamada,
+            'page_title': f'Unirse a: {reunion.nombre}',
+        }
+        
+        return render(request, 'pages/unirse_reunion.html', context)
+        
+    except Reunion.DoesNotExist:
+        logger.warning(f"Reunión {reunion_id} no encontrada para usuario {request.user.username}")
+        messages.error(request, 'La reunión no existe o no está disponible.')
+        return redirect('reuniones-list')
+        
+    except Exception as e:
+        logger.error(f"Error inesperado al unirse a reunión {reunion_id}: {str(e)}")
+        logger.error(f"Tipo de error: {type(e).__name__}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        messages.error(request, 'Error interno del servidor. Intenta nuevamente.')
+        return redirect('reuniones-list')

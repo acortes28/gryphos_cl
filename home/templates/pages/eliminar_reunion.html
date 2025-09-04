@@ -1,0 +1,95 @@
+{% extends 'layouts/base_background.html' %}
+{% load static %}
+{% block title %} Gryphos Consulting - Eliminar Reunión {% endblock title %}
+{% block body %} class="about-us bg-gray-200" {% endblock body %}
+{% block content %}
+
+<header class="bg-gradient-dark">
+  <div class="page-header min-vh-50" style="background-image: url('{% static 'img/bggryphos-small.jpg' %}');">
+    <span class="mask bg-gradient-dark opacity-6"></span>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 text-center mx-auto my-auto">
+          <h1 class="text-white">Eliminar Reunión</h1>
+          <h3 class="text-white mb-0">
+            <i class="fas fa-trash me-2"></i>
+            {{ reunion.nombre }}
+          </h3>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="card card-body blur shadow-blur mx-3 mx-md-4 mt-n6">
+  <section>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+          <!-- Información de la reunión -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="fas fa-info-circle me-2"></i>
+                Información de la Reunión
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Fecha:</strong> {{ reunion.fecha_reunion|date:"d/m/Y" }}</p>
+                  <p><strong>Hora:</strong> {{ reunion.hora_inicio|time:'H:i' }} - {{ reunion.hora_fin|time:'H:i' }}</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Organizador:</strong> {{ reunion.organizador.get_full_name|default:reunion.organizador.username }}</p>
+                  <p><strong>Participantes:</strong> {{ reunion.participantes.count|add:1 }}</p>
+                </div>
+              </div>
+              {% if reunion.descripcion %}
+                <div class="mt-3">
+                  <p><strong>Descripción:</strong></p>
+                  <p class="text-muted">{{ reunion.descripcion }}</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Advertencia -->
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>¡Advertencia!</strong> Esta acción no se puede deshacer. 
+            La reunión será eliminada permanentemente y todos los participantes perderán acceso a ella.
+          </div>
+
+          <!-- Formulario de confirmación -->
+          <form method="post">
+            {% csrf_token %}
+            <div class="text-center">
+              <button type="submit" class="btn btn-danger btn-lg me-3">
+                <i class="fas fa-trash me-2"></i>
+                Sí, Eliminar Reunión
+              </button>
+              <a href="{% url 'reuniones-list' %}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-times me-2"></i>
+                Cancelar
+              </a>
+            </div>
+          </form>
+
+          <!-- Información adicional -->
+          <div class="alert alert-info mt-4">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Alternativas:</strong>
+            <ul class="mb-0 mt-2">
+              <li>Puedes <a href="{% url 'editar-reunion' reunion.id %}">editar la reunión</a> en lugar de eliminarla</li>
+              <li>Considera cambiar la fecha o hora si es necesario</li>
+              <li>Los participantes pueden ser notificados de los cambios</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+{% endblock content %}

@@ -9,7 +9,7 @@ from .models import Post, Comment
 from .models import BlogPost, Curso
 from .models import Evaluacion, Calificacion, Entrega
 from django.contrib.auth import get_user_model
-from .models import TicketSoporte, ClasificacionTicket, ComentarioTicket, Recurso
+from .models import TicketSoporte, ClasificacionTicket, ComentarioTicket, Recurso, Reunion
 
 User = get_user_model()
 
@@ -965,3 +965,135 @@ class RecursoForm(forms.ModelForm):
             recurso.save()
         
         return recurso
+
+
+class ReunionForm(forms.ModelForm):
+    """
+    Formulario para crear y editar reuniones entre usuarios staff/admin
+    """
+    class Meta:
+        model = Reunion
+        fields = ['nombre', 'participantes', 'fecha_reunion', 'hora_inicio', 'hora_fin', 'link_videollamada', 'descripcion']
+        widgets = {
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre de la reunión'
+            }),
+            'participantes': forms.SelectMultiple(attrs={
+                'class': 'form-control',
+                'size': '5'
+            }),
+            'fecha_reunion': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'hora_inicio': forms.TimeInput(attrs={
+                'class': 'form-control',
+                'type': 'time'
+            }),
+            'hora_fin': forms.TimeInput(attrs={
+                'class': 'form-control',
+                'type': 'time'
+            }),
+            'link_videollamada': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://meet.jit.si/sala-reunion'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Descripción de la reunión (opcional)...'
+            })
+        }
+        labels = {
+            'nombre': 'Nombre de la Reunión',
+            'participantes': 'Participantes',
+            'fecha_reunion': 'Fecha de la Reunión',
+            'hora_inicio': 'Hora de Inicio',
+            'hora_fin': 'Hora de Fin',
+            'link_videollamada': 'Enlace de Videollamada',
+            'descripcion': 'Descripción (Opcional)'
+        }
+        help_texts = {
+            'nombre': 'Nombre descriptivo de la reunión',
+            'participantes': 'Selecciona los usuarios staff/admin que participarán',
+            'fecha_reunion': 'Fecha en que se realizará la reunión',
+            'hora_inicio': 'Hora de inicio de la reunión',
+            'hora_fin': 'Hora de finalización de la reunión',
+            'link_videollamada': 'Enlace de la videollamada (Jitsi Meet, Zoom, etc.)',
+            'descripcion': 'Descripción adicional de la reunión'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.organizador = kwargs.pop('organizador', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filtrar solo usuarios staff/admin para participantes
+        staff_users = User.objects.filter(
+            models.Q(is_staff=True) | models.Q(is_superuser=True)
+        ).exclude(id=self.organizador.id if self.organizador else None).order_by('first_name', 'last_name', 'username')
+        
+        self.fields['participantes'].queryset = staff_users
+        self.fields['participantes'].choices = [
+            (user.id, user.get_full_name() or user.username) for user in staff_users
+        ]
+    
+    def clean_hora_fin(self):
+        """Validar que la hora de fin sea posterior a la hora de inicio"""
+        hora_inicio = self.cleaned_data.get('hora_inicio')
+        hora_fin = self.cleaned_data.get('hora_fin')
+        
+        if hora_inicio and hora_fin and hora_inicio >= hora_fin:
+            raise forms.ValidationError('La hora de fin debe ser posterior a la hora de inicio.')
+        
+        return hora_fin
+    
+    def clean_fecha_reunion(self):
+        """Validar que la fecha de reunión no sea en el pasado"""
+        from django.utils import timezone
+        
+        fecha_reunion = self.cleaned_data.get('fecha_reunion')
+        hoy = timezone.now().date()
+        
+        if fecha_reunion and fecha_reunion < hoy:
+            raise forms.ValidationError('La fecha de la reunión no puede ser en el pasado.')
+        
+        return fecha_reunion
+    
+    def clean_link_videollamada(self):
+        """Validar que el enlace de videollamada sea válido"""
+        link = self.cleaned_data.get('link_videollamada')
+        
+        if not link:
+            raise forms.ValidationError('El enlace de videollamada es obligatorio.')
+        
+        # Validaciones básicas de URL
+        if not link.startswith(('http://', 'https://')):
+            raise forms.ValidationError('El enlace debe comenzar con http:// o https://')
+        
+        return link
+    
+    def clean(self):
+        """Validación personalizada del formulario"""
+        cleaned_data = super().clean()
+        
+        # Verificar que el organizador sea staff/admin
+        if self.organizador and not (self.organizador.is_staff or self.organizador.is_superuser):
+            raise forms.ValidationError('El organizador debe ser un usuario staff o admin.')
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """Guardar la reunión con el organizador"""
+        reunion = super().save(commit=False)
+        
+        # Asignar el organizador antes de guardar
+        if self.organizador:
+            reunion.organizador = self.organizador
+        
+        if commit:
+            reunion.save()
+            # Guardar los participantes
+            self.save_m2m()
+        
+        return reunion
